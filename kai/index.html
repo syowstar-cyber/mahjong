@@ -6,6 +6,17 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
 <title>組み合わせ</title>
+<script>
+// 会ごとのホーム画面のアプリ（manifest とアイコン）。会は URL の ?g=（付けなければ halu）。読み込みの途中で書き出す＝ブラウザが最初から見つけられる
+(function () {
+  var g = new URLSearchParams(location.search).get('g') || 'halu';
+  if (!/^[a-z0-9-]{1,20}$/.test(g)) return;
+  var b = 'g/' + g + '/';
+  document.write('<link rel="manifest" href="' + b + 'manifest.json"><link rel="apple-touch-icon" href="' + b + 'icon-180.png"><link rel="icon" type="image/png" href="' + b + 'icon-192.png">');
+})();
+</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 :root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
 *{box-sizing:border-box}
@@ -91,6 +102,16 @@ const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
 // ページ間のリンクにも会を付ける（halu は付けない）
 document.querySelectorAll('.pnav a').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
+function applyTheme(c) {
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
+    document.documentElement.style.setProperty('--accent', c.color);
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', c.color);
+  }
+  let t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if (!t) { t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; document.head.appendChild(t); }
+  t.content = c.short || c.group || c.title || '';
+}
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';
@@ -207,6 +228,7 @@ async function load() {
   try { k = await getJson(CONF + 'kumiawase.json'); } catch (e) { k = null; }
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
   CFG = c; KUMI = k;
+  applyTheme(c);
   const api = String(c.api || '').trim();
   if (api) {
     try { const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai)); if (j.ok && j.data && j.data.kai === c.kai) { ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : ''; } }
@@ -218,6 +240,8 @@ async function load() {
 }
 $('reload').addEventListener('click', load);
 load();
+// ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
+if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 裏から戻ったとき、2分以上たっていれば読み直す（当日の組み直しに気づけるように）
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LAST_LOAD >= 120000) load(); });
 </script>
