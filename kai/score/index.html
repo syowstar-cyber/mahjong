@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>Halu杯 点数</title>
+<title>点数</title>
 <style>
 :root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
 *{box-sizing:border-box}
@@ -68,7 +68,7 @@ summary{cursor:pointer;font-weight:700}
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 Halu杯 点数</h1>
+    <h1 id="ttl">🀄 点数</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a></nav>
@@ -131,12 +131,19 @@ summary{cursor:pointer;font-weight:700}
 </div>
 
 <script>
-// 普段の回（3麻・4麻）の点数ページ。回ごとに変わるものは ../taikai.json（大会設定）と ../kumiawase.json（組み合わせ）だけで、
+// 普段の回（3麻・4麻）の点数ページ。回ごとに変わるものは会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ）だけで、
 // このページは触らない（kai/README.md）。2つのファイルと受け口は、読み込みのたびにキャッシュを使わず読み直す
 // （当日に組み直して push したとき、1〜2分で全員の画面に出すため）
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
+// 会（g）。URL の ?g=（英小文字・数字・-）で選ぶ。付けなければ halu（Halu杯）。設定と組み合わせは kai/g/<会>/ に置く
+const G = new URLSearchParams(location.search).get('g') || 'halu';
+const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
+// 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
+const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
+// ページ間のリンクにも会を付ける（halu は付けない）
+document.querySelectorAll('.pnav a').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
 const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP');
@@ -363,7 +370,7 @@ function fillTables() {
   Object.keys(recsOf(r)).forEach(k => { if (!list.some(t => String(t.no) === k)) list.push({ no: Number(k), label: (isFinal(r) ? '決勝 ' + k + '卓' : k + '卓') + '（表にない卓）' }); });
   list.forEach(t => qtable.appendChild(new Option(t.label + (recOf(r, t.no) ? '（入力済み）' : ''), String(t.no))));
   let pick = keep;
-  try { if (!pick) pick = localStorage.getItem('halukai:table') || ''; } catch (e) {}
+  try { if (!pick) pick = localStorage.getItem('halukai:table:' + G) || ''; } catch (e) {}
   if ([...qtable.options].some(o => o.value === pick)) qtable.value = pick;
   fillSeats();
 }
@@ -495,7 +502,7 @@ function preview() {
   $('qwarn').textContent = warn.join(' ');
 }
 qround.addEventListener('change', () => { QROUND_TOUCHED = true; fillTables(); });
-qtable.addEventListener('change', () => { try { localStorage.setItem('halukai:table', qtable.value); } catch (e) {} fillSeats(); });
+qtable.addEventListener('change', () => { try { localStorage.setItem('halukai:table:' + G, qtable.value); } catch (e) {} fillSeats(); });
 
 async function post(body) {
   const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
@@ -667,13 +674,14 @@ function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 let LAST_LOAD = 0;
 async function load() {
   LAST_LOAD = Date.now();
+  if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
   let c;
-  try { c = await getJson('../taikai.json'); }
-  catch (e) { if (!CFG) setup('大会設定（taikai.json）を読めませんでした。少し待ってから、ページを開き直してください。'); return; }
+  try { c = await getJson('../' + CONF + 'taikai.json'); }
+  catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
   const errs = checkCfg(c);
   if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('／')); $('main').hidden = true; return; }
   let k = null; const notes = [];
-  try { k = await getJson('../kumiawase.json'); } catch (e) { k = null; }
+  try { k = await getJson('../' + CONF + 'kumiawase.json'); } catch (e) { k = null; }
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので使っていません。'); k = null; }
   applyCfg(c, k);
   $('main').hidden = false;

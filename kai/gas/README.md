@@ -17,11 +17,11 @@
 2. 「次のユーザーとして実行」＝**自分**、「アクセスできるユーザー」＝**全員**。
 3. 「デプロイ」→ 権限の確認が出たら自分のアカウントで許可する。
 4. 表示された**ウェブアプリの URL**（`https://script.google.com/macros/s/.../exec`）をコピーする。
-5. URL を Claude に渡す。Claude が `kai/taikai.json` の `api` に入れ、テスト送信をして消す。
+5. URL を Claude に渡す。Claude が各会の `kai/g/<会>/taikai.json` の `api` に入れ、テスト送信をして消す（受け口は1つをどの会でも使う。2026-10-25 にデプロイ済み）。
 
 ## 回ごとの作業（Claude が行う）
 
-- 前日: `taikai.json` の `kai` を新しい回の名前に替え、名簿を受け口へ送る（`{action:'roster', kai, names:{P1:'名前', …}}`）。
+- 前日: その会の `taikai.json` の `kai` を新しい回の名前（`<会>-YYYY-MM-DD`）に替え、名簿を `tools/meibo.py` で受け口へ送る。手順は `docs/普段の回_手順書.md`（リポ直下の docs）。
 - 終わった後: 名前を出しておく期間が過ぎたら、同じ送り方で名前を `''` にして消す。
 - 日本語を含むテスト送信は、Git Bash の `curl -d` だと文字コードが崩れる。scratchpad の python（urllib・UTF-8）で送る（第20回の学び）。
 

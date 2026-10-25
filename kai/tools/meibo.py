@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""普段の回の名簿を受け口へ送る・受け口を試す。受け口の URL と回の名前は kai/taikai.json の api と kai から読む。
+"""普段の回の名簿を受け口へ送る・受け口を試す。受け口の URL と回の名前は会ごとの kai/g/<会>/taikai.json の api と kai から読む。
 名前は受け口にだけ置く＝名簿のファイルは scratchpad に置き、リポに入れない。出力に名前は出さない（P番号と人数だけ）。
 
 使い方:
@@ -7,7 +7,7 @@
                                                渡した番号だけ直す（直したい人の行だけ送ってもよい）
   python kai/tools/meibo.py --show            … 受け口の名簿の人数と番号を出す
   python kai/tools/meibo.py --test            … 初回のテスト送信。回 setup-test に名簿と1卓を送り、読み直し、消して空に戻るかを見る
-  --config は試験用（既定は kai/taikai.json）
+  --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config は試験用（既定は kai/g/<会>/taikai.json）
 成功は1行目が OK で始まる。失敗は NG で始まり、終了コード 1"""
 import argparse, json, re, sys, urllib.parse, urllib.request
 from pathlib import Path
@@ -122,9 +122,13 @@ def main():
     ap.add_argument("file", nargs="?", help="名簿ファイル（1行1人「P1 呼び名」）")
     ap.add_argument("--show", action="store_true")
     ap.add_argument("--test", action="store_true")
-    ap.add_argument("--config", default=str(KAI / "taikai.json"))
+    ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
+    ap.add_argument("--config")
     a = ap.parse_args()
-    cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
+    if not re.fullmatch(r"[a-z0-9-]{1,20}", a.group):
+        raise SystemExit("--group は英小文字・数字・- で20字まで")
+    gdir = KAI / "g" / a.group
+    cfg = json.loads(Path(a.config or gdir / "taikai.json").read_text(encoding="utf-8"))
     api = Api(cfg)
     if a.test:
         test(api)

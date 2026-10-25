@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""普段の回の組み合わせ（kai/kumiawase.json）を作る。人数・半荘数・3麻か4麻か・卓番号は kai/taikai.json から読む。
+"""普段の回の組み合わせ（会ごとの kai/g/<会>/kumiawase.json）を作る。人数・半荘数・3麻か4麻か・卓番号は同じフォルダの taikai.json から読む。
 ・同じ相手とはできるだけ当たらない（当たる回数を全員にならす。下限より多くは当てない）
 ・抜け番は、それまでに多く打った人から回す（休む回数がそろう。続けて休む人はできるだけ出さない）
 ・席の風（東南西北）を、一人ひとりできるだけ均等にする
@@ -8,12 +8,12 @@
 
 使い方:
   python kai/tools/kumiawase.py                      … 作って成績を出すだけ（何も書かない）
-  python kai/tools/kumiawase.py --write              … 前日: kai/kumiawase.json に書く
+  python kai/tools/kumiawase.py --write              … 前日: kumiawase.json に書く（早川研は --group hayakawa を足す）
   python kai/tools/kumiawase.py --from 3 --absent P5 --write
                                                      … 当日: 3半荘目から組み直す（1・2半荘目はそのまま。P5 は抜けた）
                                                        増えた人は taikai.json の players を増やしてから
   python kai/tools/kumiawase.py --check              … いまの kumiawase.json を検査し、成績を出す
-  --config / --out は試験用（既定は kai/taikai.json と kai/kumiawase.json）"""
+  --group で会を選ぶ（既定は halu）。--config / --out は試験用（既定は kai/g/<会>/taikai.json と kumiawase.json）"""
 import argparse, hashlib, itertools, json, math, random, re, sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -355,8 +355,9 @@ def make(cfg, kumi_old, start, absent, seed):
 
 def main():
     ap = argparse.ArgumentParser(description="普段の回の組み合わせを作る")
-    ap.add_argument("--config", default=str(KAI / "taikai.json"))
-    ap.add_argument("--out", default=str(KAI / "kumiawase.json"))
+    ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
+    ap.add_argument("--config")
+    ap.add_argument("--out")
     ap.add_argument("--from", dest="start", type=int, default=1, help="この半荘から作る（前の半荘はそのまま）")
     ap.add_argument("--absent", default="", help="打たない人（カンマ区切り。例 P5,P9）")
     ap.add_argument("--seed", default="", help="別の組み合わせにしたいときの種")
@@ -364,6 +365,11 @@ def main():
     ap.add_argument("--check", action="store_true", help="いまの kumiawase.json を検査して成績を出す")
     ap.add_argument("--quiet", action="store_true", help="表と一人ずつの成績を出さない")
     a = ap.parse_args()
+    if not re.fullmatch(r"[a-z0-9-]{1,20}", a.group):
+        raise SystemExit("--group は英小文字・数字・- で20字まで")
+    gdir = KAI / "g" / a.group
+    a.config = a.config or str(gdir / "taikai.json")
+    a.out = a.out or str(gdir / "kumiawase.json")
     cfg = load(a.config)
     check_cfg(cfg)
     old = load(a.out)

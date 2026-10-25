@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>Halu杯 組み合わせ</title>
+<title>組み合わせ</title>
 <style>
 :root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
 *{box-sizing:border-box}
@@ -47,7 +47,7 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 Halu杯 組み合わせ</h1>
+    <h1 id="ttl">🀄 組み合わせ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">組み合わせ</a><a href="score/">点数</a></nav>
@@ -79,11 +79,18 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 </div>
 
 <script>
-// 普段の回の組み合わせページ。taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py が書く）を読んで出すだけで、
+// 普段の回の組み合わせページ。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py が書く）を読んで出すだけで、
 // 受け口からは名前（名簿）と入力済みの卓を読むだけ（何も送らない）。当日に組み直して push したら、開き直すか「最新に更新」で出る
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
+// 会（g）。URL の ?g=（英小文字・数字・-）で選ぶ。付けなければ halu（Halu杯）。設定と組み合わせは kai/g/<会>/ に置く
+const G = new URLSearchParams(location.search).get('g') || 'halu';
+const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
+// 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
+const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
+// ページ間のリンクにも会を付ける（halu は付けない）
+document.querySelectorAll('.pnav a').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';
@@ -91,7 +98,7 @@ const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
 const pnum = p => Number(String(p).slice(1));
 // 覚えた名前（端末の中）。今回の名簿にない番号なら、選んでいないのと同じに扱う（覚えたものは消さない）
 let SAVED = '', ME = '';
-try { SAVED = localStorage.getItem('halukai:me') || ''; } catch (e) {}
+try { SAVED = localStorage.getItem('halukai:me:' + G) || ''; } catch (e) {}
 
 function checkCfg(c) {
   const e = [];
@@ -180,7 +187,7 @@ function renderMine() {
 }
 $('me').addEventListener('change', () => {
   SAVED = $('me').value;
-  try { localStorage.setItem('halukai:me', SAVED); } catch (e) {}
+  try { localStorage.setItem('halukai:me:' + G, SAVED); } catch (e) {}
   render();
 });
 
@@ -189,14 +196,15 @@ async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 async function load() {
   LAST_LOAD = Date.now();
+  if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
   let c;
-  try { c = await getJson('taikai.json'); }
-  catch (e) { if (!CFG) setup('大会設定（taikai.json）を読めませんでした。少し待ってから、ページを開き直してください。'); return; }
+  try { c = await getJson(CONF + 'taikai.json'); }
+  catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
   const errs = checkCfg(c);
   if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('・')); $('main').hidden = true; return; }
   const notes = [];
   let k = null;
-  try { k = await getJson('kumiawase.json'); } catch (e) { k = null; }
+  try { k = await getJson(CONF + 'kumiawase.json'); } catch (e) { k = null; }
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
   CFG = c; KUMI = k;
   const api = String(c.api || '').trim();

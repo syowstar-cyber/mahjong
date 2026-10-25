@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-"""普段の回の結果を、保管庫に残す形（Markdown）で出す。受け口の点数と kai/taikai.json・kai/kumiawase.json から、
+"""普段の回の結果を、保管庫に残す形（Markdown）で出す。受け口の点数と会ごとの kai/g/<会>/taikai.json・kumiawase.json から、
 点数ページと同じ決まりで予選の集計と最終順位を計算する（決まりの正典は kai/README.md の「計算のきまり」）。
 名前は受け口の名簿から読む＝出力には名前が入る。公開リポに置かず、保管庫へだけ書く。
 
 使い方:
   python kai/tools/kekka.py                    … 受け口から読んで、標準出力に出す
   python kai/tools/kekka.py --data 控え.json   … 受け口の返事（GET の JSON）を保存したファイルから出す（試験用）
-  --config / --kumi は試験用（既定は kai/taikai.json と kai/kumiawase.json）"""
-import argparse, functools, json, sys, urllib.parse, urllib.request
+  --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config / --kumi は試験用（既定は kai/g/<会>/ の2つ）"""
+import argparse, functools, json, re, sys, urllib.parse, urllib.request
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -128,7 +128,7 @@ def build(cfg, kumi, data):
     out_by = {r: (kr.get(r) or {}).get("out", []) for r in prelim}
     out_last = (kr.get(prelim[-1]) or {}).get("out", [])
     # 出力
-    L = [f"# Halu杯 普段の回 {cfg.get('date') or cfg['kai']}", ""]
+    L = [f"# {cfg.get('group') or cfg.get('title', '')} {cfg.get('date') or cfg['kai']}", ""]
     rule = f"{M}麻・予選{R}半荘" + (f"・決勝{cfg['final']['tables']}卓{H}半荘" if H else "") + f"・{cfg['start']:,}点持ち{cfg['return']:,}点返し"
     L += [f"- {cfg.get('title', '')}（{rule}）。", f"- 出席 {len(players)}人。点数の最終更新 {data.get('updated') or '―'}。"]
     if out_last:
@@ -155,12 +155,16 @@ def build(cfg, kumi, data):
 
 def main():
     ap = argparse.ArgumentParser(description="普段の回の結果を保管庫に残す形で出す")
-    ap.add_argument("--config", default=str(KAI / "taikai.json"))
-    ap.add_argument("--kumi", default=str(KAI / "kumiawase.json"))
+    ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
+    ap.add_argument("--config")
+    ap.add_argument("--kumi")
     ap.add_argument("--data", help="受け口の返事（GET の JSON。data の中身か、{ok, data} のどちらでもよい）")
     a = ap.parse_args()
-    cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
-    kp = Path(a.kumi)
+    if not re.fullmatch(r"[a-z0-9-]{1,20}", a.group):
+        raise SystemExit("--group は英小文字・数字・- で20字まで")
+    gdir = KAI / "g" / a.group
+    cfg = json.loads(Path(a.config or gdir / "taikai.json").read_text(encoding="utf-8"))
+    kp = Path(a.kumi or gdir / "kumiawase.json")
     kumi = json.loads(kp.read_text(encoding="utf-8")) if kp.exists() else None
     if kumi and kumi.get("kai") != cfg["kai"]:
         kumi = None
