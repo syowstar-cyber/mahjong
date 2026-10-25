@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1d5c3f">
+<title>早川麻雀研究会 符計算と点数表</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#1d5c3f;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--man:#f3ece0;--hit:#d4480f;--ok:#1b6e2f}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 110px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card);font-size:.95rem}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+@media (min-width:560px){.pnav a{flex:1 1 0}}
+button{font-family:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0 8px;font-size:.92rem;color:var(--muted)}
+.link{background:none;border:0;color:var(--accent);text-decoration:underline;font-size:.92rem;padding:10px 4px;min-height:44px}
+
+/* 段（同じページの中で下に育つ） */
+.sec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;scroll-margin-top:8px;animation:in .22s ease-out}
+.sec[hidden]{display:none}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sec h2{display:flex;align-items:center;gap:10px;font-size:1.25rem;margin:0 0 4px}
+.sec h2 .n{flex:none;width:1.7em;height:1.7em;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-size:1rem;display:inline-flex;align-items:center;justify-content:center}
+.sec h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
+.lead{color:var(--muted);font-size:.93rem;margin:0 0 12px}
+.hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.92rem;margin:10px 0 0}
+.hint.strong{border-color:var(--hit);color:var(--hit);font-weight:700}
+.opts{display:grid;gap:10px}
+.g2{grid-template-columns:1fr 1fr}
+.g4{grid-template-columns:repeat(4,1fr)}
+.opt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:64px;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 8px;font-size:1rem;text-align:center}
+.opt:hover{border-color:var(--accent)}
+.opt .big{font-size:1.4rem;font-weight:800;line-height:1.2}
+.opt .s{font-size:.82rem;color:var(--muted);line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.opt.sel{border-color:var(--accent);background:var(--soft);box-shadow:0 0 0 2px var(--accent) inset}
+.opt.wide{flex-direction:row;justify-content:flex-start;gap:14px;text-align:left;padding:10px 14px}
+.opt.wide .txt{display:flex;flex-direction:column}
+.opt.wide .big{font-size:1.15rem}
+.opt.mid{min-height:56px}
+.opt.mid .big{font-size:1.2rem}
+.opt .plus{color:var(--hit);font-size:.85rem;font-weight:700;margin-left:6px}
+.sep{font-size:.85rem;color:var(--muted);font-weight:700;margin:14px 0 6px}
+/* 1行トグル（当てはまるときだけ押す） */
+.tg{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 14px;text-align:left;font-size:1rem;margin-top:10px}
+.tg .bx{flex:none;width:28px;height:28px;border:2px solid var(--line);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:#fff}
+.tg.sel{border-color:var(--accent);background:var(--soft);box-shadow:0 0 0 2px var(--accent) inset}
+.tg.sel .bx{background:var(--accent);border-color:var(--accent)}
+.tg .txt{display:flex;flex-direction:column;flex:1}
+.tg .big{font-weight:800;font-size:1.05rem;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere}
+.tg .s{font-size:.82rem;color:var(--muted);line-height:1.35}
+.tg .plus{color:var(--hit);font-weight:800;white-space:nowrap}
+/* 符の近道 */
+.fugrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.fugrid button{min-height:56px;border:2px solid var(--line);border-radius:12px;background:var(--card);font-size:1.1rem;font-weight:800}
+.fugrid button:disabled{opacity:.3;cursor:default}
+.fugrid button.sel{border-color:var(--accent);background:var(--soft);box-shadow:0 0 0 2px var(--accent) inset}
+.direct{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:10px;font-weight:700}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:.95rem;font-weight:700;min-height:48px}
+
+/* 牌 */
+.tiles{display:flex;align-items:flex-end;gap:2px;min-width:5.6em}
+.t{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:1.75em;height:2.4em;background:#fffdf6;border:1px solid #bdb8a8;border-radius:5px;box-shadow:0 2px 0 #cfc8b3;font-weight:800;line-height:1.05;font-size:1rem}
+.t b{color:#1c1c1c;font-size:.95em}
+.t i{font-style:normal;color:#b00020;font-size:.8em}
+.t.win{border:2px dashed var(--hit);background:#fdebe3;box-shadow:none;margin-left:6px}
+.t.win+.t.win{margin-left:2px}
+
+/* 刻子・カンのカウンター（名前1行＋その下に2〜8／1・9・字のカウンター） */
+.mrow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;background:var(--card)}
+.mrow.auto{background:var(--soft)}
+.mname{font-weight:700;line-height:1.3}
+.mname .s{display:block;font-weight:400;font-size:.82rem;color:var(--muted)}
+.mctrs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cell{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cell .lab{font-size:.82rem;color:var(--muted);font-weight:700}
+.ctr{display:inline-flex;align-items:center;gap:6px}
+.ctr button{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--card2);font-size:1.3rem;font-weight:800;line-height:1}
+.ctr button:disabled{opacity:.3;cursor:default}
+.ctr output{min-width:1.3em;text-align:center;font-size:1.2rem;font-weight:800}
+.cell .f{font-size:.75rem;color:var(--muted)}
+.meldsum{display:flex;justify-content:space-between;font-weight:700;margin-top:10px}
+
+/* 結果 */
+.res{background:var(--accent);color:var(--accent-fg);border-radius:16px;padding:16px;text-align:center;margin:0 0 10px}
+.res .who{font-size:1rem;opacity:.9}
+.res .pts{font-size:2.3rem;font-weight:800;line-height:1.2;margin:4px 0;font-variant-numeric:tabular-nums}
+.res .pts small{font-size:1rem;font-weight:700}
+.res .fh{font-size:1.05rem;font-weight:700}
+.res .tot{font-size:.9rem;opacity:.9}
+.res.wait{background:var(--card2);color:var(--fg);border:2px dashed var(--hit)}
+.res.wait .msg{font-weight:700;color:var(--hit);font-size:1.02rem}
+.premise{font-size:.92rem;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px}
+.bd{width:100%;border-collapse:collapse;font-size:.95rem}
+.bd td{padding:5px 4px;border-bottom:1px solid var(--line)}
+.bd td:last-child{text-align:right;font-weight:700;white-space:nowrap}
+.bd tr.sum td{border-bottom:0;border-top:2px solid var(--fg);font-size:1.05rem}
+.note{font-size:.9rem;color:var(--muted);margin:6px 0 0}
+.navrow{display:flex;gap:10px;margin-top:12px}
+.reset{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;font-weight:700;padding:13px 14px;font-size:1rem;min-height:48px}
+
+/* 点数表 */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.tabs button{min-height:48px;border:2px solid var(--line);background:var(--card);border-radius:10px;padding:6px 2px;font-weight:700;font-size:.95rem}
+.tabs button[aria-pressed=true]{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+.tw{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+table.pt{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}
+.pt th,.pt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:7px 2px;text-align:center;font-size:.95rem;line-height:1.25}
+.pt th:last-child,.pt td:last-child{border-right:0}
+.pt thead th{background:#ececE8;font-size:.9rem}
+.pt tbody th{background:#f4f4f1;font-size:.9rem;width:3.2em}
+.pt td.man{background:var(--man)}
+.pt td.na{color:#b4b4ae}
+.pt td .k,.pt td .o{display:block}
+.pt td .o{font-size:.85em;color:var(--muted)}
+.pt td .al{font-size:.75em}
+.pt th.ax{background:#f6d9cc;color:var(--hit)}
+.pt td.hit{background:var(--hit);color:#fff;font-weight:800;box-shadow:0 0 0 3px #fff inset;animation:pulse 1.2s ease-in-out 3}
+.pt td.hit .o{color:#fff}
+@keyframes pulse{50%{filter:brightness(1.25)}}
+.lt th{text-align:left;padding-left:10px !important;width:auto !important}
+.lt th .s{font-weight:400;font-size:.8rem;color:var(--muted);margin-left:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.85rem;color:var(--muted);margin:6px 2px}
+.legend .l1::before,.legend .l2::before{content:"";display:inline-block;width:.9em;height:.9em;border-radius:3px;vertical-align:-1px;margin-right:4px;border:1px solid var(--line)}
+.legend .l1::before{background:var(--hit)}
+.legend .l2::before{background:var(--man)}
+
+/* 画面下の固定バー */
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:rgba(247,247,245,.92);backdrop-filter:blur(6px);border-top:1px solid var(--line);transition:transform .2s,opacity .2s}
+#bar.off{transform:translateY(110%);opacity:0;pointer-events:none}
+#bar button{width:100%;max-width:728px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px;border:0;border-radius:12px;padding:8px 16px;font-size:1rem;font-weight:700;background:var(--accent);color:var(--accent-fg)}
+#bar button.guide{background:var(--card2);color:var(--fg);border:2px solid var(--accent)}
+#bar .pts{font-size:1.3rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+#bar .arrow{font-size:.9rem;opacity:.9;white-space:nowrap}
+footer{font-size:.82rem;color:var(--muted);margin-top:24px;border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:420px){
+  body{font-size:16px}
+  .opt .big{font-size:1.3rem}
+  .pt th,.pt td{font-size:.84rem;padding:6px 1px}
+  .res .pts{font-size:2rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🀄 早川麻雀研究会 符計算と点数表</h1>
+    <div class="sub">上から順に押すと、下に次の項目と点数が出ます。ページは切り替わりません。</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../rule/">ルール</a><a href="../score/">点数報告</a><a href="../fu/" aria-current="page">点数計算</a></nav>
+  <div class="top"><span>ふつうの手は 2〜3 回押すだけで点数が出ます。</span><button class="link" data-act="totable">点数表だけ見る ↓</button></div>
+
+  <section class="sec" id="s1"></section>
+  <section class="sec" id="s2"></section>
+  <section class="sec" id="s3" hidden></section>
+  <section class="sec" id="s4"></section>
+  <section class="sec" id="s5"></section>
+
+  <footer>
+    Mリーグ公式ルールに準拠して計算しています。<br>
+    切り上げ満貫あり（4翻30符・3翻60符は満貫）。連風牌（ダブトン・ダブナン）の雀頭は2符。<br>
+    数え役満はなし（11翻以上は三倍満）。役満の複合はあり。本場（1本300点）は含みません。
+  </footer>
+</div>
+<div id="bar"><button data-act="tobar"></button></div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const KAN = ['','一','二','三','四','五','六','七','八','九'];
+const LIMITS = {
+  man:  {name:'満貫',      base:2000,  han:'5翻'},
+  hane: {name:'跳満',      base:3000,  han:'6・7翻'},
+  bai:  {name:'倍満',      base:4000,  han:'8〜10翻'},
+  san:  {name:'三倍満',    base:6000,  han:'11翻以上'},
+  yaku: {name:'役満',      base:8000,  han:''},
+  yaku2:{name:'ダブル役満', base:16000, han:'役満2つ'}
+};
+const FUS = [20,25,30,40,50,60,70,80,90,100,110];
+const WHO = [
+  ['oya-ron',  '親 ロン', '東家・人の捨て牌で'],
+  ['oya-tsumo','親 ツモ', '東家・自分で引いて'],
+  ['ko-ron',   '子 ロン', '東家以外・人の捨て牌で'],
+  ['ko-tsumo', '子 ツモ', '東家以外・自分で引いて']
+];
+// open＝鳴いたときだけ出る行
+const MELDS = [
+  {k:'anko',  name:'暗刻（アンコ）',   short:'暗刻', sub:'自分でそろえた3枚同じ牌',             fu:4},
+  {k:'pon',   name:'明刻（ミンコ）',   short:'明刻', sub:'ポンした3枚同じ牌',                   fu:2,  open:true},
+  {k:'ankan', name:'暗槓（アンカン）', short:'暗槓', sub:'自分でそろえた4枚同じ牌',             fu:16},
+  {k:'minkan',name:'明槓（ミンカン）', short:'明槓', sub:'ポン・捨て牌からカンした4枚同じ牌', fu:8,  open:true}
+];
+const WAITS = {
+  ryan:  {name:'両面',     fu:0, tiles:[[3],[4]],     win:[2,5], s:'2つの牌で待つ'},
+  shan:  {name:'シャンポン',fu:0, tiles:[[5,5],[8,8]], win:[],    s:'同じ牌2枚が2組'},
+  kan:   {name:'カンチャン',fu:2, tiles:[[3],[5]],     win:[4],   s:'間の1枚'},
+  pen:   {name:'ペンチャン',fu:2, tiles:[[1],[2]],     win:[3],   s:'端の1枚'},
+  tanki: {name:'単騎',     fu:2, tiles:[[7]],         win:[7],   s:'アタマの1枚'}
+};
+
+const fresh = () => ({who:null, han:null, open:false, chiitoi:false, wait:'ryan', shanKind:null, headYaku:false,
+  melds:{anko_s:0,anko_y:0,pon_s:0,pon_y:0,ankan_s:0,ankan_y:0,minkan_s:0,minkan_y:0}, directFu:null, shortcut:false});
+let S = fresh();
+let tab = null;   // 点数表のタブを手で切り替えたとき
+
+const isNum = v => typeof v === 'number';
+const oya = () => S.who && S.who.startsWith('oya');
+const tsumo = () => S.who && S.who.endsWith('tsumo');
+const needFu = () => isNum(S.han);
+const chiitoiActive = () => needFu() && S.han >= 2 && S.chiitoi;
+const meldActive = m => !m.open || S.open;
+// シャンポンでそろった3枚: ロンは明刻・ツモは暗刻の扱い
+function shanAuto(){
+  if (S.wait !== 'shan' || !S.shanKind) return null;
+  const y = S.shanKind === 'y', ts = tsumo();
+  return {name:(ts ? 'ツモでそろった3枚（暗刻）' : 'ロンでそろった3枚（明刻の扱い）') + (y ? '・1・9・字' : '・2〜8'), fu:(ts ? 4 : 2) * (y ? 2 : 1)};
+}
+function meldCount(){ return MELDS.filter(meldActive).reduce((a,m)=>a+S.melds[m.k+'_s']+S.melds[m.k+'_y'],0) + (shanAuto() ? 1 : 0); }
+// 暗刻・暗槓の数（シャンポンをツモでそろえた3枚も暗刻）。4つは四暗刻（役満）なので3つまで
+const AN_MAX = 3;
+function anCount(){ return S.melds.anko_s + S.melds.anko_y + S.melds.ankan_s + S.melds.ankan_y + (shanAuto() && tsumo() ? 1 : 0); }
+function meldFu(){ return MELDS.filter(meldActive).reduce((a,m)=>a+S.melds[m.k+'_s']*m.fu+S.melds[m.k+'_y']*m.fu*2,0) + (shanAuto() ? shanAuto().fu : 0); }
+
+/* ---------- 計算 ---------- */
+function baseOf(han, fu){
+  if (!isNum(han)) return LIMITS[han].base;
+  const b = fu * Math.pow(2, han + 2);
+  return b >= 1920 ? 2000 : b;   // 4翻30符・3翻60符は切り上げ満貫
+}
+const up = x => Math.ceil(x/100)*100;
+function pay(base, o, ts){
+  if (!ts) return {ron: up(base*(o?6:4))};
+  if (o) return {all: up(base*2)};
+  return {ko: up(base), oyaP: up(base*2)};
+}
+function exists(han, fu, ts){
+  if (fu === 20 && (!ts || han === 1)) return false;
+  if (fu === 25 && (han === 1 || (ts && han === 2))) return false;
+  return true;
+}
+const fmt = n => n.toLocaleString('ja-JP');
+const hanLabel = h => isNum(h) ? h+'翻' : LIMITS[h].name;
+
+// 結果の状態: need12（1・2が未回答）／need（あと1つ）／warn（矛盾）／ok
+function evaluate(){
+  if (!S.who || S.han === null) return {state:'need12'};
+  const o = oya(), ts = tsumo();
+  if (!needFu()){
+    const base = LIMITS[S.han].base;
+    return {state:'ok', o, ts, fu:null, base, pay:pay(base,o,ts), items:[], notes:[], defaults:[]};
+  }
+  let fu, items = [], notes = [], defaults = [];
+  if (S.directFu){
+    fu = S.directFu; items = [['符を直接指定', fu]];
+  } else if (chiitoiActive()){
+    if (ts && S.han === 2) return {state:'warn', msg:'七対子（チートイツ）のツモは3翻以上のはずです（七対子2翻＋自摸（ツモ）1翻）。翻数を確かめてください。'};
+    fu = 25; items = [['七対子（チートイツ）', 25]]; notes.push('七対子は25符で固定です（切り上げません）。');
+  } else {
+    if (S.wait === 'shan' && !S.shanKind) return {state:'need', msg:'あと1つ：シャンポンでそろった3枚の牌を選んでください。', short:'あと1つ：そろった3枚の牌'};
+    const pinfu = !S.open && S.wait === 'ryan' && !S.headYaku && meldCount() === 0;
+    if (pinfu && ts){
+      if (S.han < 2) return {state:'warn', msg:'この形のツモは平和（ピンフ）がつき、2翻以上のはずです（平和1翻＋自摸（ツモ）1翻）。翻数を確かめてください。'};
+      fu = 20; items = [['副底', 20]]; notes.push('平和（ピンフ）ツモはツモの2符をつけず、20符です。');
+    } else {
+      items.push(['副底', 20]);
+      if (!S.open && !ts) items.push(['門前でロン', 10]);
+      if (ts) items.push(['ツモ', 2]);
+      if (WAITS[S.wait].fu) items.push([WAITS[S.wait].name + '待ち', 2]);
+      if (S.headYaku) items.push(['役牌（ヤクハイ）のアタマ', 2]);
+      const auto = shanAuto(); if (auto) items.push([auto.name, auto.fu]);
+      MELDS.filter(meldActive).forEach(m => {
+        [['_s','2〜8',1],['_y','1・9・字',2]].forEach(([sf,lab,mul]) => {
+          const n = S.melds[m.k+sf];
+          if (n) items.push([`${m.short}（${lab}）×${n}`, n*m.fu*mul]);
+        });
+      });
+      const raw = items.reduce((a,x)=>a+x[1],0);
+      fu = Math.ceil(raw/10)*10;
+      if (raw !== fu) notes.push(`${raw}符 → 1の位を切り上げて ${fu}符。`);
+      if (fu === 20 && !ts){ fu = 30; notes.push('鳴いた平和（ピンフ）の形（20符）のロンは30符にします。'); }
+      if (fu > 110) fu = 110;
+    }
+    if (!S.open) defaults.push('鳴いていない');
+    if (S.wait === 'ryan') defaults.push('両面待ち');
+    if (!S.headYaku) defaults.push('アタマは役牌でない');
+    if (meldCount() === 0) defaults.push('刻子・カンなし');
+  }
+  if (!exists(S.han, fu, ts)) return {state:'warn', msg:`${fu}符 ${S.han}翻の組み合わせは点数表にありません。翻数か符を確かめてください。`};
+  const base = baseOf(S.han, fu);
+  return {state:'ok', o, ts, fu, base, pay:pay(base,o,ts), items, notes, defaults, man: base === 2000};
+}
+
+/* ---------- 部品 ---------- */
+const tile = (n, win) => `<span class="t${win?' win':''}"><b>${KAN[n]}</b><i>萬</i></span>`;
+function opt(key, val, big, small, cls){
+  const sel = S[key] === val ? ' sel' : '';
+  return `<button class="opt${cls?' '+cls:''}${sel}" data-k="${key}" data-v="${val}"><span class="big">${big}</span>${small?`<span class="s">${small}</span>`:''}</button>`;
+}
+function toggle(key, big, small, plus){
+  const on = !!S[key];
+  return `<button class="tg${on?' sel':''}" data-t="${key}" aria-pressed="${on}"><span class="bx">${on?'✓':''}</span><span class="txt"><span class="big">${big}</span>${small?`<span class="s">${small}</span>`:''}</span>${plus?`<span class="plus">${plus}</span>`:''}</button>`;
+}
+
+/* ---------- 段1・段2 ---------- */
+function s1Html(){
+  return `<h2><span class="n">1</span>だれが、どうアガった？</h2>
+    <p class="lead">親＝その局の東家。ロン＝人の捨て牌で、ツモ＝自分で引いてアガり。</p>
+    <div class="opts g2">${WHO.map(([v,b,s]) => opt('who', v, b, s)).join('')}</div>`;
+}
+function s2Html(){
+  const nums = [1,2,3,4].map(h => opt('han', h, h, '翻')).join('');
+  const lim = Object.entries(LIMITS).map(([k,L]) => opt('han', k, L.name, L.han, 'mid')).join('');
+  return `<h2><span class="n">2</span>何翻？</h2>
+    <p class="lead">役とドラの合計。赤ドラ・裏ドラも足します。</p>
+    <div class="opts g4">${nums}</div>
+    <div class="sep">5翻以上（符はいりません）</div>
+    <div class="opts g2">${lim}</div>`;
+}
+
+/* ---------- 段3（1〜4翻のときだけ） ---------- */
+function s3Html(){
+  const ts = tsumo();
+  let body = '';
+  // 近道: 符を直接えらぶ
+  if (S.directFu){
+    body += `<div class="direct"><span>符を直接指定：${S.directFu}符</span><button class="ghost" data-act="undirect">質問にもどす</button></div>`;
+    return head() + body;
+  }
+  if (S.shortcut){
+    const grid = FUS.map(f => `<button data-fu="${f}" ${exists(S.han, f, ts)?'':'disabled'}>${f}符</button>`).join('');
+    body += `<div class="fugrid">${grid}</div><div class="navrow"><button class="ghost" data-act="shortcut" style="flex:1">とじる（質問で答える）</button></div>`;
+  } else {
+    body += `<button class="link" data-act="shortcut" style="padding-left:0">符がわかる人はこちら（符を直接えらぶ）</button>`;
+  }
+  // 3-1 手の形
+  body += `<h3>手の形</h3>
+    <div class="opts g2">${opt('open', false, '鳴いていない', '暗槓だけも含む' + (!ts ? '・ロンは+10符' : ''), 'mid')}${opt('open', true, '鳴いた', 'ポン・チー・明槓', 'mid')}</div>`;
+  if (S.han >= 2) body += toggle('chiitoi', '七対子（チートイツ）', '同じ牌2枚の組が7つ。鳴いていなくてもこちら', '25符固定');
+  if (chiitoiActive()) return head() + body + `<div class="hint">七対子は25符で決まりです。待ち・アタマ・刻子は聞きません。</div>`;
+  // 3-2 待ち
+  const waits = Object.entries(WAITS).map(([k,w]) => {
+    const t = w.tiles.map(g => g.map(n => tile(n)).join('')).join('<span style="width:6px"></span>') + w.win.map(n => tile(n,true)).join('');
+    return `<button class="opt wide${S.wait===k?' sel':''}" data-k="wait" data-v="${k}"><span class="tiles">${t}</span>
+      <span class="txt"><span class="big">${w.name}${w.fu?'<span class="plus">+2符</span>':''}</span><span class="s">${w.s}</span></span></button>`;
+  }).join('');
+  body += `<h3>待ちの形（点線がアガリ牌）</h3><div class="opts">${waits}</div>
+    <div class="hint">2通りに取れるときは、符が高くなる方（カンチャン・ペンチャン・単騎）を選べます。</div>`;
+  if (S.wait === 'shan'){
+    const fs = ts ? 4 : 2;
+    body += `<div class="hint${S.shanKind?'':' strong'}">シャンポンでそろった3枚の牌は？（${ts?'ツモなので暗刻':'ロンなので明刻'}の扱いで自動で足します）</div>
+      <div class="opts g2" style="margin-top:8px">${opt('shanKind','s','2〜8の牌',`+${fs}符`,'mid')}${opt('shanKind','y','1・9・字牌',`+${fs*2}符`,'mid')}</div>`;
+  }
+  // 3-3 アタマ
+  body += `<h3>アタマ（2枚の組）</h3>` + toggle('headYaku', 'アタマが役牌（ヤクハイ）', '白・発・中／場風（東場なら東）／自風（自分の席の風）。ダブ東・ダブ南も2符', '+2符');
+  // 3-4 刻子・カン
+  const cnt = meldCount(), auto = shanAuto();
+  const rows = MELDS.filter(meldActive).map(m => {
+    const c = y => {
+      const key = m.k + (y?'_y':'_s'), v = S.melds[key], fu = m.fu * (y?2:1);
+      return `<div class="cell"><span class="lab">${y?'1・9・字牌':'2〜8の牌'}</span><span class="ctr"><button data-m="${key}" data-d="-1" ${v<=0?'disabled':''} aria-label="減らす">−</button><output>${v}</output><button data-m="${key}" data-d="1" ${cnt>=4 || (!m.open && anCount()>=AN_MAX)?'disabled':''} aria-label="増やす">＋</button></span><span class="f">1つ ${fu}符</span></div>`;
+    };
+    return `<div class="mrow"><div class="mname">${m.name}<span class="s">${m.sub}</span></div><div class="mctrs">${c(false)}${c(true)}</div></div>`;
+  }).join('');
+  const autoRow = auto ? `<div class="mrow auto"><div class="mname">${auto.name}<span class="s">シャンポンの答えから自動で1つ（${auto.fu}符）。ここには入れません</span></div></div>` : '';
+  body += `<h3>同じ牌3枚・4枚の組</h3>
+    <p class="lead" style="margin-bottom:4px">123 のような並びは数えません。${S.open ? '' : '明刻・明槓の欄は「鳴いた」を押すと出ます。'}</p>
+    ${rows}${autoRow}
+    ${anCount()>AN_MAX ? '<div class="hint strong">暗刻と暗槓が合わせて4つあると四暗刻（スーアンコー・役満）です。2の「役満」を選んでください。</div>' : anCount()===AN_MAX ? '<p class="note">暗刻と暗槓は合わせて3つまでです（4つは四暗刻＝役満）。</p>' : ''}
+    <div class="meldsum"><span>3枚・4枚の組の符</span><span>${meldFu()}符</span></div>`;
+  return head() + body;
+
+  function head(){
+    return `<h2><span class="n">3</span>符が上がるものは？</h2>
+      <p class="lead">ふつうの手は何も押さなくてOK。当てはまるものだけ押すと、下の点数が変わります。</p>`;
+  }
+}
+
+/* ---------- 段4 結果 ---------- */
+function s4Html(ev){
+  if (ev.state === 'need12') return `<h2><span class="n">4</span>点数</h2><p class="lead" style="margin:0">1 と 2 を選ぶと、ここに点数が出ます。</p>`;
+  if (ev.state !== 'ok') return `<h2><span class="n">4</span>点数</h2><div class="res wait"><div class="msg">${ev.msg}</div></div>` + resetRow();
+  const {o, ts, fu, pay:p} = ev;
+  let pts, tot = '';
+  if (p.ron != null) pts = `${fmt(p.ron)}<small>点</small>`;
+  else if (p.all != null){ pts = `${fmt(p.all)}<small>点オール</small>`; tot = `子3人が ${fmt(p.all)}点ずつ（合計 ${fmt(p.all*3)}点）`; }
+  else { pts = `${fmt(p.ko)}<small>・</small>${fmt(p.oyaP)}<small>点</small>`; tot = `子が ${fmt(p.ko)}点ずつ・親が ${fmt(p.oyaP)}点（合計 ${fmt(p.ko*2+p.oyaP)}点）`; }
+  const fh = isNum(S.han) ? `${fu}符 ${S.han}翻${ev.man?'（満貫）':''}` : hanLabel(S.han) + (LIMITS[S.han].han ? `（${LIMITS[S.han].han}）` : '');
+  let html = `<h2><span class="n">4</span>点数</h2>
+    <div class="res" id="resCard"><div class="who">${o?'親':'子'}の${ts?'ツモ':'ロン'}</div><div class="pts">${pts}</div><div class="fh">${fh}</div>${tot?`<div class="tot">${tot}</div>`:''}</div>`;
+  if (ev.defaults.length) html += `<div class="premise">前提: ${ev.defaults.join('・')}。違えば 3 で直してください。</div>`;
+  if (isNum(S.han)){
+    const rows = ev.items.map(([l,f]) => `<tr><td>${l}</td><td>${f}符</td></tr>`).join('');
+    html += `<h3>符の内訳</h3><table class="bd">${rows}<tr class="sum"><td>合計</td><td>${fu}符</td></tr></table>${ev.notes.map(n=>`<p class="note">${n}</p>`).join('')}`;
+  }
+  return html + resetRow();
+  function resetRow(){ return `<div class="navrow"><button class="reset" data-act="reset">最初からやり直す</button></div>`; }
+}
+
+/* ---------- 段5 点数表 ---------- */
+const TABS = [['ko-ron','子 ロン'],['ko-tsumo','子 ツモ'],['oya-ron','親 ロン'],['oya-tsumo','親 ツモ']];
+function cellHtml(p){
+  if (p.ron != null) return String(p.ron);
+  if (p.all != null) return `${p.all}<span class="al">オール</span>`;
+  return `<span class="k">${p.ko}</span><span class="o">${p.oyaP}</span>`;
+}
+function s5Html(ev){
+  const hit = ev.state === 'ok' ? {tab:S.who, id: isNum(S.han) ? `c-${ev.fu}-${S.han}` : 'l-'+S.han} : null;
+  const t = tab || (hit ? hit.tab : (S.who || 'ko-ron'));
+  const o = t.startsWith('oya'), ts = t.endsWith('tsumo');
+  const show = hit && hit.tab === t ? hit.id : null;
+  const [ , hitFu, hitHan] = show && show.startsWith('c-') ? show.split('-') : [];
+  const tabs = TABS.map(([k,l]) => `<button data-tab="${k}" aria-pressed="${k===t}">${l}</button>`).join('');
+  let body = '';
+  FUS.forEach(fu => {
+    let tds = '';
+    for (let h = 1; h <= 4; h++){
+      const id = `c-${fu}-${h}`;
+      if (!exists(h, fu, ts)){ tds += `<td class="na">—</td>`; continue; }
+      const b = baseOf(h, fu);
+      const cls = [b === 2000 ? 'man' : '', id === show ? 'hit' : ''].join(' ').trim();
+      tds += `<td class="${cls}" id="${id}">${cellHtml(pay(b, o, ts))}</td>`;
+    }
+    body += `<tr><th class="${String(fu)===hitFu?'ax':''}">${fu}符</th>${tds}</tr>`;
+  });
+  const heads = [1,2,3,4].map(h => `<th class="${String(h)===hitHan?'ax':''}">${h}翻</th>`).join('');
+  const lrows = Object.entries(LIMITS).map(([k,L]) => {
+    const id = 'l-'+k;
+    return `<tr><th class="${id===show?'ax':''}">${L.name}<span class="s">${L.han}</span></th><td class="${id===show?'hit':''}" id="${id}">${cellHtml(pay(L.base, o, ts))}</td></tr>`;
+  }).join('');
+  const lead = show ? '色がついた欄があなたの点数です。' : (hit ? '回答と違う表を表示中です。' : '回答すると該当する欄に色がつきます。');
+  const tsNote = ts && !o ? '<span>上＝子1人の払い／下＝親の払い</span>' : '';
+  return `<h2><span class="n">5</span>点数表</h2><p class="lead" style="margin:0 0 4px">${lead}</p>
+    <div class="tabs" role="group" aria-label="表の切り替え">${tabs}</div>
+    <div class="legend">${show?'<span class="l1">あなたの点数</span>':''}<span class="l2">満貫</span>${tsNote}</div>
+    <div class="tw"><table class="pt"><thead><tr><th></th>${heads}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="tw" style="margin-top:10px"><table class="pt lt"><tbody>${lrows}</tbody></table></div>`;
+}
+
+/* ---------- 固定バー ---------- */
+function barHtml(ev){
+  const b = $('#bar button');
+  b.className = '';
+  if (ev.state === 'need12'){
+    b.className = 'guide';
+    b.innerHTML = `<span>${!S.who ? '1 だれが、どうアガったかを選んでください' : '2 何翻かを選んでください'}</span><span class="arrow">↑</span>`;
+    return;
+  }
+  if (ev.state !== 'ok'){
+    b.className = 'guide';
+    b.innerHTML = `<span>${ev.short || ev.msg.replace(/。.*$/, '')}</span><span class="arrow">結果へ ↓</span>`;
+    return;
+  }
+  const p = ev.pay, ptxt = p.ron != null ? `${fmt(p.ron)}点` : p.all != null ? `${fmt(p.all)}オール` : `${fmt(p.ko)}・${fmt(p.oyaP)}`;
+  const fh = isNum(S.han) ? `${ev.fu}符${S.han}翻` : hanLabel(S.han);
+  b.innerHTML = `<span>${ev.o?'親':'子'}${ev.ts?'ツモ':'ロン'}　${fh}</span><span class="pts">${ptxt}</span><span class="arrow">結果へ ↓</span>`;
+}
+
+/* ---------- 描画 ---------- */
+function render(){
+  const ev = evaluate();
+  $('#s1').innerHTML = s1Html();
+  $('#s2').innerHTML = s2Html();
+  const s3 = $('#s3');
+  s3.hidden = !needFu();
+  if (needFu()) s3.innerHTML = s3Html();
+  $('#s4').innerHTML = s4Html(ev);
+  $('#s5').innerHTML = s5Html(ev);
+  barHtml(ev);
+}
+// 見えていない段だけ、見出しが見える所まで寄せる（ページは切り替えない）
+function reveal(sel){
+  const el = $(sel); if (!el || el.hidden) return;
+  const r = el.getBoundingClientRect();
+  if (r.top < 0 || r.top > window.innerHeight - 160) el.scrollIntoView({block:'start', behavior:'smooth'});
+}
+function val(raw){ return raw === 'true' ? true : raw === 'false' ? false : /^\d+$/.test(raw) ? Number(raw) : raw; }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.k){
+    const k = b.dataset.k, v = val(b.dataset.v);
+    S[k] = v;
+    if (k === 'han' && !isNum(v)) S.directFu = null;
+    if (k === 'wait' && v !== 'shan') S.shanKind = null;
+    tab = null; render();
+    if (k === 'who' && S.han === null) reveal('#s2');
+    else if (k === 'han') reveal(isNum(v) ? '#s3' : '#s4');
+    else if (k === 'who' && !needFu()) reveal('#s4');
+    return;
+  }
+  if (b.dataset.t){ S[b.dataset.t] = !S[b.dataset.t]; render(); return; }
+  if (b.dataset.m){ const key = b.dataset.m; S.melds[key] = Math.max(0, S.melds[key] + Number(b.dataset.d)); render(); return; }
+  if (b.dataset.fu){ S.directFu = Number(b.dataset.fu); S.shortcut = false; render(); reveal('#s4'); return; }
+  if (b.dataset.tab){ tab = b.dataset.tab; const y = window.scrollY; render(); window.scrollTo(0, y); return; }
+  const act = b.dataset.act;
+  if (act === 'reset'){ S = fresh(); tab = null; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+  else if (act === 'shortcut'){ S.shortcut = !S.shortcut; render(); }
+  else if (act === 'undirect'){ S.directFu = null; render(); }
+  else if (act === 'totable'){ $('#s5').scrollIntoView({block:'start', behavior:'smooth'}); }
+  else if (act === 'tobar'){ const ev = evaluate(); $(ev.state === 'need12' ? (!S.who ? '#s1' : '#s2') : '#s4').scrollIntoView({block:'start', behavior:'smooth'}); }
+});
+
+// 結果の段が見えている間は固定バーを隠す
+new IntersectionObserver(es => { $('#bar').classList.toggle('off', es[0].isIntersecting); }, {threshold:0.25}).observe($('#s4'));
+
+render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>Halu杯 組み合わせ</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+label{display:block;font-weight:700;margin:0 0 4px}
+select{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card);table-layout:fixed}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top;word-break:keep-all;overflow-wrap:anywhere}
+th{background:#ececE8;font-weight:700}
+th:first-child,td:first-child{width:3.6em}
+tr:nth-child(even) td{background:var(--card2)}
+td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-shadow:inset 0 0 0 2px var(--accent)}
+#mine th:first-child,#mine td:first-child{width:5.6em}
+#mine th:nth-child(2),#mine td:nth-child(2),#mine th:nth-child(3),#mine td:nth-child(3){width:3.4em}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.small{color:var(--muted);font-size:.9rem}
+.hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+.warn{color:var(--ng);font-weight:700}
+.done{color:var(--ok);font-weight:700}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 Halu杯 組み合わせ</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">組み合わせ</a><a href="score/">点数</a></nav>
+
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <div id="remade" class="hint warn" hidden></div>
+  <h2>自分の席</h2>
+  <div class="card">
+    <label for="me">自分の名前</label>
+    <select id="me"></select>
+    <div id="mine" style="margin-top:10px"></div>
+  </div>
+
+  <h2>半荘ごとの組み合わせ</h2>
+  <div class="tools">
+    <button class="ghost" type="button" id="reload">最新に更新</button>
+    <span class="small" id="updated"></span>
+  </div>
+  <div id="rounds"></div>
+  <ul class="small" style="padding-left:1.3em;margin:12px 0">
+    <li>東が起家です。</li>
+    <li>抜け番の半荘は0ポイントです。</li>
+    <li id="finnote" hidden></li>
+  </ul>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">組み合わせ</a><a href="score/">点数</a></nav>
+</div>
+
+<script>
+// 普段の回の組み合わせページ。taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py が書く）を読んで出すだけで、
+// 受け口からは名前（名簿）と入力済みの卓を読むだけ（何も送らない）。当日に組み直して push したら、開き直すか「最新に更新」で出る
+const $ = id => document.getElementById(id);
+const WINDS = ['東', '南', '西', '北'];
+const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
+let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
+const nm = p => (p && ROSTER[p]) || '';
+const dn = p => nm(p) || p || '';
+const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
+const pnum = p => Number(String(p).slice(1));
+// 覚えた名前（端末の中）。今回の名簿にない番号なら、選んでいないのと同じに扱う（覚えたものは消さない）
+let SAVED = '', ME = '';
+try { SAVED = localStorage.getItem('halukai:me') || ''; } catch (e) {}
+
+function checkCfg(c) {
+  const e = [];
+  if (!c || typeof c !== 'object') return ['中身が読めません'];
+  if (!KAI_RE.test(String(c.kai || ''))) e.push('kai');
+  if (c.mode !== 3 && c.mode !== 4) e.push('mode');
+  if (!Number.isInteger(c.players) || c.players < 3 || c.players > 99) e.push('players');
+  if (!Number.isInteger(c.prelim) || c.prelim < 1 || c.prelim > 20) e.push('prelim');
+  if (!c.final || !Number.isInteger(c.final.tables)) e.push('final');
+  return e;
+}
+const rounds = () => (KUMI && KUMI.rounds) ? Object.keys(KUMI.rounds).filter(k => /^\d+$/.test(k)).sort((a, b) => a - b) : [];
+function players() {
+  const s = new Set(Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)));
+  rounds().forEach(k => { const r = KUMI.rounds[k]; (r.tables || []).forEach(t => (t.p || []).forEach(p => s.add(p))); (r.rest || []).forEach(p => s.add(p)); (r.out || []).forEach(p => s.add(p)); });
+  return [...s].sort((a, b) => pnum(a) - pnum(b));
+}
+const doneOf = (k, no) => !!(DATA && DATA.rounds && DATA.rounds[k] && DATA.rounds[k][String(no)]);
+
+function render() {
+  const c = CFG;
+  document.title = c.title + ' 組み合わせ';
+  $('ttl').textContent = '🀄 ' + c.title + ' 組み合わせ';
+  $('sub').textContent = [c.date, c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
+  const rs = rounds();
+  // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）
+  const rm = $('remade');
+  rm.hidden = !(KUMI && KUMI.from > 1);
+  if (!rm.hidden) rm.textContent = KUMI.from + '半荘目から組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の席を確かめ直してください。';
+  // 自分の名前
+  const sel = $('me'), list = players();
+  sel.innerHTML = '';
+  sel.appendChild(new Option('（選ぶ）', ''));
+  list.forEach(p => sel.appendChild(new Option(dnf(p), p)));
+  ME = list.includes(SAVED) ? SAVED : '';
+  sel.value = ME;
+  renderMine();
+  // 半荘ごと
+  const box = $('rounds'); box.innerHTML = '';
+  if (!rs.length) { box.innerHTML = '<p><b>組み合わせはまだ決まっていません。前日に出ます。</b></p>'; }
+  rs.forEach(k => {
+    const r = KUMI.rounds[k], tabs = (r.tables || []).slice().sort((a, b) => a.no - b.no);
+    const h = document.createElement('h3');
+    const done = tabs.filter(t => doneOf(k, t.no)).length;
+    h.textContent = '予選 ' + k + '半荘目';
+    if (DATA) { const s = document.createElement('span'); s.className = 'small'; s.textContent = '　点数 ' + done + '/' + tabs.length + '卓'; if (done === tabs.length && tabs.length) s.className = 'small done'; h.appendChild(s); }
+    box.appendChild(h);
+    const tw = document.createElement('div'); tw.className = 'tw';
+    const tbl = document.createElement('table');
+    tbl.innerHTML = '<thead><tr><th>卓</th>' + WINDS.slice(0, c.mode).map(w => '<th>' + w + '</th>').join('') + '</tr></thead>';
+    const tb = document.createElement('tbody');
+    tabs.forEach(t => {
+      const tr = document.createElement('tr');
+      const a = document.createElement('td'); a.textContent = t.no + '卓' + (doneOf(k, t.no) ? ' ✓' : ''); tr.appendChild(a);
+      (t.p || []).forEach(p => { const td = document.createElement('td'); td.textContent = dn(p); if (p === ME) td.className = 'me'; tr.appendChild(td); });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
+    const extra = [];
+    if ((r.rest || []).length) extra.push('抜け番: ' + r.rest.map(p => (p === ME ? '【' + dn(p) + '】' : dn(p))).join('・'));
+    if ((r.out || []).length) extra.push('お休み: ' + r.out.map(dn).join('・'));
+    if (extra.length) { const p = document.createElement('p'); p.className = 'small'; p.style.margin = '4px 0'; p.textContent = extra.join('　'); box.appendChild(p); }
+  });
+  const fn = $('finnote');
+  fn.hidden = !(c.final.tables > 0);
+  if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。決勝の卓は予選が終わると点数ページに出ます。席は自動卓のサイコロで決めます。';
+}
+function renderMine() {
+  const box = $('mine'); box.innerHTML = '';
+  const rs = rounds();
+  if (!ME) { box.innerHTML = '<p class="small">名前を選ぶと、半荘ごとの卓と席が出ます（この端末に覚えます）。</p>'; return; }
+  if (!rs.length) { box.innerHTML = '<p class="small">組み合わせはまだ決まっていません。</p>'; return; }
+  const tw = document.createElement('div'); tw.className = 'tw';
+  const tbl = document.createElement('table'); tbl.id = 'mine';
+  tbl.innerHTML = '<thead><tr><th>半荘</th><th>卓</th><th>席</th><th>同じ卓の人</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  rs.forEach(k => {
+    const r = KUMI.rounds[k], tr = document.createElement('tr');
+    const t = (r.tables || []).find(x => (x.p || []).includes(ME));
+    const cells = t ? [k + '半荘目', t.no + '卓', WINDS[t.p.indexOf(ME)], t.p.filter(p => p !== ME).map(dn).join('・')]
+      : (r.rest || []).includes(ME) ? [k + '半荘目', '—', '—', '抜け番（0ポイント）'] : [k + '半荘目', '—', '—', 'お休み'];
+    cells.forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
+}
+$('me').addEventListener('change', () => {
+  SAVED = $('me').value;
+  try { localStorage.setItem('halukai:me', SAVED); } catch (e) {}
+  render();
+});
+
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+async function load() {
+  LAST_LOAD = Date.now();
+  let c;
+  try { c = await getJson('taikai.json'); }
+  catch (e) { if (!CFG) setup('大会設定（taikai.json）を読めませんでした。少し待ってから、ページを開き直してください。'); return; }
+  const errs = checkCfg(c);
+  if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('・')); $('main').hidden = true; return; }
+  const notes = [];
+  let k = null;
+  try { k = await getJson('kumiawase.json'); } catch (e) { k = null; }
+  if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
+  CFG = c; KUMI = k;
+  const api = String(c.api || '').trim();
+  if (api) {
+    try { const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai)); if (j.ok && j.data && j.data.kai === c.kai) { ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : ''; } }
+    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); }
+  }
+  setup(notes.join(' '));
+  $('main').hidden = false;
+  render();
+}
+$('reload').addEventListener('click', load);
+load();
+// 裏から戻ったとき、2分以上たっていれば読み直す（当日の組み直しに気づけるように）
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LAST_LOAD >= 120000) load(); });
+</script>
+<a class="top" href="#" title="上へ">↑</a>
+</body>
+</html>

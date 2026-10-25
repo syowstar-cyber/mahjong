@@ -1,0 +1,15 @@
+{
+  "kai": "mihon",
+  "title": "Halu杯（見本）",
+  "date": "",
+  "mode": 4,
+  "players": 13,
+  "prelim": 4,
+  "final": { "tables": 0, "hanchan": 1 },
+  "start": 25000,
+  "return": 30000,
+  "uma": [30, 10, -10, -30],
+  "tables": [],
+  "locked": [],
+  "api": ""
+}

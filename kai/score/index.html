@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>Halu杯 点数</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+label{display:block;font-weight:700;margin:12px 0 4px}
+select,input{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+input[type=number]{text-align:right}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.primary{width:100%;background:var(--accent);color:var(--accent-fg);margin-top:14px}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.primary:disabled,.ghost:disabled{opacity:.5;cursor:default}
+.msg{min-height:1.5em;margin-top:8px;font-weight:700}
+.msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);padding:8px 8px;text-align:right;white-space:nowrap}
+th{background:#ececE8;font-weight:700;position:sticky;top:0}
+td.l,th.l{text-align:left}
+tr:nth-child(even) td{background:var(--card2)}
+tr.fin td.nm{font-weight:700;color:var(--accent)}
+td.neg,.neg{color:var(--ng)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.small{color:var(--muted);font-size:.9rem}
+.hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+/* 卓入力 */
+.seat{display:grid;grid-template-columns:2em minmax(0,1fr) 8.6em 5.8em;grid-template-areas:"w sel in pt";gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.seat .w{grid-area:w;font-weight:700;text-align:center;background:var(--soft);border-radius:6px;padding:6px 0}
+.seat select{grid-area:sel;padding:9px 6px;font-size:1rem;min-width:0}
+.seat .in{grid-area:in}.seat .pt{grid-area:pt}
+.seat input{padding:10px;font-size:1.1rem}
+.seat .in{display:flex;align-items:center;gap:2px;min-width:0}.seat .in input{flex:1;width:100%;min-width:0}.seat .in span{font-weight:700;font-size:1.1rem}.seat input.auto{background:var(--soft);color:var(--accent);font-weight:700}
+.seat .sign{flex:none;width:2em;padding:8px 0;font-size:1.15rem;line-height:1.2;background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:6px}.seat .sign.on{background:var(--ng);border-color:var(--ng);color:#fff}.seat .sign:disabled{opacity:.4;cursor:default}
+.seat .pt{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
+.sum{display:flex;justify-content:space-between;padding:8px 0;font-weight:700}
+.status span{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:.9rem}
+.status span.done{background:#e3f2e6;border-color:#9fcfa9;color:var(--ok)}
+.warn{color:var(--ng);font-weight:700}
+.win{font-weight:700;color:var(--accent)}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
+summary{cursor:pointer;font-weight:700}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* 狭い画面は、選ぶ欄（P番号と名前）を1行目に、点棒とポイントを2行目に分ける */
+@media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:2em}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 Halu杯 点数</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a></nav>
+
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <div id="entry">
+  <h2>点数の報告（卓ごと）</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="qround">半荘</label>
+        <select id="qround"></select>
+      </div>
+      <div>
+        <label for="qtable">卓</label>
+        <select id="qtable"></select>
+      </div>
+    </div>
+    <div id="seats"></div>
+    <div class="small" id="qhow"></div>
+    <div id="qhint" class="small"></div>
+    <div class="sum"><span id="qsumlab">合計</span><span id="qsum">0</span></div>
+    <div id="qwarn" class="small neg"></div>
+    <button class="primary" type="button" id="qsend">この卓の点数を送信する</button>
+    <div id="qmsg" class="msg" aria-live="polite"></div>
+    <div class="tools"><button class="ghost" type="button" id="qclear">この卓の点数を取り消す</button></div>
+  </div>
+  <div class="hint" id="rulebox"></div>
+  </div>
+
+  <h2 id="h2sum">集計</h2>
+  <div class="tools">
+    <button class="ghost" type="button" id="reload">最新に更新</button>
+    <span class="small" id="updated"></span>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="tw">
+    <table id="tbl"><thead></thead><tbody></tbody></table>
+  </div>
+  <ul class="small" id="tblnote" style="padding-left:1.3em;margin:8px 0"></ul>
+
+  <div id="finsec" hidden>
+  <h2>決勝の卓</h2>
+  <div class="card"><div id="finmem"></div></div>
+  <h2>最終順位</h2>
+  <div class="card">
+    <div id="final"></div>
+    <div class="small" id="finalnote"></div>
+  </div>
+  </div>
+
+  <details>
+    <summary>卓ごとの結果</summary>
+    <div id="results"></div>
+  </details>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a></nav>
+</div>
+
+<script>
+// 普段の回（3麻・4麻）の点数ページ。回ごとに変わるものは ../taikai.json（大会設定）と ../kumiawase.json（組み合わせ）だけで、
+// このページは触らない（kai/README.md）。2つのファイルと受け口は、読み込みのたびにキャッシュを使わず読み直す
+// （当日に組み直して push したとき、1〜2分で全員の画面に出すため）
+const $ = id => document.getElementById(id);
+const WINDS = ['東', '南', '西', '北'];
+const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
+const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
+const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
+const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP');
+// ポイントは 0.1 単位の整数で持ち、表示で小数1桁にする（浮動小数の誤差を出さない）
+const fpt = n => (n === null || n === undefined) ? '' : (n > 0 ? '+' : n < 0 ? '−' : '') + (Math.abs(n) / 10).toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
+
+let CFG = null, KUMI = null, DATA = { rounds: {}, roster: {}, updated: null }, ROSTER = {};
+let MODE = 4, TOTAL = 100000, OKA = 0, API = '', PRELIM = [], FINALS = [], LOCKED = [];
+// 点棒の欄や選ぶ欄を触ったら true。自動更新で入力中の欄を作り直さない（送信・取り消し・卓の切り替えで false）
+let EDITING = false;
+// 半荘の選択: 受け口から初めて読んだときだけ、まだ全卓がそろっていない最初の半荘にする（人が選んだら動かさない）
+let ROUND_PICKED = false, QROUND_TOUCHED = false;
+// 半荘・卓の選択肢や表の見出しを作り直すかの目印（大会設定と組み合わせの形が変わったときだけ作り直す）
+let SHAPE = '';
+const qround = $('qround'), qtable = $('qtable');
+
+const nm = p => (p && ROSTER[p]) || '';
+const dn = p => nm(p) || p || '';                              // 表示名（名前がなければ P番号）
+const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';     // 選ぶ欄（P番号＋名前）
+const isFinal = r => String(r).startsWith('F');
+const isLocked = r => LOCKED.includes(String(r));
+const roundLabel = r => isFinal(r) ? (FINALS.length > 1 ? '決勝 ' + r.slice(1) + '半荘目' : '決勝') : '予選 ' + r + '半荘目';
+const recsOf = r => (DATA.rounds && DATA.rounds[r]) || {};
+const recOf = (r, t) => recsOf(r)[String(t)] || null;
+const pnum = p => Number(String(p).slice(1));
+
+// ---- 大会設定 ----
+const umaOk = (a, mode) => Array.isArray(a) && a.length === mode && a.every(x => typeof x === 'number' && Number.isFinite(x)) && Math.abs(a.reduce((s, x) => s + x, 0)) < 1e-9;
+function checkCfg(c) {
+  const e = [];
+  if (!c || typeof c !== 'object') return ['中身が読めません'];
+  if (!KAI_RE.test(String(c.kai || ''))) e.push('kai は英数字と - で24字まで');
+  if (c.mode !== 3 && c.mode !== 4) e.push('mode は 3 か 4');
+  if (!Number.isInteger(c.players) || c.players < 3 || c.players > 99) e.push('players は 3〜99');
+  if (!Number.isInteger(c.prelim) || c.prelim < 1 || c.prelim > 20) e.push('prelim は 1〜20');
+  const f = c.final || {};
+  if (!Number.isInteger(f.tables) || f.tables < 0 || f.tables > 9) e.push('final.tables は 0〜9');
+  else if (f.tables > 0 && (!Number.isInteger(f.hanchan) || f.hanchan < 1 || f.hanchan > 9)) e.push('final.hanchan は 1〜9');
+  else if (f.tables * c.mode > c.players) e.push('決勝の人数（final.tables×mode）が players より多い');
+  if (!Number.isInteger(c.start) || c.start <= 0 || c.start % 100) e.push('start は100点単位');
+  if (!Number.isInteger(c.return) || c.return < c.start || c.return % 100) e.push('return は100点単位で start 以上');
+  const u = c.uma;
+  if (Array.isArray(u)) { if (!umaOk(u, c.mode)) e.push('uma は mode 個の数で、合計0'); }
+  else if (!u || typeof u !== 'object' || !umaOk(u['1'], c.mode) || Object.keys(u).some(k => !/^[0-4]$/.test(k) || !umaOk(u[k], c.mode))) e.push('uma の表は "0"〜"' + c.mode + '" のキーで、どれも mode 個の数・合計0（"1" は必ず置く）');
+  if (c.tables !== undefined && !(Array.isArray(c.tables) && c.tables.every(n => Number.isInteger(n) && n >= 1 && n <= 40))) e.push('tables は 1〜40 の卓番号の並び');
+  if (c.locked !== undefined && !Array.isArray(c.locked)) e.push('locked は並び');
+  return e;
+}
+function applyCfg(c, k) {
+  CFG = c; KUMI = k;
+  MODE = c.mode; TOTAL = c.start * MODE;
+  OKA = (c.return - c.start) * MODE / 100;   // オカ（返し−持ち点）×人数。0.1ポイント単位
+  API = String(c.api || '').trim();
+  PRELIM = Array.from({ length: c.prelim }, (_, i) => String(i + 1));
+  FINALS = c.final.tables > 0 ? Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1)) : [];
+  LOCKED = (c.locked || []).map(String);
+  document.title = c.title + ' 点数';
+  $('ttl').textContent = '🀄 ' + c.title + ' 点数';
+  const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, k ? k.rounds : null]);
+  // 入力中は作り直さない（次の読み込みでもう一度比べる）
+  if (shape !== SHAPE && !EDITING) { SHAPE = shape; buildStatic(); }
+}
+
+// ---- ポイントの計算 ----
+// 返し以上の人数で順位点が変わるとき（uma が表）は、その人数の行を使う。表にない人数は "1" の行
+function umaFor(raws) {
+  const u = CFG.uma;
+  if (Array.isArray(u)) return u;
+  const n = raws.filter(v => v >= CFG.return).length;
+  return u[String(n)] || u['1'];
+}
+// 1卓の点棒（席の順＝東（起家）から）→ 順位とポイント（0.1単位の整数）。全員そろっていなければ null
+// （点棒−返し）÷1,000＋順位点。1位にはオカを足す。丸めない。
+// 同点は、その人たちで順位点（オカ込み）を分ける。0.1で割り切れない分は起家に近い方が多く取る（第20回と同じ）
+function calcTable(raws) {
+  if (!Array.isArray(raws) || raws.length !== MODE || raws.some(v => v === null || v === undefined || Number.isNaN(v))) return (raws || []).map(() => null);
+  const bonus = umaFor(raws).map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
+  const order = raws.map((raw, i) => ({ i, raw })).sort((a, b) => b.raw - a.raw || a.i - b.i);
+  const res = raws.map(() => null);
+  for (let k = 0; k < MODE;) {
+    let j = k; while (j + 1 < MODE && order[j + 1].raw === order[k].raw) j++;
+    const n = j - k + 1, sum = bonus.slice(k, j + 1).reduce((a, b) => a + b, 0);
+    const base = Math.floor(sum / n), rem = sum - base * n;
+    for (let m = k; m <= j; m++) {
+      const o = order[m];
+      res[o.i] = { raw: o.raw, rank: k + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+    }
+    k = j + 1;
+  }
+  return res;
+}
+
+// ---- 卓と人 ----
+function allPlayers() {
+  const s = new Set(Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)));
+  Object.values(DATA.rounds || {}).forEach(rt => Object.values(rt || {}).forEach(rec => ((rec && rec.p) || []).forEach(p => s.add(p))));
+  return [...s].sort((a, b) => pnum(a) - pnum(b));
+}
+const kumiRound = r => (KUMI && KUMI.rounds && KUMI.rounds[r]) || null;
+const restOf = r => { const k = kumiRound(r); return (k && Array.isArray(k.rest)) ? k.rest : []; };
+// その半荘の卓。予選は組み合わせ表の卓、表がなければ設定の卓番号（なければ1から）を人数ぶん。決勝は決勝の卓数
+function tablesOf(r) {
+  if (isFinal(r)) return Array.from({ length: CFG.final.tables }, (_, i) => ({ no: i + 1, label: CFG.final.tables > 1 ? '決勝 ' + (i + 1) + '卓' : '決勝卓' }));
+  const k = kumiRound(r);
+  if (k && Array.isArray(k.tables) && k.tables.length) return k.tables.map(t => ({ no: t.no, label: t.no + '卓', p: Array.isArray(t.p) ? t.p : [] }));
+  const n = Math.floor(CFG.players / MODE);
+  const nos = (CFG.tables && CFG.tables.length >= n) ? CFG.tables.slice(0, n) : Array.from({ length: n }, (_, i) => i + 1);
+  return nos.map(no => ({ no, label: no + '卓' }));
+}
+const tableLabel = (r, t) => { const x = tablesOf(r).find(y => String(y.no) === String(t)); return x ? x.label : (isFinal(r) ? '決勝 ' + t + '卓' : t + '卓'); };
+const expectedTables = r => tablesOf(r).length;
+const doneTables = r => Object.keys(recsOf(r)).length;
+const roundDone = r => expectedTables(r) > 0 && doneTables(r) >= expectedTables(r);
+const prelimDone = () => PRELIM.every(r => roundDone(r) || isLocked(r));
+
+// ---- 予選の順位 ----
+// 合計ポイントの大きい順。抜け番の半荘は0ポイント（足すものがない）。合計が同じ人は同じ順位の数字で「同点」
+function prelimStats() {
+  const st = {};
+  const add = p => st[p] || (st[p] = { p, by: {}, total: 0, n: 0 });
+  allPlayers().forEach(add);
+  PRELIM.forEach(r => Object.entries(recsOf(r)).forEach(([t, rec]) => {
+    const res = calcTable(rec.raw);
+    (rec.p || []).forEach((p, i) => { const x = add(p); if (res[i]) { x.by[r] = { pts: res[i].pts, table: t }; x.total += res[i].pts; x.n++; } });
+  }));
+  const list = Object.values(st).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  list.forEach((x, i) => { x.rank = i > 0 && list[i - 1].total === x.total ? list[i - 1].rank : i + 1; });
+  // 「同点」の印は、打った人どうしだけに付ける（まだ打っていない人の0ポイントどうしには付けない。順位の数字は分け合う）
+  list.forEach(x => { x.tie = x.n > 0 && list.some(y => y !== x && y.n > 0 && y.total === x.total); });
+  return list;
+}
+
+// ---- 決勝 ----
+// 決勝に出るのは予選の上位（卓数×人数）。2卓以上は蛇行で分ける（2卓なら 1・4・5・8位／2・3・6・7位）。
+// 途中で抜けた人（予選の最後の半荘の組み合わせ表で「お休み」＝out）は帰っているので外し、下の人を繰り上げる
+function finalMembers() {
+  const rk = prelimStats(), T = CFG.final.tables, K = T * MODE;
+  const lastK = kumiRound(PRELIM[PRELIM.length - 1]);
+  const gone = (lastK && Array.isArray(lastK.out)) ? lastK.out : [];
+  const ok = rk.filter(x => !gone.includes(x.p));
+  const tables = Array.from({ length: T }, () => []);
+  ok.slice(0, K).forEach((x, i) => { const lap = Math.floor(i / T), pos = i % T; tables[lap % 2 ? T - 1 - pos : pos].push(x.p); });
+  // 決勝に進む境目が同点（K番目と K+1番目の合計が同じ）なら、その同点の人たち
+  const edge = ok[K] && ok[K - 1] && ok[K].total === ok[K - 1].total ? ok.filter(x => x.total === ok[K - 1].total) : [];
+  // 外したことで顔ぶれが変わった人（上位に入っていたのに外した人）
+  const skipped = rk.slice(0, K + gone.length).filter(x => gone.includes(x.p)).map(x => x.p);
+  return { rk, tables, edge, skipped };
+}
+// 最終順位: 決勝に出た人（決勝の点数が入った人）を上に、その下に予選の順。
+// 決勝が1半荘なら素点、複数なら決勝のポイント合計で、卓をまたいで一緒に比べる。
+// 同点は予選の順位が上の方を上に。1半荘の同じ卓の中は起家に近い方を上に（2026-10-25 主催）
+function finalRanking() {
+  const rk = prelimStats(), pr = {}; rk.forEach(x => { pr[x.p] = x; });
+  const fin = {};
+  FINALS.forEach(r => Object.entries(recsOf(r)).forEach(([t, rec]) => {
+    const res = calcTable(rec.raw);
+    (rec.p || []).forEach((p, i) => {
+      const f = fin[p] || (fin[p] = { p, raw: null, pts: 0, n: 0, table: t, seat: i });
+      if (!res[i]) return;
+      f.pts += res[i].pts; f.n++;
+      if (r === 'F1') { f.raw = rec.raw[i]; f.table = t; f.seat = i; }
+    });
+  }));
+  const single = FINALS.length === 1;
+  const score = f => single ? f.raw : (f.n ? f.pts : null);
+  const sv = f => score(f) === null ? -Infinity : score(f);
+  const prk = p => (pr[p] ? pr[p].rank : 9999);
+  const cmp = (a, b) => (sv(b) - sv(a)) || (single && a.table === b.table ? a.seat - b.seat : 0) || (prk(a.p) - prk(b.p));
+  const fl = Object.values(fin).sort((a, b) => cmp(a, b) || pnum(a.p) - pnum(b.p));
+  const rows = [];
+  fl.forEach((f, i) => {
+    const same = i > 0 && cmp(fl[i - 1], f) === 0;
+    if (same) rows[i - 1].tie = true;
+    rows.push({ p: f.p, rank: same ? rows[i - 1].rank : i + 1, tie: same, how: '決勝', val: single ? (f.raw === null ? '' : fmt(f.raw) + '点') : fpt(f.pts) + '（' + f.n + '/' + FINALS.length + '）' });
+  });
+  const K = rows.length, rest = rk.filter(x => !fin[x.p]);
+  rest.forEach((x, j) => {
+    const same = j > 0 && rest[j - 1].total === x.total;
+    if (same) rows[rows.length - 1].tie = true;
+    rows.push({ p: x.p, rank: same ? rows[rows.length - 1].rank : K + j + 1, tie: same, how: '予選', val: fpt(x.total) });
+  });
+  return { rows, started: K > 0, done: FINALS.every(roundDone) };
+}
+
+// ---- 作り直し（大会設定・組み合わせの形が変わったとき） ----
+const umaText = u => u.map((x, i) => (i + 1) + '位 ' + fpt(Math.round(x * 10) + (i === 0 ? OKA : 0))).join('／');
+function ruleBox() {
+  const c = CFG, okaNote = OKA ? '（1位はオカ ' + fpt(OKA) + ' を含む）' : '';
+  let h = '<b>ポイントの計算</b>（' + fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し）<br>① （点棒−' + fmt(c.return) + '）÷1,000。100点＝0.1ポイント（丸めない）<br>';
+  if (Array.isArray(c.uma)) h += '② 順位点 ' + umaText(c.uma) + ' を足す' + okaNote + '<br>';
+  else {
+    h += '② 順位点は、点棒が返し以上の人数で変わる' + okaNote + '<br>';
+    Object.keys(c.uma).sort().forEach(k => { h += '　返し以上が' + k + '人: ' + umaText(c.uma[k]) + '<br>'; });
+  }
+  h += '<span class="small">' + (Array.isArray(c.uma) ? '' : '返しちょうども「以上」に数えます。') + '同点は順位点を分けます（割り切れない分は起家に近い方が多く取る）。抜け番の半荘は0ポイントです。トビ終了なし。マイナスの点棒は「−」ボタンを押して、そのまま入れてください。</span>';
+  $('rulebox').innerHTML = h;
+}
+function buildStatic() {
+  const keep = qround.value;
+  qround.innerHTML = '';
+  PRELIM.concat(FINALS).forEach(r => qround.appendChild(new Option(roundLabel(r) + (isLocked(r) ? '（確定）' : ''), r)));
+  if ([...qround.options].some(o => o.value === keep)) qround.value = keep;
+  // 全部の半荘が確定したら、報告の欄を出さない（第20回と同じ）
+  const allLocked = PRELIM.concat(FINALS).every(isLocked);
+  $('entry').hidden = allLocked;
+  $('sub').textContent = allLocked ? '点数はすべて確定しました。集計と順位を見られます。' : '半荘が終わったら、卓の代表が' + MODE + '人分の点棒を送ってください。ポイントは自動で計算します。';
+  $('qsend').textContent = 'この卓の' + MODE + '人分を送信する';
+  $('qsumlab').textContent = '合計（' + fmt(TOTAL) + 'になるはず）';
+  $('qhow').textContent = '00は打ちません（25,300点 → 253）。マイナスは「−」ボタンで付けます（先に押しても、後で押しても同じ）。' + (MODE - 1) + '人入れると、残りの1人は自動で入ります。';
+  ruleBox();
+  $('tbl').querySelector('thead').innerHTML = '<tr><th>順位</th><th class="l">プレイヤー</th>' + PRELIM.map(r => '<th>' + r + '</th>').join('') + '<th>合計pt</th><th>半荘</th></tr>';
+  $('h2sum').textContent = FINALS.length ? '集計（予選の合計ポイント）' : '集計・順位（合計ポイント）';
+  $('finsec').hidden = !FINALS.length;
+  fillTables();
+}
+
+// ---- 報告の欄 ----
+function fillTables() {
+  const r = qround.value, keep = qtable.value;
+  qtable.innerHTML = '';
+  const list = tablesOf(r);
+  // 表にない卓に入っている点数も選べるようにする（組み直しの前に送った卓など）
+  Object.keys(recsOf(r)).forEach(k => { if (!list.some(t => String(t.no) === k)) list.push({ no: Number(k), label: (isFinal(r) ? '決勝 ' + k + '卓' : k + '卓') + '（表にない卓）' }); });
+  list.forEach(t => qtable.appendChild(new Option(t.label + (recOf(r, t.no) ? '（入力済み）' : ''), String(t.no))));
+  let pick = keep;
+  try { if (!pick) pick = localStorage.getItem('halukai:table') || ''; } catch (e) {}
+  if ([...qtable.options].some(o => o.value === pick)) qtable.value = pick;
+  fillSeats();
+}
+// その卓の顔ぶれ（選ぶ欄の上に出す）。予選は組み合わせ表、決勝は予選の上位から
+function membersOf(r, t) {
+  if (isFinal(r)) return finalMembers().tables[Number(t) - 1] || [];
+  const k = tablesOf(r).find(x => String(x.no) === String(t));
+  return (k && k.p) || [];
+}
+function fillSeats() {
+  EDITING = false;
+  const r = qround.value, t = qtable.value, box = $('seats'); box.innerHTML = '';
+  const hint = $('qhint'); hint.textContent = '';
+  if (!r || !t) { preview(); return; }
+  const rec = recOf(r, t), mem = membersOf(r, t);
+  const ps = rec ? rec.p : (isFinal(r) ? [] : mem), raws = rec ? rec.raw : [];
+  const everyone = allPlayers(), locked = isLocked(r);
+  for (let i = 0; i < MODE; i++) {
+    const row = document.createElement('div'); row.className = 'seat';
+    const w = document.createElement('div'); w.className = 'w'; w.textContent = WINDS[i];
+    const sel = document.createElement('select'); sel.setAttribute('aria-label', WINDS[i] + 'の人');
+    sel.appendChild(new Option('（選ぶ）', ''));
+    if (mem.length) {
+      const g = document.createElement('optgroup'); g.label = isFinal(r) ? '決勝のこの卓' : 'この卓';
+      mem.forEach(p => g.appendChild(new Option(dnf(p), p))); sel.appendChild(g);
+    }
+    const g2 = document.createElement('optgroup'); g2.label = mem.length ? 'ほかの人' : 'プレイヤー';
+    everyone.filter(p => !mem.includes(p)).forEach(p => g2.appendChild(new Option(dnf(p), p))); sel.appendChild(g2);
+    sel.value = ps[i] || '';
+    const inw = document.createElement('div'); inw.className = 'in';
+    inw.innerHTML = '<button type="button" class="sign" aria-label="マイナス" aria-pressed="false">−</button><input type="number" inputmode="numeric" step="1" min="-2000" max="9999" placeholder="例 253" aria-label="' + WINDS[i] + 'の点棒（百点単位）"><span>00</span>';
+    const inp = inw.querySelector('input');
+    inp.value = (raws[i] === null || raws[i] === undefined) ? '' : raws[i] / 100;
+    const pt = document.createElement('div'); pt.className = 'pt';
+    row.append(w, sel, inw, pt);
+    box.appendChild(row);
+    sel.addEventListener('change', () => { EDITING = true; preview(); });
+    if (locked) { sel.disabled = true; inp.readOnly = true; inw.querySelector('.sign').disabled = true; }
+  }
+  const note = [];
+  if (rec) note.push('入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。');
+  if (isFinal(r)) {
+    note.push('席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
+    if (!prelimDone()) note.push('予選がまだ終わっていないので、「決勝のこの卓」は暫定です。');
+    const fm = finalMembers();
+    if (fm.edge.length) note.push('【注意】予選の合計が同点で、決勝に進む人が決まりません（' + fm.edge.map(x => dn(x.p)).join('・') + '）。集計係が決めて、座った人を選んでください。');
+  } else if (mem.length && rec) {
+    if (JSON.stringify(rec.p) !== JSON.stringify(mem.slice(0, MODE))) note.push('送られた顔ぶれか席が、いまの組み合わせ表と違います（組み直しの前に送った点数かもしれません）。');
+  } else if (mem.length) {
+    note.push('組み合わせ表の席で入っています（東が起家）。座った席が違うときは、選び直してください。');
+  } else if (!rec) {
+    note.push('組み合わせ表がまだありません。座った人を、東（起家）から順に選んでください。');
+  }
+  const rest = isFinal(r) ? [] : restOf(r);
+  if (rest.length) note.push('この半荘の抜け番: ' + rest.map(dn).join('・') + '（0ポイント）。');
+  hint.textContent = note.join(' ');
+  if (locked) { const b = document.createElement('b'); b.className = 'neg'; b.textContent = LOCKED_TEXT + '。 '; hint.prepend(b); }
+  $('qsend').disabled = locked; $('qclear').disabled = locked || !rec;
+  box.querySelectorAll('.seat').forEach(row => {
+    const inp = row.querySelector('input'), sign = row.querySelector('.sign');
+    // 自動の欄を手で打つと手入力に変わる。自動の欄を押したら全選択（打てば置き換わる）
+    // 範囲外（min〜max を超える・小数）になる入力は受け付けず、直前の値に戻す（2530 のような打ち間違いを入れさせない）
+    inp.addEventListener('input', () => {
+      // 「−」を先に押してあれば、打った数をマイナスにする（スマホの数字キーにはマイナスがない）
+      const v0 = inp.value.trim();
+      if (inp.dataset.neg && v0 !== '') { if (/^\d/.test(v0)) inp.value = '-' + v0; delete inp.dataset.neg; }
+      const v = inp.value.trim(), u = Number(v);
+      if (v !== '' && (!Number.isInteger(u) || u < Number(inp.min) || u > Number(inp.max))) { inp.value = inp.dataset.good || ''; return; }
+      if (!inp.validity.badInput) inp.dataset.good = inp.value;
+      EDITING = true; delete inp.dataset.auto; inp.classList.remove('auto'); autoFill(); preview();
+    });
+    inp.addEventListener('blur', () => { autoFill(); preview(); });
+    inp.addEventListener('focus', () => { EDITING = true; inp.dataset.good = inp.value; if (inp.dataset.auto) inp.select(); });
+    // 「−」ボタン: 数が入っていれば符号を変える。空なら、次に打つ数をマイナスにする（もう一度押すと取り消し）
+    sign.addEventListener('click', () => {
+      if (inp.readOnly) return;
+      EDITING = true; inp.focus();
+      const v = inp.value.trim();
+      if (v === '') { if (inp.dataset.neg) delete inp.dataset.neg; else inp.dataset.neg = '1'; }
+      else {
+        const u = -Number(v);
+        if (!Number.isInteger(u) || u < Number(inp.min) || u > Number(inp.max)) { say('qmsg', '範囲（−2000〜9999）を超えるため、' + (u < 0 ? 'マイナスにできません' : 'プラスに戻せません'), false); return; }
+        inp.value = String(u); inp.dataset.good = inp.value;
+        delete inp.dataset.auto; inp.classList.remove('auto');
+      }
+      autoFill(); preview();
+    });
+  });
+  autoFill(); preview();
+}
+// 人数−1人ぶんが入ったら、残る1人を「卓の合計 − ほかの合計」で埋める。
+// 打とうとしている空欄（フォーカス中）は埋めない（force は送信時）。条件が崩れたら自動の値は消す
+function autoFill(force) {
+  const ins = [...document.querySelectorAll('#seats input')];
+  if (ins.length !== MODE || isLocked(qround.value)) return;
+  const manual = ins.filter(i => !i.dataset.auto && i.value.trim() !== '');
+  const units = manual.map(i => Number(i.value));
+  const ok = manual.length === MODE - 1 && units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999);
+  const target = ok ? ins.find(i => !manual.includes(i)) : null;
+  ins.forEach(i => { if (i.dataset.auto && i !== target) { i.value = ''; delete i.dataset.auto; i.classList.remove('auto'); } });
+  if (!target || (!force && !target.dataset.auto && target === document.activeElement)) return;
+  target.value = TOTAL / 100 - units.reduce((a, b) => a + b, 0);
+  target.dataset.auto = '1'; target.classList.add('auto'); delete target.dataset.neg;
+}
+// 席ごとに {p, raw, bad}。入力は百点単位（253 → 25,300点）。範囲外は bad にして raw を NaN にする
+function readSeats() {
+  return [...document.querySelectorAll('#seats .seat')].map(row => {
+    const inp = row.querySelector('input'), p = row.querySelector('select').value, v = inp.value.trim();
+    if (v === '') return { p, raw: null, bad: false };
+    const u = Number(v), bad = !Number.isInteger(u) || u < -2000 || u > 9999;
+    return { p, raw: bad ? NaN : u * 100, bad };
+  });
+}
+function preview() {
+  // 「−」ボタンは、マイナスの数が入っているか、次に打つ数をマイナスにする待ちのときに色を付ける
+  document.querySelectorAll('#seats .seat').forEach(r => { const i = r.querySelector('input'), b = r.querySelector('.sign'); const on = !!i.dataset.neg || Number(i.value) < 0; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  const seats = readSeats(), res = calcTable(seats.map(s => s.raw));
+  document.querySelectorAll('#seats .pt').forEach((el, i) => { el.textContent = res[i] ? res[i].rank + '位' + (res[i].tie ? '(同点)' : '') + ' ' + fpt(res[i].pts) : ''; el.className = 'pt' + (res[i] && res[i].pts < 0 ? ' neg' : ''); });
+  const filled = seats.filter(s => s.raw !== null && !Number.isNaN(s.raw));
+  const sum = filled.reduce((a, s) => a + s.raw, 0);
+  $('qsum').textContent = fmt(sum);
+  const warn = [], ps = seats.map(s => s.p).filter(Boolean);
+  if (new Set(ps).size < ps.length) warn.push('同じ人が2つの席に選ばれています。');
+  if (seats.some(s => s.bad)) warn.push(BAD_UNIT + '。直すまで送れません。');
+  if (filled.length === MODE && sum !== TOTAL) warn.push('合計が' + fmt(TOTAL) + 'ではありません。点棒を確かめてください（送信はできます）。');
+  // 卓の合計を超える点棒は打ち間違い（2530 など）が多いので注意を出す。トビ終了なしでありうる値なので止めはしない（送る時に確認する）
+  if (filled.some(s => s.raw >= TOTAL)) warn.push(fmt(TOTAL) + '点以上の点棒があります。合っていますか（送る時にもう一度確かめます）。');
+  if (new Set(filled.map(s => s.raw)).size < filled.length) warn.push('同じ点棒の人がいます。順位点を分けています（起家に近い方が多く）。');
+  $('qwarn').textContent = warn.join(' ');
+}
+qround.addEventListener('change', () => { QROUND_TOUCHED = true; fillTables(); });
+qtable.addEventListener('change', () => { try { localStorage.setItem('halukai:table', qtable.value); } catch (e) {} fillSeats(); });
+
+async function post(body) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+  return r.json();
+}
+const ERR = { kai: '回の名前（大会設定）が不正です', round: '半荘の指定が不正です', table: '卓の指定が不正です', player: 'プレイヤーの指定が不正です', score: '点数の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', bad_json: '送り方が不正です', action: '送り方が不正です' };
+const BTNS = () => [$('qsend'), $('qclear')];
+$('qsend').addEventListener('click', async () => {
+  if (!API) { say('qmsg', '点数の受け口が未設定です', false); return; }
+  const r = qround.value, t = qtable.value;
+  if (!r || !t) { say('qmsg', '半荘と卓を選んでください', false); return; }
+  if (isLocked(r)) { say('qmsg', LOCKED_TEXT, false); return; }
+  autoFill(true); preview();
+  const seats = readSeats();
+  if (seats.some(s => !s.p)) { say('qmsg', '全員のプレイヤーを選んでください', false); return; }
+  if (new Set(seats.map(s => s.p)).size < MODE) { say('qmsg', '同じ人が2つの席に選ばれています', false); return; }
+  if (seats.some(s => s.bad)) { say('qmsg', BAD_UNIT, false); return; }
+  if (seats.some(s => s.raw === null)) { say('qmsg', MODE + '人全員の点棒を入れてください', false); return; }
+  // 同じ半荘のほかの卓に、もう入っている人（卓の取り違え）。受け口でも断る
+  const other = seats.map(s => s.p).filter(p => Object.entries(recsOf(r)).some(([k, rec]) => k !== t && (rec.p || []).includes(p)));
+  if (other.length) { say('qmsg', other.map(dn).join('・') + ' は、この半荘のほかの卓にもう入っています。半荘と卓を確かめてください', false); return; }
+  const sum = seats.reduce((a, s) => a + s.raw, 0);
+  if (sum !== TOTAL && !confirm('合計が ' + fmt(sum) + ' です（' + fmt(TOTAL) + ' になるはず）。このまま送りますか？')) { say('qmsg', '送るのをやめました。点棒を確かめてください', false); return; }
+  const big = seats.filter(s => s.raw >= TOTAL);
+  if (big.length && !confirm(fmt(TOTAL) + '点以上です。合っていますか？\n' + big.map(s => dn(s.p) + ' ' + fmt(s.raw) + '点').join('\n'))) { say('qmsg', '送るのをやめました。点棒を確かめてください', false); return; }
+  const mem = isFinal(r) ? [] : membersOf(r, t);
+  if (mem.length && (mem.length !== MODE || !seats.every(s => mem.includes(s.p))) && !confirm('組み合わせ表と違う顔ぶれです。このまま送りますか？')) { say('qmsg', '送るのをやめました。半荘と卓が合っているか確かめてください', false); return; }
+  const cur = recOf(r, t);
+  if (cur && JSON.stringify(cur.p) + JSON.stringify(cur.raw) !== JSON.stringify(seats.map(s => s.p)) + JSON.stringify(seats.map(s => s.raw))
+    && !confirm(tableLabel(r, t) + 'には、もう点数が入っています。上書きしますか？\n' + cur.p.map((p, i) => dn(p) + ' ' + fmt(cur.raw[i]) + '点').join('\n'))) { say('qmsg', '送るのをやめました', false); return; }
+  BTNS().forEach(b => { b.disabled = true; });
+  try {
+    say('qmsg', '送信中…', true);
+    const j = await post({ action: 'score', kai: CFG.kai, round: r, table: Number(t), p: seats.map(s => s.p), raw: seats.map(s => s.raw) }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok) {
+      // 断られたときは、ほかの端末が先に送っている＝画面が古い。打ちかけの欄を捨てて、最新の状態を出し直す
+      if (j.error === 'dup') { if (j.data) { EDITING = false; render(j.data); } say('qmsg', (j.players || []).map(dn).join('・') + ' は、この半荘のほかの卓にもう入っています。半荘と卓を確かめてください', false); return; }
+      say('qmsg', ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください（送り直すと上書きされます）', false); return;
+    }
+    const tl = tableLabel(r, t);
+    EDITING = false; render(j.data);
+    say('qmsg', roundLabel(r) + ' ' + tl + 'の' + MODE + '人分を記録しました', true);
+  } finally { BTNS().forEach(b => { b.disabled = false; }); fillSeatsButtons(); }
+});
+$('qclear').addEventListener('click', async () => {
+  const r = qround.value, t = qtable.value;
+  if (!API || !r || !t || !recOf(r, t)) return;
+  if (isLocked(r)) { say('qmsg', LOCKED_TEXT, false); return; }
+  if (!confirm(roundLabel(r) + ' ' + tableLabel(r, t) + 'の点数を取り消しますか？')) return;
+  BTNS().forEach(b => { b.disabled = true; });
+  try {
+    const j = await post({ action: 'clear', kai: CFG.kai, round: r, table: Number(t) }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok) { say('qmsg', ERR[j.error] || '取り消しに失敗しました。少し待ってから、もう一度押してください', false); return; }
+    EDITING = false; render(j.data); say('qmsg', '取り消しました', true);
+  } finally { BTNS().forEach(b => { b.disabled = false; }); fillSeatsButtons(); }
+});
+// ボタンの使える・使えないを、いまの半荘と卓に合わせ直す（送信・取り消しの後）
+function fillSeatsButtons() {
+  const r = qround.value, t = qtable.value;
+  $('qsend').disabled = isLocked(r); $('qclear').disabled = isLocked(r) || !recOf(r, t);
+}
+
+// ---- 表示 ----
+function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; if (typeof text === 'string' && text.startsWith('−')) td.classList.add('neg'); tr.appendChild(td); return td; }
+function render(d) {
+  DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, updated: null };
+  ROSTER = DATA.roster || {};
+  $('updated').textContent = !API ? '' : DATA.updated ? '最終更新 ' + DATA.updated : 'まだ報告がありません';
+  // 卓の入力状況
+  const st = $('status'); st.innerHTML = '';
+  PRELIM.concat(FINALS).forEach(r => {
+    const sp = document.createElement('span');
+    sp.textContent = (isFinal(r) ? roundLabel(r) : r + '半荘目') + ' ' + doneTables(r) + '/' + expectedTables(r) + '卓' + (isLocked(r) ? ' 確定' : '');
+    if (roundDone(r) || isLocked(r)) sp.className = 'done';
+    st.appendChild(sp);
+  });
+  // 予選の集計表
+  const rk = prelimStats(), K = FINALS.length ? CFG.final.tables * MODE : 0;
+  const finPs = K ? finalMembers().tables.flat() : [];
+  const tb = $('tbl').querySelector('tbody'); tb.innerHTML = '';
+  rk.forEach(x => {
+    const tr = document.createElement('tr');
+    if (finPs.includes(x.p)) tr.className = 'fin';
+    cell(tr, x.rank + (x.tie ? ' 同点' : ''));
+    cell(tr, dn(x.p), 'l nm');
+    PRELIM.forEach(r => cell(tr, x.by[r] ? fpt(x.by[r].pts) : restOf(r).includes(x.p) ? '抜け' : ''));
+    cell(tr, x.n ? fpt(x.total) : '');
+    cell(tr, x.n + '/' + PRELIM.length);
+    tb.appendChild(tr);
+  });
+  const notes = ['合計ポイントの順です。抜け番の半荘は0ポイントです。', '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
+  if (K) notes.push('名前が太字の' + K + '人が決勝に進みます（上から順。途中で抜けた人は飛ばします）。');
+  $('tblnote').innerHTML = ''; notes.forEach(t => { const li = document.createElement('li'); li.textContent = t; $('tblnote').appendChild(li); });
+  if (FINALS.length) { renderFinalMembers(); renderFinal(); }
+  renderResults();
+  if (!ROUND_PICKED && API && d) {
+    ROUND_PICKED = true;
+    const r = PRELIM.concat(FINALS).find(k => !isLocked(k) && !roundDone(k));
+    if (r && !QROUND_TOUCHED && qround.value !== r) qround.value = r;
+  }
+  if (!EDITING) fillTables();
+}
+function renderFinalMembers() {
+  const box = $('finmem'); box.innerHTML = '';
+  const fm = finalMembers(), pr = {}; fm.rk.forEach(x => { pr[x.p] = x; });
+  const p0 = document.createElement('p'); p0.className = 'small';
+  p0.textContent = (prelimDone() ? '予選の上位' : '予選が終わるまでは暫定です。予選の上位') + CFG.final.tables * MODE + '人' + (CFG.final.tables > 1 ? 'を、予選の順位で蛇行に分けます（2卓なら 1・4・5・8位／2・3・6・7位）。' : 'です。') + '席は自動卓のサイコロで決めます。' + (FINALS.length > 1 ? '決勝は' + FINALS.length + '半荘です。' : '');
+  box.appendChild(p0);
+  fm.tables.forEach((ps, i) => {
+    const h = document.createElement('h3'); h.textContent = CFG.final.tables > 1 ? '決勝 ' + (i + 1) + '卓' : '決勝卓'; box.appendChild(h);
+    const p = document.createElement('p'); p.style.margin = '4px 0';
+    ps.forEach((q, j) => { if (j) p.appendChild(document.createElement('br')); p.appendChild(document.createTextNode('予選' + pr[q].rank + '位' + (pr[q].tie ? '（同点）' : '') + ' ' + dn(q))); });
+    box.appendChild(p);
+  });
+  if (fm.skipped.length) {
+    const s = document.createElement('p'); s.className = 'small';
+    s.textContent = '途中で抜けた ' + fm.skipped.map(dn).join('・') + ' は、決勝の顔ぶれに入れていません（下の人を繰り上げました）。';
+    box.appendChild(s);
+  }
+  if (fm.edge.length) {
+    const w = document.createElement('p'); w.className = 'warn';
+    w.textContent = '【注意】予選の合計が同点で、決勝に進む人が決まりません（' + fm.edge.map(x => dn(x.p)).join('・') + '）。集計係が決めてください。報告の欄では、実際に座った人を選んで送ります。';
+    box.appendChild(w);
+  }
+}
+function renderFinal() {
+  const box = $('final'); box.innerHTML = '';
+  const fr = finalRanking();
+  const tw = document.createElement('div'); tw.className = 'tw';
+  const tbl = document.createElement('table');
+  tbl.innerHTML = '<thead><tr><th>順位</th><th class="l">プレイヤー</th><th class="l">決め方</th><th>' + (FINALS.length > 1 ? '決勝pt／予選pt' : '決勝の素点／予選pt') + '</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  fr.rows.forEach(x => {
+    const tr = document.createElement('tr');
+    cell(tr, x.rank + (x.tie ? ' 同点' : ''));
+    const c = cell(tr, dn(x.p) + (fr.done && x.rank === 1 && !x.tie ? '　優勝' : ''), 'l'); if (fr.done && x.rank === 1 && !x.tie) c.classList.add('win');
+    cell(tr, x.how, 'l'); cell(tr, x.val);
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
+  $('finalnote').textContent = (fr.done ? '' : fr.started ? '決勝の点数がそろうまでは暫定です。' : '決勝の点数が入ると、決勝に出た人が上に並びます（それまでは予選の順）。')
+    + '決勝に出た人を上に並べ、その下に予選の順で並べます。' + (FINALS.length > 1 ? '決勝は決勝のポイントの合計' : '決勝は素点') + 'で、卓をまたいで一緒に比べます。同点は予選の順位が上の方が上位です' + (FINALS.length > 1 ? '。' : '（同じ卓の中は起家に近い方）。');
+}
+function renderResults() {
+  const box = $('results'); box.innerHTML = '';
+  let any = false;
+  PRELIM.concat(FINALS).forEach(r => {
+    const recs = recsOf(r), keys = Object.keys(recs).sort((a, b) => Number(a) - Number(b));
+    if (!keys.length) return;
+    any = true;
+    const h = document.createElement('h3'); h.textContent = roundLabel(r); box.appendChild(h);
+    keys.forEach(k => {
+      const rec = recs[k], res = calcTable(rec.raw);
+      const cap = document.createElement('div'); cap.className = 'small'; cap.textContent = tableLabel(r, k) + '（' + rec.ts + '）'; box.appendChild(cap);
+      const tw = document.createElement('div'); tw.className = 'tw'; tw.style.marginBottom = '8px';
+      const tbl = document.createElement('table'); tbl.innerHTML = '<thead><tr><th class="l">席</th><th class="l">プレイヤー</th><th>点棒</th><th>順位</th><th>pt</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      rec.p.forEach((p, i) => { const tr = document.createElement('tr'); cell(tr, WINDS[i] || '', 'l'); cell(tr, dn(p), 'l'); cell(tr, fmt(rec.raw[i]), rec.raw[i] < 0 ? 'neg' : ''); cell(tr, res[i] ? res[i].rank + '位' : ''); cell(tr, res[i] ? fpt(res[i].pts) : ''); tb.appendChild(tr); });
+      tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
+    });
+  });
+  if (!any) box.innerHTML = '<p class="small">まだ報告がありません。</p>';
+}
+
+// ---- 読み込み ----
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+let LAST_LOAD = 0;
+async function load() {
+  LAST_LOAD = Date.now();
+  let c;
+  try { c = await getJson('../taikai.json'); }
+  catch (e) { if (!CFG) setup('大会設定（taikai.json）を読めませんでした。少し待ってから、ページを開き直してください。'); return; }
+  const errs = checkCfg(c);
+  if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('／')); $('main').hidden = true; return; }
+  let k = null; const notes = [];
+  try { k = await getJson('../kumiawase.json'); } catch (e) { k = null; }
+  if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので使っていません。'); k = null; }
+  applyCfg(c, k);
+  $('main').hidden = false;
+  if (!API) notes.push('点数の受け口（API）がまだ設定されていません。送信はできません。');
+  setup(notes.join(' '));
+  if (!API) { render(null); return; }
+  try {
+    const j = await getJson(API + '?kai=' + encodeURIComponent(CFG.kai));
+    if (j.ok && j.data && j.data.kai === CFG.kai) render(j.data);
+    else $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）';
+  } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; }
+}
+$('reload').addEventListener('click', load);
+load();
+// 自動更新は、画面に出ているときだけ2分ごと（受け口の読み取りは1日の回数に上限があるため。第20回と同じ）。裏から戻ったときは、1分以上たっていれば読み直す
+setInterval(() => { if (!document.hidden && Date.now() - LAST_LOAD >= 120000) load(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LAST_LOAD >= 60000) load(); });
+</script>
+<a class="top" href="#" title="上へ">↑</a>
+</body>
+</html>
