@@ -4,6 +4,9 @@
 //   S_<kai>_<半荘> = {"<卓>": {p:['P3','P7','P1'], raw:[41000,35000,29000], ts:'…'}}   p と raw は席の順（東＝起家から）
 //   R_<kai> = {"P1": "名前", …}   名簿。名前はここにだけ置く（公開リポにはファイルとして置かない）
 //   U_<kai> = その回の最終更新の時刻（JST）
+//   B_<kai> = {"P3": "YYYY-MM-DD", …}   生年月日（予選の同点は年齢が上の方が上位。同点のときだけ幹部用ページで入れる。2026-11-01）
+//     生年月日そのものは GET でも返事でも返さない。返すのは入れた人どうしの年上からの順 agerank（1 が最年長・同じ日は同じ数）だけ
+//   A_<kai> = 締め切った後の agerank（エディタの closeBirth で生年月日を消したとき。順位が元に戻らないように固定する）
 //   LOG = 送信履歴の直近 LOG_MAX 件（1件＝'MMDDHHmmss|kai|操作|半荘|卓'）
 // 回を替えても消す作業は要らない（kai が違えば置き場が別）。古い回を消すのはエディタの purgeKai。
 //
@@ -12,8 +15,9 @@
 //   POST {action:'score', kai, round, table, p:[…], raw:[…]} … 1卓ぶん（3人か4人）。同じ卓は上書き
 //   POST {action:'clear', kai, round, table}                 … 1卓ぶんを消す
 //   POST {action:'roster', kai, names:{P1:'名前', …}}        … 名簿（渡したキーだけ直す。'' で消す）
+//   POST {action:'birth', kai, player:'P3', date:'YYYY-MM-DD'|''} … 生年月日（'' で消す。締め切った回は error:'closed'）
 //   round は予選 '1'〜'20'・決勝 'F1'〜'F9'、table は 1〜TABLE_MAX。
-//   返事は {ok:true, data:{kai, rounds, roster, updated}} か {ok:false, error:'…'}。
+//   返事は {ok:true, data:{kai, rounds, roster, updated, agerank}} か {ok:false, error:'…'}。
 //   同じ半荘のほかの卓に入っている人を送ると error:'dup'（players に該当者）で断る（卓の取り違え）
 
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;   // '_' は置き場の名前の区切りに使うので入れない
@@ -51,7 +55,26 @@ function data_(kai) {
     const r = k.slice(pre.length);
     if (ROUND_RE.test(r)) rounds[r] = json_(k, {});
   });
-  return { kai: kai, rounds: rounds, roster: json_('R_' + kai, {}), updated: get_('U_' + kai) };
+  return { kai: kai, rounds: rounds, roster: json_('R_' + kai, {}), updated: get_('U_' + kai), agerank: ageRankOut_(kai) };
+}
+
+// 入れた人どうしの年上からの順。早く生まれた人ほど小さい数（1 が最年長）。同じ日は同じ数（第20回と同じ）
+function ageRank_(birth) {
+  const keys = Object.keys(birth), r = {};
+  keys.forEach(function (p) { r[p] = 1 + keys.filter(function (q) { return birth[q] < birth[p]; }).length; });
+  return r;
+}
+// 返す agerank。締め切った回（A_ がある）は、消す前の順を返し続ける
+function ageRankOut_(kai) {
+  return get_('A_' + kai) !== null ? json_('A_' + kai, {}) : ageRank_(json_('B_' + kai, {}));
+}
+// 'YYYY-MM-DD' で、実在する日付で、1900-01-01〜今日（JST）
+function validBirth_(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return false;
+  return s >= '1900-01-01' && s <= now_().slice(0, 10);
 }
 
 function log_(kai, act, round, table) {
@@ -93,6 +116,7 @@ function doPost(e) {
   const kai = String(b.kai || '');
   if (!KAI_RE.test(kai)) return out_({ ok: false, error: 'kai' });
   if (b.action === 'roster') return roster_(kai, b.names);
+  if (b.action === 'birth') return birth_(kai, b.player, b.date);
   if (b.action !== 'score' && b.action !== 'clear') return out_({ ok: false, error: 'action' });
 
   const round = String(b.round || ''), table = Number(b.table);
@@ -152,6 +176,22 @@ function roster_(kai, names) {
   });
 }
 
+// 生年月日（同点のときだけ幹部用ページで入れる）。date '' で消す。返事の data には agerank だけが入る（生年月日は返さない）
+function birth_(kai, player, date) {
+  player = String(player || ''); date = String(date || '');
+  if (!PLAYER_RE.test(player)) return out_({ ok: false, error: 'player' });
+  if (date && !validBirth_(date)) return out_({ ok: false, error: 'date' });
+  return withLock_(function () {
+    if (get_('A_' + kai) !== null) return out_({ ok: false, error: 'closed' });
+    const b = json_('B_' + kai, {});
+    if (date) b[player] = date; else delete b[player];
+    if (Object.keys(b).length) set_('B_' + kai, JSON.stringify(b)); else if (get_('B_' + kai) !== null) del_('B_' + kai);
+    set_('U_' + kai, now_());
+    log_(kai, 'birth', '', player);
+    return out_({ ok: true, data: data_(kai) });
+  });
+}
+
 // ---- ここから下はエディタで動かす（受け口からは呼べない） ----
 
 // 置いてある回の一覧（点数の卓数・名簿の人数・最終更新）をログに出す
@@ -160,11 +200,13 @@ function listKai() {
   try {
     const kais = {};
     Object.keys(SNAP).forEach(function (k) {
-      const m = /^([SRU])_([0-9A-Za-z-]+)(?:_(.+))?$/.exec(k);
+      const m = /^([SRUBA])_([0-9A-Za-z-]+)(?:_(.+))?$/.exec(k);
       if (!m) return;
-      const o = kais[m[2]] || (kais[m[2]] = { tables: 0, names: 0, updated: '' });
+      const o = kais[m[2]] || (kais[m[2]] = { tables: 0, names: 0, births: 0, closed: false, updated: '' });
       if (m[1] === 'S') o.tables += Object.keys(json_(k, {})).length;
       if (m[1] === 'R') o.names = Object.keys(json_(k, {})).length;
+      if (m[1] === 'B') o.births = Object.keys(json_(k, {})).length;
+      if (m[1] === 'A') o.closed = true;
       if (m[1] === 'U') o.updated = get_(k);
     });
     Logger.log(JSON.stringify(kais, null, 1));
@@ -174,16 +216,34 @@ function listKai() {
   }
 }
 
-// PURGE に回の名前を入れて動かすと、その回の点数・名簿・最終更新を消す（終わったら '' に戻す）
+// PURGE に回の名前を入れて動かすと、その回の点数・名簿・生年月日・最終更新を消す（終わったら '' に戻す）
 const PURGE = '';
 function purgeKai() {
   if (!KAI_RE.test(PURGE)) { Logger.log('PURGE に回の名前を入れてください'); return; }
   const props = PropertiesService.getScriptProperties();
   const keys = Object.keys(props.getProperties()).filter(function (k) {
-    return k === 'R_' + PURGE || k === 'U_' + PURGE || k.indexOf('S_' + PURGE + '_') === 0;
+    return k === 'R_' + PURGE || k === 'U_' + PURGE || k === 'B_' + PURGE || k === 'A_' + PURGE || k.indexOf('S_' + PURGE + '_') === 0;
   });
   keys.forEach(function (k) { props.deleteProperty(k); });
   Logger.log(PURGE + ' を消しました（' + keys.length + '項目）');
+}
+
+// CLOSE_BIRTH に回の名前を入れて動かすと、その回の生年月日を消し、消す前の年上からの順だけを残す（大会の後。以後は受け付けない。終わったら '' に戻す）
+const CLOSE_BIRTH = '';
+function closeBirth() {
+  if (!KAI_RE.test(CLOSE_BIRTH)) { Logger.log('CLOSE_BIRTH に回の名前を入れてください'); return; }
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    snap_();
+    if (get_('A_' + CLOSE_BIRTH) !== null) { Logger.log(CLOSE_BIRTH + ' は締め切り済みです'); return; }
+    set_('A_' + CLOSE_BIRTH, JSON.stringify(ageRank_(json_('B_' + CLOSE_BIRTH, {}))));
+    if (get_('B_' + CLOSE_BIRTH) !== null) del_('B_' + CLOSE_BIRTH);
+    Logger.log(CLOSE_BIRTH + ' の生年月日を消し、年上からの順だけを残しました');
+  } finally {
+    SNAP = null;
+    lock.releaseLock();
+  }
 }
 
 // 全部を消す（すべての回と送信履歴）

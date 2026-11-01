@@ -47,6 +47,13 @@ def table_pts(raws, cfg):
     return pts
 
 
+def junni_split(n, mode):
+    """順位決定戦の卓の人数（点数ページの junniSplit と同じ）。mode 人ずつに分け、余りは下の卓から1人ずつ足す（3麻だけ）"""
+    k = n // mode
+    add = min(n - k * mode, k) if mode == 3 else 0
+    return [mode + (1 if i >= k - add else 0) for i in range(k)]
+
+
 def fetch(cfg):
     api = str(cfg.get("api") or "").strip()
     if not api:
@@ -60,10 +67,13 @@ def fetch(cfg):
 
 
 def build(cfg, kumi, data):
-    M, R = cfg["mode"], cfg["prelim"]
-    H = cfg["final"]["hanchan"] if cfg["final"]["tables"] > 0 else 0
+    M, R, T = cfg["mode"], cfg["prelim"], cfg["final"]["tables"]
+    H = cfg["final"]["hanchan"] if T > 0 else 0
     prelim = [str(i) for i in range(1, R + 1)]
     finals = [f"F{i}" for i in range(1, H + 1)]
+    # 順位決定戦（final.junni が 1）は、決勝1半荘目（F1）の決勝の卓の後ろの番号の卓
+    junni = T > 0 and cfg["final"].get("junni") == 1
+    is_junni = lambda r, t: junni and r == "F1" and int(t) > T
     rounds, roster = data.get("rounds") or {}, data.get("roster") or {}
     dn = lambda p: f"{roster[p]}（{p}）" if roster.get(p) else p
     players = {f"P{i}" for i in range(1, cfg["players"] + 1)}
@@ -80,13 +90,29 @@ def build(cfg, kumi, data):
                 cnt[p] += 1
                 by[p][r] = v
     rk = sorted(players, key=lambda p: (-tot[p], pn(p)))
+    # 合計が同じかたまりは、全員の生年月日が入っていれば年上から並べる（nenrei の会。受け口の agerank＝年上からの順。同じ日の人どうしは同点のまま）
+    agerank = (data.get("agerank") or {}) if cfg.get("nenrei") is True else {}
+    age = lambda p: agerank[p] if isinstance(agerank.get(p), int) else None
+    byage, i = set(), 0
+    while i < len(rk):
+        j = i
+        while j + 1 < len(rk) and tot[rk[j + 1]] == tot[rk[i]]:
+            j += 1
+        g = rk[i:j + 1]
+        if len(g) > 1 and all(age(p) is not None for p in g):
+            rk[i:j + 1] = sorted(g, key=lambda p: (age(p), pn(p)))
+            byage |= set(g)
+        i = j + 1
     prank = {}
     for i, p in enumerate(rk):
-        prank[p] = prank[rk[i - 1]] if i and tot[rk[i - 1]] == tot[p] else i + 1
+        q = rk[i - 1] if i else None
+        prank[p] = prank[q] if q and tot[q] == tot[p] and (p not in byage or age(q) == age(p)) else i + 1
     # 決勝: 決勝の点数が入った人を上に。1半荘なら素点、複数なら決勝のポイント合計。卓をまたいで比べ、同点は予選の順位（1半荘の同じ卓は起家に近い方）
     fin = {}
     for r in finals:
         for t, rec in (rounds.get(r) or {}).items():
+            if is_junni(r, t):
+                continue
             for s, (p, v) in enumerate(zip(rec["p"], table_pts(rec["raw"], cfg))):
                 f = fin.setdefault(p, {"p": p, "pts": 0, "n": 0, "raw": None, "table": t, "seat": s})
                 if v is None:
@@ -112,16 +138,32 @@ def build(cfg, kumi, data):
             rows[-1]["tie"] = True
         rows.append({"rank": rows[-1]["rank"] if same else i + 1, "tie": same, "p": f["p"], "how": "決勝",
                      "val": (f"{f['raw']:,}点" if f["raw"] is not None else "") if single else f"{fpt(f['pts'])}（{f['n']}/{H}）"})
-    K, rest = len(rows), [p for p in rk if p not in fin]
+    # 順位決定戦: 卓の番号の順に、卓の中は素点の多い順（卓をまたいで入れ替わらない）。同じ素点は予選の順位が上の方
+    placed = {x["p"] for x in rows}
+    for t, rec in sorted(((t, rec) for t, rec in (rounds.get("F1") or {}).items() if is_junni("F1", t)), key=lambda x: int(x[0])):
+        raw = dict(zip(rec["p"], rec["raw"]))
+        key = lambda p: (-raw[p], prank[p])
+        ps = sorted((p for p in rec["p"] if p not in placed), key=lambda p: (key(p), pn(p)))
+        base = len(rows)
+        for i, p in enumerate(ps):
+            same = i > 0 and key(ps[i - 1]) == key(p)
+            if same:
+                rows[-1]["tie"] = True
+            rows.append({"rank": rows[-1]["rank"] if same else base + i + 1, "tie": same, "p": p, "how": "順位決定戦", "val": f"{raw[p]:,}点"})
+            placed.add(p)
+    K, rest = len(rows), [p for p in rk if p not in placed]
     for j, p in enumerate(rest):
-        same = j > 0 and tot[rest[j - 1]] == tot[p]
+        same = j > 0 and prank[rest[j - 1]] == prank[p]
         if same:
             rows[-1]["tie"] = True
         rows.append({"rank": rows[-1]["rank"] if same else K + j + 1, "tie": same, "p": p, "how": "予選", "val": fpt(tot[p]) if cnt[p] else ""})
-    # 入力のそろい具合（組み合わせ表の卓の数。表がなければ人数から）
+    # 入力のそろい具合（組み合わせ表の卓の数。表がなければ人数から）。決勝1半荘目は、順位決定戦の卓も数える
     kr = (kumi or {}).get("rounds") or {}
     want = {r: len((kr.get(r) or {}).get("tables") or []) or len(players) // M for r in prelim}
-    want.update({r: cfg["final"]["tables"] for r in finals})
+    want.update({r: T for r in finals})
+    if junni:
+        gone = (kr.get(prelim[-1]) or {}).get("out", [])
+        want["F1"] += len(junni_split(len(players) - len(gone) - T * M, M))
     short = [f"{r}半荘目 {len(rounds.get(r) or {})}/{want[r]}卓" if r.isdigit() else f"決勝{r[1:]} {len(rounds.get(r) or {})}/{want[r]}卓"
              for r in prelim + finals if len(rounds.get(r) or {}) < want[r]]
     rest_by = {r: (kr.get(r) or {}).get("rest", []) for r in prelim}
@@ -129,7 +171,7 @@ def build(cfg, kumi, data):
     out_last = (kr.get(prelim[-1]) or {}).get("out", [])
     # 出力
     L = [f"# {cfg.get('group') or cfg.get('title', '')} {cfg.get('date') or cfg['kai']}", ""]
-    rule = f"{M}麻・予選{R}半荘" + (f"・決勝{cfg['final']['tables']}卓{H}半荘" if H else "") + f"・{cfg['start']:,}点持ち{cfg['return']:,}点返し"
+    rule = f"{M}麻・予選{R}半荘" + (f"・決勝{T}卓{H}半荘" if H else "") + ("・順位決定戦1半荘" if junni else "") + f"・{cfg['start']:,}点持ち{cfg['return']:,}点返し"
     L += [f"- {cfg.get('title', '')}（{rule}）。", f"- 出席 {len(players)}人。点数の最終更新 {data.get('updated') or '―'}。"]
     if out_last:
         L.append(f"- 途中で抜けた人: {'・'.join(dn(p) for p in out_last)}。")
@@ -141,15 +183,16 @@ def build(cfg, kumi, data):
     L += ["", "## 予選の集計", "", "| 順位 | 名前 | " + " | ".join(prelim) + " | 合計 |", "|---|---|" + "---|" * len(prelim) + "---|"]
     for p in rk:
         cells = [fpt(by[p][r]) if r in by[p] else ("抜け" if p in rest_by[r] else "お休み" if p in out_by[r] else "") for r in prelim]
-        tie = cnt[p] > 0 and any(q != p and cnt[q] > 0 and tot[q] == tot[p] for q in players)
-        L.append(f"| {prank[p]}{' 同点' if tie else ''} | {dn(p)} | " + " | ".join(cells) + f" | {fpt(tot[p]) if cnt[p] else ''} |")
+        tie = cnt[p] > 0 and any(q != p and cnt[q] > 0 and prank[q] == prank[p] for q in players)
+        mark = " 同点" if tie else " 年齢" if p in byage and cnt[p] > 0 else ""
+        L.append(f"| {prank[p]}{mark} | {dn(p)} | " + " | ".join(cells) + f" | {fpt(tot[p]) if cnt[p] else ''} |")
     L += ["", "## 卓ごとの点棒", ""]
     for r in prelim + finals:
         recs = rounds.get(r) or {}
         if not recs:
             continue
         L.append(f"- {r + '半荘目' if r.isdigit() else '決勝' + r[1:]}: " + "／".join(
-            f"{t}卓 " + "・".join(f"{WINDS[i]}{dn(p)} {recs[t]['raw'][i]:,}" for i, p in enumerate(recs[t]["p"])) for t in sorted(recs, key=int)))
+            f"{'順位決定戦' if is_junni(r, t) else ''}{t}卓 " + "・".join(f"{WINDS[i]}{dn(p)} {recs[t]['raw'][i]:,}" for i, p in enumerate(recs[t]["p"])) for t in sorted(recs, key=int)))
     return "\n".join(L) + "\n", rows
 
 

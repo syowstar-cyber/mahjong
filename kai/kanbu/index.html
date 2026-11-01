@@ -36,10 +36,20 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
 .big{font-size:1.25rem;font-weight:700;margin:2px 0 8px}
-.att{display:flex;align-items:center;gap:14px;padding:12px 6px;border-bottom:1px solid var(--line);font-size:1.12rem;cursor:pointer}
+.att{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;padding:6px 6px;border-bottom:1px solid var(--line)}
 .att:last-child{border-bottom:0}
-.att input{width:28px;height:28px;flex:none;accent-color:var(--ok)}
-.att.here{background:var(--ok-bg);color:var(--ok);font-weight:700}
+.att .who{display:flex;align-items:center;gap:14px;flex:1 1 10em;min-height:46px;font-size:1.12rem;cursor:pointer}
+.att .who input{width:28px;height:28px;flex:none;accent-color:var(--ok)}
+.att.here{background:var(--ok-bg)}
+.att.here .who{color:var(--ok);font-weight:700}
+/* 生年月日（同点のときだけ）。狭い画面では名前の下に回る */
+.bd{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:.95rem}
+.bd input{font-size:1rem;padding:6px 8px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);max-width:11.5em}
+.bd .ghost{padding:7px 10px}
+.bd .ghost:disabled{opacity:.5;cursor:default}
+.bd .done{color:var(--ok);font-weight:700}
+.msg{min-height:1.5em;margin-top:8px;font-weight:700}
+.msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
@@ -58,11 +68,14 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   <h2>時間割</h2>
   <div class="tw"><table id="sched"></table></div>
   <p class="small" id="schednote"></p>
+  <p class="hint" id="schedmemo" hidden></p>
 
   <h2>出席確認</h2>
   <div class="card">
     <div class="big" id="count"></div>
+    <p class="small" id="bnote" hidden></p>
     <div id="attend"></div>
+    <div id="bmsg" class="msg" aria-live="polite"></div>
   </div>
   <div class="tools">
     <button class="ghost" type="button" id="reload">名前を読み直す</button>
@@ -80,8 +93,9 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 </div>
 
 <script>
-// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から時間割（schedule）と設定を出し、受け口からは名前（名簿）を読むだけ（何も送らない）。
-// 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない
+// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から時間割（schedule）と設定を出し、受け口からは名前（名簿）と年上からの順（agerank）を読む。
+// 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない。
+// 送るのは生年月日だけ（taikai.json の nenrei が true の会。予選の合計が同点のときだけ、その人たちの分を入れる）
 const $ = id => document.getElementById(id);
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
 const T_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
@@ -90,7 +104,10 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 const CONF = '../g/' + G + '/';
 document.querySelectorAll('.pnav a[data-g]').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
-let CFG = null, ROSTER = {}, HERE = new Set();
+let CFG = null, ROSTER = {}, HERE = new Set(), API = '';
+// 年上からの順（受け口の agerank。生年月日を入れた人どうし。1 が最年長）。BIRTH_OK は受け口が生年月日を受け付けるか（古い受け口は agerank を返さない）
+let AGERANK = {}, BIRTH_OK = false;
+const BDRAFT = {};   // 打ちかけの生年月日（表を作り直しても消さない）
 const fmt = n => Number(n).toLocaleString('ja-JP');
 const dnf = p => p + (ROSTER[p] ? ' ' + ROSTER[p] : '');
 const mins = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
@@ -119,6 +136,8 @@ function renderSched() {
   });
   t.appendChild(tb);
   $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
+  const memo = typeof CFG.schedule_note === 'string' ? CFG.schedule_note.trim() : '';
+  $('schedmemo').hidden = !memo; $('schedmemo').textContent = memo;
 }
 
 // ---- 出席確認（P1〜P人数。チェックは端末の中に回ごとに置く） ----
@@ -136,14 +155,65 @@ function summary() {
 }
 function renderAttend() {
   const box = $('attend'); box.innerHTML = '';
+  const bn = $('bnote');
+  bn.hidden = !nenrei();
+  bn.textContent = !API ? '受け口が未設定のため、生年月日は入れられません。'
+    : !BIRTH_OK ? '受け口が古いか、つながらないため、生年月日は入れられません（受け口を新しいバージョンでデプロイすると使えます。つながらないときは「名前を読み直す」）。'
+    : '生年月日は、予選の合計が同点のときだけ、その人たちの分を入れます（年齢が上の人が上位）。どのページにも出ず、入れた後は「入力済み」とだけ出ます。幹部の端末で共有されます。';
   people().forEach(p => {
-    const lab = document.createElement('label'); lab.className = 'att' + (HERE.has(p) ? ' here' : '');
+    const row = document.createElement('div'); row.className = 'att' + (HERE.has(p) ? ' here' : '');
+    const lab = document.createElement('label'); lab.className = 'who';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = HERE.has(p);
-    cb.addEventListener('change', () => { if (cb.checked) HERE.add(p); else HERE.delete(p); lab.classList.toggle('here', cb.checked); saveHere(); summary(); });
+    cb.addEventListener('change', () => { if (cb.checked) HERE.add(p); else HERE.delete(p); row.classList.toggle('here', cb.checked); saveHere(); summary(); });
     const sp = document.createElement('span'); sp.textContent = dnf(p);
-    lab.appendChild(cb); lab.appendChild(sp); box.appendChild(lab);
+    lab.appendChild(cb); lab.appendChild(sp); row.appendChild(lab);
+    if (nenrei() && API && BIRTH_OK) row.appendChild(birthCell(p));
+    box.appendChild(row);
   });
   summary();
+}
+
+// ---- 生年月日（taikai.json の nenrei が true の会だけ）。予選の合計が同点なら、年齢が上の方が上位 ----
+// 受け口は生年月日を返さず、入れた人どうしの年上からの順（agerank）だけを返す。そのため、ここには「入力済み」だけを出す（第20回と同じ）
+const nenrei = () => !!(CFG && CFG.nenrei === true);
+function birthCell(p) {
+  const bd = document.createElement('div'); bd.className = 'bd';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'ghost';
+  if (AGERANK[p] !== undefined) {
+    const s = document.createElement('span'); s.className = 'done'; s.textContent = '生年月日 入力済み';
+    b.textContent = '消す';
+    b.addEventListener('click', () => sendBirth(p, '', b));
+    bd.append(s, b);
+  } else {
+    const i = document.createElement('input'); i.type = 'date'; i.min = '1900-01-01'; i.max = today();
+    i.setAttribute('aria-label', dnf(p) + ' の生年月日'); i.value = BDRAFT[p] || '';
+    i.addEventListener('input', () => { BDRAFT[p] = i.value; });
+    b.textContent = '入れる';
+    b.addEventListener('click', () => sendBirth(p, i.value, b));
+    bd.append(i, b);
+  }
+  return bd;
+}
+function sayB(t, ok) { const m = $('bmsg'); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
+async function sendBirth(p, date, btn) {
+  if (date === '' && AGERANK[p] === undefined) { sayB(dnf(p) + ' の生年月日を選んでから「入れる」を押してください', false); return; }
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { sayB(dnf(p) + ' の生年月日の形が正しくありません', false); return; }
+  if (!confirm(date ? dnf(p) + ' の生年月日を ' + date + ' で入れますか？\n（どのページにも出ません。同点の順位にだけ使います）' : dnf(p) + ' の生年月日を消しますか？')) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'birth', kai: CFG.kai, player: p, date }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'ng');
+    AGERANK = (j.data && j.data.agerank) || {};
+    delete BDRAFT[p];
+    renderAttend();
+    sayB(dnf(p) + (date ? ' の生年月日を入れました。' : ' の生年月日を消しました。') + '点数ページの順位は、開き直すか2分ほどで変わります。', true);
+  } catch (e) {
+    sayB(e.message === 'date' ? '生年月日が正しくありません（1900年〜今日まで）'
+      : e.message === 'closed' ? 'この回は、生年月日の受け付けを締め切りました'
+      : e.message === 'action' ? '受け口が古いため、生年月日を受け付けません。受け口を新しいバージョンでデプロイしてください'
+      : '送れませんでした。通信を確かめて、もう一度押してください', false);
+  } finally { btn.disabled = false; }
 }
 
 // ---- この回の設定 ----
@@ -151,10 +221,13 @@ function renderCfg() {
   const c = CFG, n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
   const rows = [
     ['開催日', c.date || '―'],
+    ['会場', typeof c.place === 'string' && c.place ? c.place + (typeof c.address === 'string' && c.address ? '（' + c.address + '）' : '') : '―'],
     ['種類', c.mode + '麻'],
     ['人数', c.players + '人'],
     ['予選', c.prelim + '半荘'],
     ['決勝', n ? '予選の上位' + n + '人・' + c.final.hanchan + '半荘' : 'なし'],
+    ...(n ? [['順位決定戦', c.final.junni === 1 ? '決勝に出ない人が、決勝1半荘目の時間に1半荘' : 'なし']] : []),
+    ['予選の同点', nenrei() ? '年齢が上の人が上位（生年月日を入れる）' : '同じ順位（集計係が決める）'],
     ['持ち点', Number.isInteger(c.start) && Number.isInteger(c.return) ? fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し' : '―'],
     ['回の名前', c.kai],
   ];
@@ -183,9 +256,17 @@ async function load() {
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
   });
   const notes = [];
-  const api = String(c.api || '').trim();
-  if (api) {
-    try { const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai)); if (j.ok && j.data && j.data.kai === c.kai) ROSTER = j.data.roster || {}; }
+  API = String(c.api || '').trim();
+  BIRTH_OK = false;
+  if (API) {
+    try {
+      const j = await getJson(API + '?kai=' + encodeURIComponent(c.kai));
+      if (j.ok && j.data && j.data.kai === c.kai) {
+        ROSTER = j.data.roster || {};
+        BIRTH_OK = !!j.data.agerank && typeof j.data.agerank === 'object';
+        AGERANK = BIRTH_OK ? j.data.agerank : {};
+      }
+    }
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); }
   }
   setup(notes.join(' '));

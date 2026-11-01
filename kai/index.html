@@ -48,6 +48,8 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 #mine th:first-child,#mine td:first-child{width:5.6em}
 #mine th:nth-child(2),#mine td:nth-child(2),#mine th:nth-child(3),#mine td:nth-child(3){width:3.4em}
 #mine.noseat th:nth-child(3),#mine.noseat td:nth-child(3){width:auto}
+#sched th:first-child,#sched td:first-child{width:4.2em;white-space:nowrap}
+tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
@@ -74,6 +76,14 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
     <label for="me">自分の名前</label>
     <select id="me"></select>
     <div id="mine" style="margin-top:10px"></div>
+  </div>
+
+  <div id="schedbox" hidden>
+  <h2 id="schedh">当日の流れ</h2>
+  <p class="hint" id="place" style="margin:0 0 10px" hidden></p>
+  <div class="tw" id="schedtw"><table id="sched"></table></div>
+  <p class="small" id="schednote" style="margin:6px 0 0"></p>
+  <p class="hint" id="schedmemo" style="margin:8px 0 0" hidden></p>
   </div>
 
   <h2>半荘ごとの組み合わせ</h2>
@@ -149,6 +159,45 @@ function players() {
 const doneOf = (k, no) => !!(DATA && DATA.rounds && DATA.rounds[k] && DATA.rounds[k][String(no)]);
 // 場決めあり（taikai.json の bakime）。席は半荘ごとに牌を引いて決めるので、組み合わせ表の並びは席でない（風を出さない）
 const bakime = () => !!(CFG && CFG.bakime === true);
+// 当日の流れ（taikai.json の schedule＝[["10:45","集合・受付"], …]。幹部用の時間割と同じ）。開催日の当日は、いまの行に色をつける
+const T_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+const mins = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function renderSched() {
+  const s = Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
+  const str = v => typeof v === 'string' ? v.trim() : '';
+  const place = str(CFG.place), memo = str(CFG.schedule_note);
+  $('schedbox').hidden = !s.length && !place;
+  $('schedh').textContent = place ? '会場と当日の流れ' : '当日の流れ';
+  renderPlace(place, str(CFG.address));
+  $('schedtw').hidden = !s.length;
+  $('schedmemo').hidden = !(s.length && memo); $('schedmemo').textContent = memo;
+  if (!s.length) { $('schednote').textContent = ''; return; }
+  const isToday = CFG.date === today();
+  let cur = -1;
+  if (isToday) { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); s.forEach((r, i) => { if (mins(r[0]) <= now) cur = i; }); }
+  const t = $('sched');
+  t.innerHTML = '<thead><tr><th>時刻</th><th>内容</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  s.forEach((r, i) => {
+    const tr = document.createElement('tr'); if (i === cur) tr.className = 'now';
+    [r[0], r[1] + (i === cur ? '（いま）' : '')].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
+}
+// 会場（taikai.json の place・address）。地図はグーグルマップで住所を探す（郵便番号は外す）
+function renderPlace(place, addr) {
+  const box = $('place'); box.innerHTML = ''; box.hidden = !place;
+  if (!place) return;
+  const b = document.createElement('b'); b.textContent = '会場　' + place; box.appendChild(b);
+  if (addr) { box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(addr)); }
+  const a = document.createElement('a');
+  a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((addr.replace(/^〒?\s*\d{3}-\d{4}\s*/, '') + ' ' + place).trim());
+  a.target = '_blank'; a.rel = 'noopener'; a.textContent = '地図を開く';
+  box.appendChild(document.createElement('br')); box.appendChild(a);
+}
 
 function render() {
   const c = CFG;
@@ -161,7 +210,8 @@ function render() {
   rm.hidden = !(KUMI && KUMI.from > 1);
   if (!rm.hidden) rm.textContent = KUMI.from + '半荘目から組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
   $('mineh').textContent = bakime() ? '自分の卓' : '自分の席';
-  $('seatnote').textContent = bakime() ? '席は、予選も決勝も半荘ごとに牌を引いて決めます。起家はサイコロで決めます。表の並び順は、席ではありません。' : '東が起家です。';
+  const junni = c.final.tables > 0 && c.final.junni === 1;
+  $('seatnote').textContent = bakime() ? '席は、予選も決勝も' + (junni ? '順位決定戦も、' : '') + '半荘ごとに牌を引いて決めます。起家はサイコロで決めます。表の並び順は、席ではありません。' : '東が起家です。';
   // 自分の名前
   const sel = $('me'), list = players();
   sel.innerHTML = '';
@@ -170,6 +220,7 @@ function render() {
   ME = list.includes(SAVED) ? SAVED : '';
   sel.value = ME;
   renderMine();
+  renderSched();
   // 半荘ごと
   const box = $('rounds'); box.innerHTML = '';
   if (!rs.length) { box.innerHTML = '<p><b>組み合わせはまだ決まっていません。前日に出ます。</b></p>'; }
@@ -198,7 +249,9 @@ function render() {
   });
   const fn = $('finnote');
   fn.hidden = !(c.final.tables > 0);
-  if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。決勝の卓は予選が終わると点数ページに出ます。' + (bakime() ? '' : '席は自動卓のサイコロで決めます。');
+  if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。'
+    + (junni ? 'ほかの人は、決勝1半荘目の時間に順位決定戦を1半荘打ちます。決勝2半荘目は、決勝に出ない人も観戦します。決勝と順位決定戦の卓は、予選が終わると点数ページに出ます。' : '決勝の卓は予選が終わると点数ページに出ます。')
+    + (bakime() ? '' : '席は自動卓のサイコロで決めます。');
 }
 function renderMine() {
   const box = $('mine'); box.innerHTML = '';
@@ -256,6 +309,8 @@ async function load() {
 }
 $('reload').addEventListener('click', load);
 load();
+// 当日は、いまの行の色を1分ごとに動かす
+setInterval(() => { if (CFG) renderSched(); }, 60000);
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 裏から戻ったとき、2分以上たっていれば読み直す（当日の組み直しに気づけるように）

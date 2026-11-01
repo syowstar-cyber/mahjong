@@ -62,7 +62,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
     <div class="sub">草案（2026-11-01）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">組み合わせ</a><a href="../../score/">点数</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数表</a></nav>
-  <p class="lead">3人麻雀には北家がいません。<span class="halu">Halu杯</span> はツモ損なしなので、いない北家の分を親と子で半分ずつ払います。表の<span class="k">北</span>の字が、足した半分の点です。</p>
+  <p class="lead">3人麻雀には北家がいません。<span class="halu">Halu杯</span> はツモ損なしなので、いない北家の分を親と子で半分ずつ払います。表の<span class="k">北</span>の字が、足した点です（北家の分の半分）。半分に50点が出るときは、親に寄せます。</p>
   <nav class="toc" id="toc"></nav>
   <main id="content">
 
@@ -89,12 +89,14 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 </tbody></table></div>
 <h3>決まり</h3>
 <ul>
-<li>足した点に100点未満の端数が出たら、100点に切り上げます。</li>
+<li>北家の分の半分に50点が出るときは、親に寄せます。</li>
+<li>子のツモは、親が100点に切り上げ、子は切り捨てます。例: 北家の分が300なら、親に200、子に100を足します。</li>
+<li>親のツモは、子2人とも100点に切り上げます。例: 北家の分が500なら、子2人に300ずつ足します。</li>
 <li>本場の分は折半しません。ロンは1本300点、ツモは1人100点を足します。</li>
 <li>翻は、ドラも入れたふつうの数です。符の数え方は<a href="rule.html#s10">ルールの10章</a>です。</li>
 </ul>
 <h3>表の見方</h3>
-<div class="ex">大きい数字が払う点です。小さい字は「4人麻雀の点＋<span class="k">北の半分</span>」です。<br>例: 子の30符1翻のツモで、子が払う点 → 300＋<span class="k">北150</span>＝450 → 切り上げて <b>500</b></div>
+<div class="ex">大きい数字が払う点です。小さい字は「4人麻雀の点＋<span class="k">北の半分</span>」です。<br>例: 子の30符1翻のツモ → 子は300＋<span class="k">北100</span>＝<b>400</b>、親は500＋<span class="k">北200</span>＝<b>700</b>（北家の分300を、親に寄せて分けた）</div>
 
 <h2 id="t2">2. 満貫から上</h2>
 <h3>子のアガリ</h3>
@@ -121,12 +123,12 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <h2 id="t3">3. 子のアガリ（満貫まで）</h2>
 <h3>1翻</h3>
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
-<tr><th>30符</th><td><b>1,000</b></td><td><b>500</b><small>300＋<i>北150</i></small></td><td><b>700</b><small>500＋<i>北150</i></small></td></tr>
+<tr><th>30符</th><td><b>1,000</b></td><td><b>400</b><small>300＋<i>北100</i></small></td><td><b>700</b><small>500＋<i>北200</i></small></td></tr>
 <tr><th>40符</th><td><b>1,300</b></td><td><b>600</b><small>400＋<i>北200</i></small></td><td><b>900</b><small>700＋<i>北200</i></small></td></tr>
 <tr><th>50符</th><td><b>1,600</b></td><td><b>600</b><small>400＋<i>北200</i></small></td><td><b>1,000</b><small>800＋<i>北200</i></small></td></tr>
-<tr><th>60符</th><td><b>2,000</b></td><td><b>800</b><small>500＋<i>北250</i></small></td><td><b>1,300</b><small>1,000＋<i>北250</i></small></td></tr>
+<tr><th>60符</th><td><b>2,000</b></td><td><b>700</b><small>500＋<i>北200</i></small></td><td><b>1,300</b><small>1,000＋<i>北300</i></small></td></tr>
 <tr><th>70符</th><td><b>2,300</b></td><td><b>900</b><small>600＋<i>北300</i></small></td><td><b>1,500</b><small>1,200＋<i>北300</i></small></td></tr>
-<tr><th>80符</th><td><b>2,600</b></td><td><b>1,100</b><small>700＋<i>北350</i></small></td><td><b>1,700</b><small>1,300＋<i>北350</i></small></td></tr>
+<tr><th>80符</th><td><b>2,600</b></td><td><b>1,000</b><small>700＋<i>北300</i></small></td><td><b>1,700</b><small>1,300＋<i>北400</i></small></td></tr>
 <tr><th>90符</th><td><b>2,900</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>1,900</b><small>1,500＋<i>北400</i></small></td></tr>
 <tr><th>100符</th><td><b>3,200</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>2,000</b><small>1,600＋<i>北400</i></small></td></tr>
 </tbody></table></div>
@@ -134,28 +136,28 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
 <tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>600</b><small>400＋<i>北200</i></small></td><td><b>900</b><small>700＋<i>北200</i></small></td></tr>
 <tr><th>25符<small>七対子</small></th><td><b>1,600</b></td><td class="na">―</td><td class="na">―</td></tr>
-<tr><th>30符</th><td><b>2,000</b></td><td><b>800</b><small>500＋<i>北250</i></small></td><td><b>1,300</b><small>1,000＋<i>北250</i></small></td></tr>
-<tr><th>40符</th><td><b>2,600</b></td><td><b>1,100</b><small>700＋<i>北350</i></small></td><td><b>1,700</b><small>1,300＋<i>北350</i></small></td></tr>
+<tr><th>30符</th><td><b>2,000</b></td><td><b>700</b><small>500＋<i>北200</i></small></td><td><b>1,300</b><small>1,000＋<i>北300</i></small></td></tr>
+<tr><th>40符</th><td><b>2,600</b></td><td><b>1,000</b><small>700＋<i>北300</i></small></td><td><b>1,700</b><small>1,300＋<i>北400</i></small></td></tr>
 <tr><th>50符</th><td><b>3,200</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>2,000</b><small>1,600＋<i>北400</i></small></td></tr>
 <tr><th>60符</th><td><b>3,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td><td><b>2,500</b><small>2,000＋<i>北500</i></small></td></tr>
 <tr><th>70符</th><td><b>4,500</b></td><td><b>1,800</b><small>1,200＋<i>北600</i></small></td><td><b>2,900</b><small>2,300＋<i>北600</i></small></td></tr>
-<tr><th>80符</th><td><b>5,200</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td><td><b>3,300</b><small>2,600＋<i>北650</i></small></td></tr>
-<tr><th>90符</th><td><b>5,800</b></td><td><b>2,300</b><small>1,500＋<i>北750</i></small></td><td><b>3,700</b><small>2,900＋<i>北750</i></small></td></tr>
+<tr><th>80符</th><td><b>5,200</b></td><td><b>1,900</b><small>1,300＋<i>北600</i></small></td><td><b>3,300</b><small>2,600＋<i>北700</i></small></td></tr>
+<tr><th>90符</th><td><b>5,800</b></td><td><b>2,200</b><small>1,500＋<i>北700</i></small></td><td><b>3,700</b><small>2,900＋<i>北800</i></small></td></tr>
 <tr><th>100符</th><td><b>6,400</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td><td><b>4,000</b><small>3,200＋<i>北800</i></small></td></tr>
 <tr><th>110符</th><td><b>7,100</b></td><td><b>2,700</b><small>1,800＋<i>北900</i></small></td><td><b>4,500</b><small>3,600＋<i>北900</i></small></td></tr>
 </tbody></table></div>
 <h3>3翻</h3>
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
-<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,100</b><small>700＋<i>北350</i></small></td><td><b>1,700</b><small>1,300＋<i>北350</i></small></td></tr>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,000</b><small>700＋<i>北300</i></small></td><td><b>1,700</b><small>1,300＋<i>北400</i></small></td></tr>
 <tr><th>25符<small>七対子</small></th><td><b>3,200</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>2,000</b><small>1,600＋<i>北400</i></small></td></tr>
 <tr><th>30符</th><td><b>3,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td><td><b>2,500</b><small>2,000＋<i>北500</i></small></td></tr>
-<tr><th>40符</th><td><b>5,200</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td><td><b>3,300</b><small>2,600＋<i>北650</i></small></td></tr>
+<tr><th>40符</th><td><b>5,200</b></td><td><b>1,900</b><small>1,300＋<i>北600</i></small></td><td><b>3,300</b><small>2,600＋<i>北700</i></small></td></tr>
 <tr><th>50符</th><td><b>6,400</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td><td><b>4,000</b><small>3,200＋<i>北800</i></small></td></tr>
 <tr><th>60符〜</th><td class="man" colspan="3">満貫</td></tr>
 </tbody></table></div>
 <h3>4翻</h3>
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
-<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td><td><b>3,300</b><small>2,600＋<i>北650</i></small></td></tr>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,900</b><small>1,300＋<i>北600</i></small></td><td><b>3,300</b><small>2,600＋<i>北700</i></small></td></tr>
 <tr><th>25符<small>七対子</small></th><td><b>6,400</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td><td><b>4,000</b><small>3,200＋<i>北800</i></small></td></tr>
 <tr><th>30符〜</th><td class="man" colspan="3">満貫</td></tr>
 </tbody></table></div>
@@ -163,32 +165,32 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <h2 id="t4">4. 親のアガリ（満貫まで）</h2>
 <h3>1翻</h3>
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
-<tr><th>30符</th><td><b>1,500</b></td><td><b>800</b><small>500＋<i>北250</i></small></td></tr>
-<tr><th>40符</th><td><b>2,000</b></td><td><b>1,100</b><small>700＋<i>北350</i></small></td></tr>
+<tr><th>30符</th><td><b>1,500</b></td><td><b>800</b><small>500＋<i>北300</i></small></td></tr>
+<tr><th>40符</th><td><b>2,000</b></td><td><b>1,100</b><small>700＋<i>北400</i></small></td></tr>
 <tr><th>50符</th><td><b>2,400</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td></tr>
 <tr><th>60符</th><td><b>2,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td></tr>
 <tr><th>70符</th><td><b>3,400</b></td><td><b>1,800</b><small>1,200＋<i>北600</i></small></td></tr>
-<tr><th>80符</th><td><b>3,900</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td></tr>
-<tr><th>90符</th><td><b>4,400</b></td><td><b>2,300</b><small>1,500＋<i>北750</i></small></td></tr>
+<tr><th>80符</th><td><b>3,900</b></td><td><b>2,000</b><small>1,300＋<i>北700</i></small></td></tr>
+<tr><th>90符</th><td><b>4,400</b></td><td><b>2,300</b><small>1,500＋<i>北800</i></small></td></tr>
 <tr><th>100符</th><td><b>4,800</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td></tr>
 </tbody></table></div>
 <h3>2翻</h3>
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
-<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,100</b><small>700＋<i>北350</i></small></td></tr>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,100</b><small>700＋<i>北400</i></small></td></tr>
 <tr><th>25符<small>七対子</small></th><td><b>2,400</b></td><td class="na">―</td></tr>
 <tr><th>30符</th><td><b>2,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td></tr>
-<tr><th>40符</th><td><b>3,900</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td></tr>
+<tr><th>40符</th><td><b>3,900</b></td><td><b>2,000</b><small>1,300＋<i>北700</i></small></td></tr>
 <tr><th>50符</th><td><b>4,800</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td></tr>
 <tr><th>60符</th><td><b>5,800</b></td><td><b>3,000</b><small>2,000＋<i>北1,000</i></small></td></tr>
-<tr><th>70符</th><td><b>6,800</b></td><td><b>3,500</b><small>2,300＋<i>北1,150</i></small></td></tr>
+<tr><th>70符</th><td><b>6,800</b></td><td><b>3,500</b><small>2,300＋<i>北1,200</i></small></td></tr>
 <tr><th>80符</th><td><b>7,700</b></td><td><b>3,900</b><small>2,600＋<i>北1,300</i></small></td></tr>
-<tr><th>90符</th><td><b>8,700</b></td><td><b>4,400</b><small>2,900＋<i>北1,450</i></small></td></tr>
+<tr><th>90符</th><td><b>8,700</b></td><td><b>4,400</b><small>2,900＋<i>北1,500</i></small></td></tr>
 <tr><th>100符</th><td><b>9,600</b></td><td><b>4,800</b><small>3,200＋<i>北1,600</i></small></td></tr>
 <tr><th>110符</th><td><b>10,600</b></td><td><b>5,400</b><small>3,600＋<i>北1,800</i></small></td></tr>
 </tbody></table></div>
 <h3>3翻</h3>
 <div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
-<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td></tr>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>2,000</b><small>1,300＋<i>北700</i></small></td></tr>
 <tr><th>25符<small>七対子</small></th><td><b>4,800</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td></tr>
 <tr><th>30符</th><td><b>5,800</b></td><td><b>3,000</b><small>2,000＋<i>北1,000</i></small></td></tr>
 <tr><th>40符</th><td><b>7,700</b></td><td><b>3,900</b><small>2,600＋<i>北1,300</i></small></td></tr>
