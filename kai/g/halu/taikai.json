@@ -37,7 +37,7 @@
     ["18:30", "終了（目安）"]
   ],
   "schedule_note": "軽食休憩はありません。軽食は各自で持ってきて、打ちながら食べてください。",
-  "junbi": ["麻雀ZOOに、35,000点と赤1枚でお願いする", "タイマーの準備", "ゴープロの準備"],
+  "junbi": ["麻雀ZOOに、35,000点持ち・赤5筒と赤5索を1枚ずつでお願いする", "タイマーの準備", "ゴープロの準備"],
   "uchiage": true,
   "kuji": "2026-11-13",
   "api": "https://script.google.com/macros/s/AKfycbzxCQFEJTYpjSEUdVEb5AdZyCeMWLagpyvnV7CuKXsHYbnAu34PV7PEQSKqoauxAzsC/exec"
