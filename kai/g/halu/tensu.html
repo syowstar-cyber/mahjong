@@ -264,11 +264,17 @@ function basePts(fu, han) {
   return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
 }
 const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満' })[b] || '';
+// 符の選択肢。平和ツモの20符はツモのときだけ出す（ロンに切り替えて20符が消えたら30符にする）
+function fillFu() {
+  const sel = $('cf'), tsumo = $('ck').value[1] === 't', was = sel.value;
+  sel.innerHTML = '';
+  FU.filter(f => tsumo || f !== 20).forEach(f => sel.appendChild(new Option(f + '符' + (f === 20 ? '（平和ツモ）' : f === 25 ? '（七対子）' : ''), String(f))));
+  sel.value = [...sel.options].some(o => o.value === was) ? was : '30';
+}
 // ない組み合わせ（20符は平和ツモだけで2翻から。25符は七対子だけで2翻から。七対子のツモは3翻から）。満貫から上は符を見ない
 function noHand(kind, fu, han) {
   const h = Number(han), tsumo = kind[1] === 't';
   if (!(h <= 4)) return '';
-  if (fu === 20 && !tsumo) return '20符のロンはありません（平和のロンは30符です）。';
   if (fu === 20 && h < 2) return '20符は平和ツモだけで、2翻からです。';
   if (fu === 25 && h < 2) return '25符は七対子だけで、2翻からです。';
   if (fu === 25 && tsumo && h < 3) return '七対子のツモは、3翻からです。';
@@ -305,10 +311,11 @@ function calc() {
   });
   $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + '本場は、ロン1本300点、ツモは1人100点を足します。' + (kind[1] === 't' ? 'ツモは、いない北家の分を2人で折半して足した点です（50点は親に寄せる）。' : '');
 }
-FU.forEach(f => $('cf').appendChild(new Option(f + '符' + (f === 20 ? '（平和ツモ）' : f === 25 ? '（七対子）' : ''), String(f))));
+fillFu();
 HAN.forEach(([v, t]) => $('ch').appendChild(new Option(t, v)));
 $('cf').value = '30'; $('ch').value = '1';
-['ck', 'cf', 'ch'].forEach(id => $(id).addEventListener('change', calc));
+$('ck').addEventListener('change', () => { fillFu(); calc(); });
+['cf', 'ch'].forEach(id => $(id).addEventListener('change', calc));
 calc();
 
 fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
