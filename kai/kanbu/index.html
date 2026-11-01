@@ -60,7 +60,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
     <h1 id="ttl">🀄 幹部用</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>参加者ページ</a><a href="../score/" data-g>点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップページ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" data-g hidden>くじ</a><a href="./" data-g aria-current="page">幹部用</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -98,7 +98,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>参加者ページ</a><a href="../score/" data-g>点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップページ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" data-g hidden>くじ</a><a href="./" data-g aria-current="page">幹部用</a></nav>
 </div>
 
 <script>
@@ -242,7 +242,7 @@ async function sendBirth(p, date, btn) {
     AGERANK = (j.data && j.data.agerank) || {};
     delete BDRAFT[p];
     renderAttend();
-    sayB(dnf(p) + (date ? ' の生年月日を入れました。' : ' の生年月日を消しました。') + '点数ページの順位は、開き直すか2分ほどで変わります。', true);
+    sayB(dnf(p) + (date ? ' の生年月日を入れました。' : ' の生年月日を消しました。') + '点数入力ページの順位は、開き直すか2分ほどで変わります。', true);
   } catch (e) {
     sayB(e.message === 'date' ? '生年月日が正しくありません（1900年〜今日まで）'
       : e.message === 'closed' ? 'この回は、生年月日の受け付けを締め切りました'
@@ -285,11 +285,12 @@ async function load() {
   document.title = (c.title || '') + ' 幹部用';
   $('ttl').textContent = '🀄 ' + (c.title || '') + ' 幹部用';
   $('sub').textContent = [c.date, c.mode + '麻', c.players + '人'].filter(Boolean).join('・');
-  // ルール・点数表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+  // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す。くじは、くじで決める会（kuji）だけ
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? CONF + c[k] : '';
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
   });
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
   const notes = [];
   API = String(c.api || '').trim();
   BIRTH_OK = false;

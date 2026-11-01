@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>参加者ページ</title>
+<title>トップページ</title>
 <script>
 // 会ごとのホーム画面のアプリ（manifest とアイコン）。会は URL の ?g=（付けなければ halu）。読み込みの途中で書き出す＝ブラウザが最初から見つけられる
 (function () {
@@ -78,10 +78,10 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 参加者ページ</h1>
+    <h1 id="ttl">🀄 トップページ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">参加者ページ</a><a href="score/">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>くじ</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -133,11 +133,11 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <li id="finnote" hidden></li>
   </ul>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">参加者ページ</a><a href="score/">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>くじ</a></nav>
 </div>
 
 <script>
-// 普段の回の参加者ページ（日時と場所・自分の卓・当日の流れ・打ち上げ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
+// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・当日の流れ・打ち上げ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
 // 受け口からは名前（名簿）・入力済みの卓・打ち上げの回答を読む。送るのは打ち上げの回答だけ。当日に組み直して push したら、開き直すか「最新に更新」で出る
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
@@ -147,7 +147,7 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 // 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
-// ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数表は会のフォルダの中なので付けない
+// ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
@@ -159,12 +159,13 @@ function applyTheme(c) {
   if (!t) { t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; document.head.appendChild(t); }
   t.content = c.short || c.group || c.title || '';
 }
-// ルール・点数表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+// ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す。くじは、くじで決める会（kuji）だけ
 function pageLinks(c) {
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? CONF + c[k] : '';
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
   });
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 const nm = p => (p && ROSTER[p]) || '';
@@ -219,7 +220,7 @@ function renderSched() {
   t.appendChild(tb);
   $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
 }
-// ページの一番上の日時と場所。日時は開催日（taikai.json の date）と、当日の流れの最初と最後の時刻。
+// ページの一番上の日時と場所。日時は開催日（taikai.json の date）と、当日の流れの最初と「終了」の行の時刻。
 // 場所は taikai.json の place・address。地図はグーグルマップで住所を探す（郵便番号は外す）
 const WDAY = ['日', '月', '火', '水', '木', '金', '土'];
 function dayText(s) {
@@ -230,12 +231,14 @@ function dayText(s) {
 }
 function renderInfo() {
   const day = dayText(CFG.date), place = str(CFG.place), s = schedRows();
-  // 「10:45 集合 〜 18:30 終了（目安）」。内容は「・」の前だけ（集合・受付・写真撮影 → 集合）
+  // 「10:45 集合 〜 18:30 終了（目安）」。内容は「・」の前だけ（集合・受付・写真撮影 → 集合）。
+  // 終わりは「終了」で始まる行（その後の打ち上げは入れない）。なければ最後の行
   const at = r => r[0] + ' ' + r[1].split('・')[0];
+  const end = s.find(r => r[1].startsWith('終了')) || s[s.length - 1];
   const when = $('when'); when.innerHTML = '';
   if (day) {
     when.appendChild(document.createTextNode(day));
-    if (s.length > 1) { when.appendChild(document.createElement('br')); when.appendChild(document.createTextNode(at(s[0]) + ' 〜 ' + at(s[s.length - 1]))); }
+    if (s.length > 1) { when.appendChild(document.createElement('br')); when.appendChild(document.createTextNode(at(s[0]) + ' 〜 ' + at(end))); }
   }
   $('whenrow').hidden = !day;
   $('whererow').hidden = !place;
@@ -255,8 +258,8 @@ function renderPlace(place, addr) {
 
 function render() {
   const c = CFG;
-  document.title = c.title + ' 参加者ページ';
-  $('ttl').textContent = '🀄 ' + c.title + ' 参加者ページ';
+  document.title = c.title + ' トップページ';
+  $('ttl').textContent = '🀄 ' + c.title + ' トップページ';
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   const rs = rounds();
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
@@ -307,7 +310,7 @@ function render() {
   const fn = $('finnote');
   fn.hidden = !(c.final.tables > 0);
   if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。'
-    + (junni ? 'ほかの人は、決勝1半荘目の時間に順位決定戦を1半荘打ちます。決勝2半荘目は、決勝に出ない人も観戦します。決勝と順位決定戦の卓は、予選が終わると点数ページに出ます。' : '決勝の卓は予選が終わると点数ページに出ます。')
+    + (junni ? 'ほかの人は、決勝1半荘目の時間に順位決定戦を1半荘打ちます。決勝2半荘目は、決勝に出ない人も観戦します。決勝と順位決定戦の卓は、予選が終わると点数入力ページに出ます。' : '決勝の卓は予選が終わると点数入力ページに出ます。')
     + (bakime() ? '' : '席は自動卓のサイコロで決めます。');
 }
 function renderMine() {

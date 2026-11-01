@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """普段の回の結果を、保管庫に残す形（Markdown）で出す。受け口の点数と会ごとの kai/g/<会>/taikai.json・kumiawase.json から、
-点数ページと同じ決まりで予選の集計と最終順位を計算する（決まりの正典は kai/README.md の「計算のきまり」）。
+点数入力ページと同じ決まりで予選の集計と最終順位を計算する（決まりの正典は kai/README.md の「計算のきまり」）。
 名前は受け口の名簿から読む＝出力には名前が入る。公開リポに置かず、保管庫へだけ書く。
 
 使い方:
@@ -18,7 +18,7 @@ pn = lambda p: int(p[1:])
 
 
 def fpt(n):
-    """0.1ポイント単位の整数を、点数ページと同じ形（+12.3／−4.0／0.0）にする"""
+    """0.1ポイント単位の整数を、点数入力ページと同じ形（+12.3／−4.0／0.0）にする"""
     return ("+" if n > 0 else "−" if n < 0 else "") + f"{abs(n) / 10:,.1f}"
 
 
@@ -48,7 +48,7 @@ def table_pts(raws, cfg):
 
 
 def junni_split(n, mode):
-    """順位決定戦の卓の人数（点数ページの junniSplit と同じ）。mode 人ずつに分け、余りは下の卓から1人ずつ足す（3麻だけ）"""
+    """順位決定戦の卓の人数（点数入力ページの junniSplit と同じ）。mode 人ずつに分け、余りは下の卓から1人ずつ足す（3麻だけ）"""
     k = n // mode
     add = min(n - k * mode, k) if mode == 3 else 0
     return [mode + (1 if i >= k - add else 0) for i in range(k)]

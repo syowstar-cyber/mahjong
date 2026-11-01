@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>三麻Halu杯 点数表</title>
+<title>三麻Halu杯 点数早見表</title>
 <style>
 :root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99;--kita:#9a4d00;--kita-bg:#fdf0e3}
 *{box-sizing:border-box}
@@ -53,18 +53,38 @@ table.sc td small{display:block;font-size:.76rem;color:var(--muted);margin-top:2
 table.sc td small i{font-style:normal;color:var(--kita);font-weight:700}
 table.sc td.na{color:var(--muted)}
 table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight:700}
+/* 点数の計算。狭い画面は、アガリを1行目に、符と翻を2行目に並べる */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+.calc{display:grid;grid-template-columns:1.1fr 1fr 1.3fr;gap:8px}
+.calc label{display:block;font-weight:700;margin:0 0 4px}
+.calc select{width:100%;padding:10px 8px;font-size:1.05rem;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+.calc select:disabled{opacity:.45}
+.cres{margin-top:12px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font-size:1.05rem;line-height:1.8}
+.cres b{font-size:1.3rem;color:var(--accent)}
+@media (max-width:420px){.calc{grid-template-columns:1fr 1fr}.calc .ck{grid-column:1/-1}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 三麻Halu杯 点数表</h1>
+    <h1 id="ttl">🀄 三麻Halu杯 点数早見表</h1>
     <div class="sub">草案（2026-11-01）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">参加者ページ</a><a href="../../score/">点数</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数早見表</a><a class="kuji" href="../../kuji/" hidden>くじ</a></nav>
   <p class="lead">3人麻雀には北家がいません。<span class="halu">Halu杯</span> はツモ損なしなので、いない北家の分を親と子で半分ずつ払います。表の<span class="k">北</span>の字が、足した点です（北家の分の半分）。半分に50点が出るときは、親に寄せます。</p>
   <nav class="toc" id="toc"></nav>
   <main id="content">
+
+<h2 id="keisan">点数の計算</h2>
+<div class="card">
+  <div class="calc">
+    <div class="ck"><label for="ck">アガリ</label><select id="ck"><option value="kr">子のロン</option><option value="kt">子のツモ</option><option value="or">親のロン</option><option value="ot">親のツモ</option></select></div>
+    <div><label for="cf">符</label><select id="cf"></select></div>
+    <div><label for="ch">翻</label><select id="ch"></select></div>
+  </div>
+  <div id="cres" class="cres" aria-live="polite"></div>
+  <div class="note" id="cnote" style="margin-top:6px"></div>
+</div>
 
 <h2 id="t1">1. ツモの払い方</h2>
 <p>4人麻雀なら北家が払う分を、残りの2人が半分ずつ足して払います。ロンの点数は、4人麻雀と同じです。</p>
@@ -216,17 +236,87 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <p class="src">ツモの払い方は、北家の分を親と子で折半する形です。細かい解釈で迷ったときは、運営が判断します。</p>
 
   </main>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">参加者ページ</a><a href="../../score/">点数</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数早見表</a><a class="kuji" href="../../kuji/" hidden>くじ</a></nav>
   <a class="top" href="#" title="上へ">↑</a>
 </div>
 <script>
-// 普段の回（Halu杯・3麻）の点数表。点数は表に書き込み済み（ツモ損なし＝北家の分を折半）で、題名と色だけ同じフォルダの taikai.json から読む
+// 普段の回（Halu杯・3麻）の点数早見表。点数は表に書き込み済み（ツモ損なし＝北家の分を折半）で、題名と色とくじの有無だけ同じフォルダの taikai.json から読む
 const $ = id => document.getElementById(id);
 document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
+const fmt = n => n.toLocaleString('ja-JP');
+
+// ---- 点数の計算（2026-11-01 に点数入力ページから移した）。アガリ・符・翻から、誰からいくらもらうか ----
+// ツモ損なし: いない北家の分を残りの2人で折半し、50点が出るときは親に寄せる（子のツモは親が切り上げ・子が切り捨て、親のツモは子2人とも切り上げ）。
+// 切り上げ満貫あり・数え役満なし。下の表と同じ数になる
+const FU = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
+const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11翻〜）'], ['y1', '役満'], ['y2', 'ダブル役満']];
+const up100 = v => Math.ceil(v / 100) * 100, down100 = v => Math.floor(v / 100) * 100;
+// 基本点（符×2の(翻+2)乗）。満貫から上は決まった数
+function basePts(fu, han) {
+  if (han === 'y1') return 8000;
+  if (han === 'y2') return 16000;
+  const h = Number(han);
+  if (h >= 11) return 6000;
+  if (h >= 8) return 4000;
+  if (h >= 6) return 3000;
+  if (h >= 5) return 2000;
+  const b = fu * Math.pow(2, h + 2);
+  return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
+}
+const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満' })[b] || '';
+// ない組み合わせ（20符は平和ツモだけで2翻から。25符は七対子だけで2翻から。七対子のツモは3翻から）。満貫から上は符を見ない
+function noHand(kind, fu, han) {
+  const h = Number(han), tsumo = kind[1] === 't';
+  if (!(h <= 4)) return '';
+  if (fu === 20 && !tsumo) return '20符のロンはありません（平和のロンは30符です）。';
+  if (fu === 20 && h < 2) return '20符は平和ツモだけで、2翻からです。';
+  if (fu === 25 && h < 2) return '25符は七対子だけで、2翻からです。';
+  if (fu === 25 && tsumo && h < 3) return '七対子のツモは、3翻からです。';
+  return '';
+}
+// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）
+function payOf(kind, b) {
+  if (kind === 'kr') return [{ who: '放銃した人', v: up100(b * 4), n: 1 }];
+  if (kind === 'or') return [{ who: '放銃した人', v: up100(b * 6), n: 1 }];
+  if (kind === 'kt') {
+    const ko = up100(b), oya = up100(b * 2);
+    return [{ who: '子', v: ko + down100(ko / 2), n: 1 }, { who: '親', v: oya + up100(ko / 2), n: 1 }];
+  }
+  const ko = up100(b * 2);
+  return [{ who: '子', v: ko + up100(ko / 2), n: 2 }];
+}
+function calc() {
+  const kind = $('ck').value, fu = Number($('cf').value), han = $('ch').value, big = !(Number(han) <= 4);
+  $('cf').disabled = big;
+  const box = $('cres'); box.innerHTML = '';
+  const ng = noHand(kind, fu, han);
+  $('cnote').textContent = '';
+  if (ng) { box.textContent = ng; return; }
+  const b = basePts(fu, han), pays = payOf(kind, b), total = pays.reduce((a, x) => a + x.v * x.n, 0);
+  const head = document.createElement('div');
+  head.textContent = (kind[0] === 'k' ? '子' : '親') + 'の' + (kind[1] === 't' ? 'ツモ' : 'ロン') + '　' + (big ? '' : fu + '符' + han + '翻　') + (handName(b) ? handName(b) + '　' : '') + '合計 ' + fmt(total) + '点';
+  box.appendChild(head);
+  pays.forEach(x => {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(x.who + (x.n > 1 ? x.n + '人' : '') + 'から '));
+    const v = document.createElement('b'); v.textContent = fmt(x.v) + '点'; d.appendChild(v);
+    if (x.n > 1) d.appendChild(document.createTextNode(' ずつ'));
+    box.appendChild(d);
+  });
+  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + '本場は、ロン1本300点、ツモは1人100点を足します。' + (kind[1] === 't' ? 'ツモは、いない北家の分を2人で折半して足した点です（50点は親に寄せる）。' : '');
+}
+FU.forEach(f => $('cf').appendChild(new Option(f + '符' + (f === 20 ? '（平和ツモ）' : f === 25 ? '（七対子）' : ''), String(f))));
+HAN.forEach(([v, t]) => $('ch').appendChild(new Option(t, v)));
+$('cf').value = '30'; $('ch').value = '1';
+['ck', 'cf', 'ch'].forEach(id => $(id).addEventListener('change', calc));
+calc();
+
 fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
   if (!c) return;
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
-  if (c.title) { document.title = c.title + ' 点数表'; $('ttl').textContent = '🀄 ' + c.title + ' 点数表'; }
+  if (c.title) { document.title = c.title + ' 点数早見表'; $('ttl').textContent = '🀄 ' + c.title + ' 点数早見表'; }
+  // くじのボタンは、くじで決める会（kuji）だけ
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }).catch(() => {});
 </script>
 </body>

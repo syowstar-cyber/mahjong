@@ -40,6 +40,7 @@ button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:point
 .pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);margin:8px 0}
 table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
 th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top;word-break:keep-all;overflow-wrap:anywhere}
@@ -67,7 +68,7 @@ td.nw,th.nw{white-space:nowrap}
     <h1 id="ttl">🀄 くじ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">参加者ページ</a><a href="../score/">点数</a><a href="./" aria-current="page">くじ</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">くじ</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -106,7 +107,7 @@ td.nw,th.nw{white-space:nowrap}
   <h2>8. くじ値と枠</h2>
   <div id="lottery"></div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">参加者ページ</a><a href="../score/">点数</a><a href="./" aria-current="page">くじ</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">くじ</a></nav>
 </div>
 
 <script>
@@ -121,8 +122,8 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 // 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
-// ページ間のリンクにも会を付ける（halu は付けない）
-document.querySelectorAll('.pnav a').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
+document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
@@ -265,7 +266,7 @@ function renderResult() {
     h += '<p>' + (from > 1 ? (from - 1) + '半荘目までは、型と本番の番号のとおりです。' : '') + from + '半荘目からは、当日の組み直しです' + (outs.length ? '（お休み: ' + outs.map(p => esc(dn(p))).join('・') + '）' : '') + '。組み直しでも、くじで決まった枠と No. の組は変えません。</p>';
   }
   h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
-  h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">参加者ページ</a>で見られます。</p>';
+  h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">トップページ</a>で見られます。</p>';
   box.innerHTML = h;
   lot.innerHTML = lotteryHtml(seedOf(N4), '<span class="tag real">本番</span>');
 }
@@ -275,7 +276,7 @@ function renderFlow() {
   const rows = [
     [KATA ? madeText(KATA.made) : '抽せんの前', '型（卓と抜け番の並び）と出席者一覧を、このページに出して固定する' + (KATA ? done : '')],
     [kd + ' 夕方', 'ナンバーズ4の抽せん' + (N4 ? '（当せん番号 ' + esc(N4) + '）' + done : '')],
-    [kd + ' 夜', '当せん番号で計算して、組み合わせを発表する（参加者ページとこのページ）' + (N4 ? done : '')],
+    [kd + ' 夜', '当せん番号で計算して、組み合わせを発表する（トップページとこのページ）' + (N4 ? done : '')],
     [mdText(CFG.date), '組み合わせのとおりに打つ']
   ];
   $('flow').innerHTML = '<thead><tr><th style="width:9em">いつ</th><th>決まること</th></tr></thead><tbody>' + rows.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td></tr>').join('') + '</tbody>';
@@ -337,7 +338,7 @@ function renderHow() {
     'くじ値の小さい順に、枠1・枠2…枠' + NP + ' を割り当てます（0〜9、a〜f の順で比べます）。' + (ko.length ? esc(ko.join('・')) + ' は、その後ろの枠' + os.join('・枠') + ' です。' : ''),
     '5章の型のとおりに、卓' + (bakime() ? '' : 'と席') + 'と抜け番が決まります。'
   ].map(t => '<li>' + t + '</li>').join('');
-  $('calclead').textContent = KATA ? (N4 ? 'ナンバーズ4の当せん番号（' + N4 + '）を入れて「計算する」を押すと、1章の抜け番・8章のくじ値・参加者ページの組み合わせと同じになることを確かめられます。' : '好きな4桁の数字を入れて「計算する」を押すと、くじの決まり方を試せます（本番の結果ではありません）。') : '型ができると、ここで計算を試せます。';
+  $('calclead').textContent = KATA ? (N4 ? 'ナンバーズ4の当せん番号（' + N4 + '）を入れて「計算する」を押すと、1章の抜け番・8章のくじ値・トップページの組み合わせと同じになることを確かめられます。' : '好きな4桁の数字を入れて「計算する」を押すと、くじの決まり方を試せます（本番の結果ではありません）。') : '型ができると、ここで計算を試せます。';
 }
 // ---- 4章: 検算 ----
 function renderCalc() {
@@ -368,9 +369,14 @@ async function load() {
   if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || !Number.isInteger(c.players)) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
   CFG = c;
   applyTheme(c);
+  // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+  ['rule', 'tensu'].forEach(k => {
+    const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
+    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
+  });
   document.title = (c.title || '') + ' くじ';
   $('ttl').textContent = '🀄 ' + (c.title || '') + ' くじ';
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '')) { $('sub').textContent = ''; setup('この会は、組み合わせをくじで決めていません。組み合わせは参加者ページで見られます。'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '')) { $('sub').textContent = ''; setup('この会は、組み合わせをくじで決めていません。組み合わせはトップページで見られます。'); return; }
   $('sub').textContent = mdText(c.kuji) + 'のナンバーズ4の当せん番号で、組み合わせを決めるくじ';
   const notes = [];
   let kt = null, k = null;

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>点数</title>
+<title>点数入力</title>
 <script>
 // 会ごとのホーム画面のアプリ（manifest とアイコン）。会は URL の ?g=（付けなければ halu）。読み込みの途中で書き出す＝ブラウザが最初から見つけられる
 (function () {
@@ -75,40 +75,20 @@ summary{cursor:pointer;font-weight:700}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 /* 狭い画面は、選ぶ欄（P番号と名前）を1行目に、点棒とポイントを2行目に分ける */
 @media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:2em}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}}
-/* 点数の計算。狭い画面は、アガリを1行目に、符と翻を2行目に並べる */
-.calc{display:grid;grid-template-columns:1.1fr 1fr 1.3fr;gap:8px}
-.calc label{margin:0 0 4px}
-.calc select{padding:10px 8px;font-size:1.05rem}
-.calc select:disabled{opacity:.45}
-.cres{margin-top:12px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font-size:1.05rem;line-height:1.8}
-.cres b{font-size:1.3rem;color:var(--accent)}
-@media (max-width:420px){.calc{grid-template-columns:1fr 1fr}.calc .ck{grid-column:1/-1}}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 点数</h1>
+    <h1 id="ttl">🀄 点数入力</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">参加者ページ</a><a href="./" aria-current="page">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" hidden>くじ</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
-  <div id="calcsec" hidden>
-  <h2>点数の計算</h2>
-  <div class="card">
-    <div class="calc">
-      <div class="ck"><label for="ck">アガリ</label><select id="ck"><option value="kr">子のロン</option><option value="kt">子のツモ</option><option value="or">親のロン</option><option value="ot">親のツモ</option></select></div>
-      <div><label for="cf">符</label><select id="cf"></select></div>
-      <div><label for="ch">翻</label><select id="ch"></select></div>
-    </div>
-    <div id="cres" class="cres" aria-live="polite"></div>
-    <div class="small" id="cnote" style="margin-top:6px"></div>
-  </div>
-  </div>
   <div id="entry">
   <h2>点数の報告（卓ごと）</h2>
   <div class="card">
@@ -169,11 +149,11 @@ summary{cursor:pointer;font-weight:700}
     <div id="results"></div>
   </details>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">参加者ページ</a><a href="./" aria-current="page">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" hidden>くじ</a></nav>
 </div>
 
 <script>
-// 普段の回（3麻・4麻）の点数ページ。回ごとに変わるものは会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ）だけで、
+// 普段の回（3麻・4麻）の点数入力ページ。回ごとに変わるものは会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ）だけで、
 // このページは触らない（kai/README.md）。2つのファイルと受け口は、読み込みのたびにキャッシュを使わず読み直す
 // （当日に組み直して push したとき、1〜2分で全員の画面に出すため）
 const $ = id => document.getElementById(id);
@@ -184,7 +164,7 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 // 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
-// ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数表は会のフォルダの中なので付けない
+// ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
@@ -196,12 +176,13 @@ function applyTheme(c) {
   if (!t) { t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; document.head.appendChild(t); }
   t.content = c.short || c.group || c.title || '';
 }
-// ルール・点数表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+// ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す。くじは、くじで決める会（kuji）だけ
 function pageLinks(c) {
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
   });
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
 const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
@@ -268,14 +249,13 @@ function applyCfg(c, k) {
   applyTheme(c);
   pageLinks(c);
   MODE = c.mode; TOTAL = c.start * MODE;
-  buildCalc();
   OKA = (c.return - c.start) * MODE / 100;   // オカ（返し−持ち点）×人数。0.1ポイント単位
   API = String(c.api || '').trim();
   PRELIM = Array.from({ length: c.prelim }, (_, i) => String(i + 1));
   FINALS = c.final.tables > 0 ? Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1)) : [];
   LOCKED = (c.locked || []).map(String);
-  document.title = c.title + ' 点数';
-  $('ttl').textContent = '🀄 ' + c.title + ' 点数';
+  document.title = c.title + ' 点数入力';
+  $('ttl').textContent = '🀄 ' + c.title + ' 点数入力';
   const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, k ? k.rounds : null]);
   // 入力中は作り直さない（次の読み込みでもう一度比べる）
   if (shape !== SHAPE && !EDITING) { SHAPE = shape; buildStatic(); }
@@ -308,78 +288,6 @@ function calcTable(raws) {
     k = j + 1;
   }
   return res;
-}
-
-// ---- 点数の計算（taikai.json の keisan が true の会）。アガリ・符・翻から、誰からいくらもらうか ----
-// 3麻はツモ損なし: いない北家の分を残りの2人で折半し、50点が出るときは親に寄せる（子のツモは親が切り上げ・子が切り捨て、親のツモは子2人とも切り上げ）。
-// 切り上げ満貫あり・数え役満なし。Halu杯の点数表（g/halu/tensu.html）と同じ数になる
-const FU = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
-const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11翻〜）'], ['y1', '役満'], ['y2', 'ダブル役満']];
-const up100 = v => Math.ceil(v / 100) * 100, down100 = v => Math.floor(v / 100) * 100;
-// 基本点（符×2の(翻+2)乗）。満貫から上は決まった数
-function basePts(fu, han) {
-  if (han === 'y1') return 8000;
-  if (han === 'y2') return 16000;
-  const h = Number(han);
-  if (h >= 11) return 6000;
-  if (h >= 8) return 4000;
-  if (h >= 6) return 3000;
-  if (h >= 5) return 2000;
-  const b = fu * Math.pow(2, h + 2);
-  return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
-}
-const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満' })[b] || '';
-// ない組み合わせ（20符は平和ツモだけで2翻から。25符は七対子だけで2翻から。七対子のツモは3翻から）。満貫から上は符を見ない
-function noHand(kind, fu, han) {
-  const h = Number(han), tsumo = kind[1] === 't';
-  if (!(h <= 4)) return '';
-  if (fu === 20 && !tsumo) return '20符のロンはありません（平和のロンは30符です）。';
-  if (fu === 20 && h < 2) return '20符は平和ツモだけで、2翻からです。';
-  if (fu === 25 && h < 2) return '25符は七対子だけで、2翻からです。';
-  if (fu === 25 && tsumo && h < 3) return '七対子のツモは、3翻からです。';
-  return '';
-}
-// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）
-function payOf(kind, b) {
-  if (kind === 'kr') return [{ who: '放銃した人', v: up100(b * 4), n: 1 }];
-  if (kind === 'or') return [{ who: '放銃した人', v: up100(b * 6), n: 1 }];
-  if (kind === 'kt') {
-    const ko = up100(b), oya = up100(b * 2);
-    if (MODE === 4) return [{ who: '子', v: ko, n: 2 }, { who: '親', v: oya, n: 1 }];
-    return [{ who: '子', v: ko + down100(ko / 2), n: 1 }, { who: '親', v: oya + up100(ko / 2), n: 1 }];
-  }
-  const ko = up100(b * 2);
-  return MODE === 4 ? [{ who: '子', v: ko, n: 3 }] : [{ who: '子', v: ko + up100(ko / 2), n: 2 }];
-}
-function buildCalc() {
-  const on = !!(CFG && CFG.keisan === true);
-  $('calcsec').hidden = !on;
-  if (!on || $('cf').options.length) return;
-  FU.forEach(f => $('cf').appendChild(new Option(f + '符' + (f === 20 ? '（平和ツモ）' : f === 25 ? '（七対子）' : ''), String(f))));
-  HAN.forEach(([v, t]) => $('ch').appendChild(new Option(t, v)));
-  $('cf').value = '30'; $('ch').value = '1';
-  ['ck', 'cf', 'ch'].forEach(id => $(id).addEventListener('change', calc));
-  calc();
-}
-function calc() {
-  const kind = $('ck').value, fu = Number($('cf').value), han = $('ch').value, big = !(Number(han) <= 4);
-  $('cf').disabled = big;
-  const box = $('cres'); box.innerHTML = '';
-  const ng = noHand(kind, fu, han);
-  $('cnote').textContent = '';
-  if (ng) { box.textContent = ng; return; }
-  const b = basePts(fu, han), pays = payOf(kind, b), total = pays.reduce((a, x) => a + x.v * x.n, 0);
-  const head = document.createElement('div');
-  head.textContent = (kind[0] === 'k' ? '子' : '親') + 'の' + (kind[1] === 't' ? 'ツモ' : 'ロン') + '　' + (big ? '' : fu + '符' + han + '翻　') + (handName(b) ? handName(b) + '　' : '') + '合計 ' + fmt(total) + '点';
-  box.appendChild(head);
-  pays.forEach(x => {
-    const d = document.createElement('div');
-    d.appendChild(document.createTextNode(x.who + (x.n > 1 ? x.n + '人' : '') + 'から '));
-    const v = document.createElement('b'); v.textContent = fmt(x.v) + '点'; d.appendChild(v);
-    if (x.n > 1) d.appendChild(document.createTextNode(' ずつ'));
-    box.appendChild(d);
-  });
-  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + '本場は、ロン1本300点、ツモは1人100点を足します。' + (MODE === 3 && kind[1] === 't' ? 'ツモは、いない北家の分を2人で折半して足した点です（50点は親に寄せる）。' : '');
 }
 
 // ---- 卓と人 ----
@@ -633,7 +541,7 @@ function renderBorder() {
   h += '</tbody></table></div><p class="small">ほかの人の結果でラインは動きます。目安として見てください。' + (Array.isArray(CFG.uma) ? '' : '順位点が浮きの人数で変わるため、少ない方の順位点で計算しています。') + '</p>';
   box.innerHTML = h;
 }
-// 選ぶ欄。前に選んだ人（なければ参加者ページで選んだ自分の名前）を出す
+// 選ぶ欄。前に選んだ人（なければトップページで選んだ自分の名前）を出す
 let BD_SAVED = '';
 try { BD_SAVED = localStorage.getItem('halukai:bd:' + G) || localStorage.getItem('halukai:me:' + G) || ''; } catch (e) {}
 function fillBd() {

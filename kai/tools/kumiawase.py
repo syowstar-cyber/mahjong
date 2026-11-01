@@ -48,7 +48,7 @@ def load(path):
 
 
 def table_nos(cfg, n):
-    """卓番号の呼び名。設定の tables が足りていればその先頭から、なければ1から（点数ページと同じ決まり）"""
+    """卓番号の呼び名。設定の tables が足りていればその先頭から、なければ1から（点数入力ページと同じ決まり）"""
     t = cfg.get("tables") or []
     return list(t[:n]) if len(t) >= n else list(range(1, n + 1))
 
@@ -495,7 +495,7 @@ def remake_after_kuji(cfg, kata, old, start, absent, back=()):
     old_s = {"kai": old["kai"], "rounds": {k: rename(r, m) for k, r in old["rounds"].items() if int(k) < start}}
     k = make(cfg, old_s, start, ["P%d" % m[pnum(p)] for p in absent], kata.get("seed", ""))
     k["rounds"] = {r: rename(x, inv) for r, x in k["rounds"].items()}
-    # 組み直しの印（参加者ページの知らせ。前の晩に表を見た人が取り違えないように）。表が変わらなければ、前の印と from のまま
+    # 組み直しの印（トップページの知らせ。前の晩に表を見た人が取り違えないように）。表が変わらなければ、前の印と from のまま
     if k["rounds"] == old["rounds"]:
         k["from"] = old.get("from", 1)
         if old.get("remade"):

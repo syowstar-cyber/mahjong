@@ -63,7 +63,7 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
     <h1 id="ttl">🀄 三麻Halu杯 ルール</h1>
     <div class="sub">草案（2026-11-01）。3人麻雀のルールです。</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">参加者ページ</a><a href="../../score/">点数</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数早見表</a><a class="kuji" href="../../kuji/" hidden>くじ</a></nav>
   <p class="lead">一般的な3人麻雀のやり方と、一般的な競技ルールを合わせたルールです。<span class="san">3麻</span> の印は3人麻雀だけの決まり、<span class="halu">Halu杯</span> の印は本大会だけの決まりです。まず「1. 早見表」を見てください。</p>
   <nav class="toc" id="toc"></nav>
   <main id="content">
@@ -74,11 +74,11 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <thead><tr><th>項目</th><th>本大会</th></tr></thead>
 <tbody>
 <tr><td>人数と牌</td><td><span class="san">3麻</span> 3人で打つ。2萬〜8萬を抜いた108枚</td></tr>
-<tr><td>持ち点</td><td id="q-start">回ごとに決めます（点数ページの「ポイントの計算」）</td></tr>
-<tr><td>進め方</td><td id="q-flow">予選の上位が決勝に進みます（半荘数は参加者ページ）</td></tr>
+<tr><td>持ち点</td><td id="q-start">回ごとに決めます（点数入力ページの「ポイントの計算」）</td></tr>
+<tr><td>進め方</td><td id="q-flow">予選の上位が決勝に進みます（半荘数はトップページ）</td></tr>
 <tr><td>北</td><td><span class="halu">Halu杯</span> 抜きドラ<span class="no">なし</span>　ふつうの字牌として使う（役牌ではない）</td></tr>
 <tr><td>チー</td><td><span class="san">3麻</span> <span class="no">なし</span>　ポンとカンはできる</td></tr>
-<tr><td>ツモ損</td><td><span class="halu">Halu杯</span> <span class="no">なし</span>　いない北家の分を、残りの2人で折半して払う（<a href="tensu.html">点数表</a>）</td></tr>
+<tr><td>ツモ損</td><td><span class="halu">Halu杯</span> <span class="no">なし</span>　いない北家の分を、残りの2人で折半して払う（<a href="tensu.html">点数早見表</a>）</td></tr>
 <tr><td>赤ドラ</td><td><span class="yes">あり</span>　5筒・5索が1枚ずつ</td></tr>
 <tr><td>喰いタン</td><td><span class="yes">あり</span>　鳴いても断么九（タンヤオ）がつく</td></tr>
 <tr><td>後付け</td><td><span class="yes">あり</span>　アガった時に役が1つあればよい</td></tr>
@@ -133,7 +133,7 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <li><span class="halu">Halu杯</span> ツモアガリでも、ロンより少なくなりません。</li>
 <li>4人麻雀なら北家が払う分を、残りの2人が半分ずつ足して払います。</li>
 <li>半分に50点が出るときは、親に寄せます。子のツモは、親が100点に切り上げ、子は切り捨てます。親のツモは、子2人とも切り上げます。</li>
-<li>1人が払う点は、<a href="tensu.html">点数表のページ</a>にあります。ロンの点数は、4人麻雀と同じです。</li>
+<li>1人が払う点は、<a href="tensu.html">点数早見表のページ</a>にあります。ロンの点数は、4人麻雀と同じです。</li>
 <li>本場の分だけは折半しません（ロン300点、ツモは1人100点）。</li>
 </ul>
 <div class="ex">例: 子の満貫ツモ → 親が5,000点・子が3,000点（合計8,000点）<br>例: 親の満貫ツモ → 子2人が6,000点ずつ（合計12,000点）<br>例: 子の30符1翻ツモ → 親が700点・子が400点（合計1,100点）</div>
@@ -231,7 +231,7 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <li id="q-junni">卓は、予選の順位で上から分けます。人数が3で割り切れないときは、下の卓を4人にします。</li>
 <li>最終順位は、卓ごとに、その半荘の点棒が多い順です。卓をまたいで入れ替わりません。</li>
 <li>点棒が同じなら、予選の順位が上の人が上位です。</li>
-<li>途中で帰った人がいるときは、卓の分け方が変わります。点数ページの「決勝と順位決定戦の卓」で確かめてください。</li>
+<li>途中で帰った人がいるときは、卓の分け方が変わります。点数入力ページの「決勝と順位決定戦の卓」で確かめてください。</li>
 </ul>
 
 <h3>4人卓（4人で3人麻雀を打つ）</h3>
@@ -253,8 +253,8 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 
 <h3>点数の報告</h3>
 <ul>
-<li>半荘が終わったら、卓の代表が <a href="../../score/">点数ページ</a> に3人の点棒を入れます。</li>
-<li>点数ページでは、起家を「東」、その下家を「南」、残りの人を「西」にして入れます。</li>
+<li>半荘が終わったら、卓の代表が <a href="../../score/">点数入力ページ</a> に3人の点棒を入れます。</li>
+<li>点数入力ページでは、起家を「東」、その下家を「南」、残りの人を「西」にして入れます。</li>
 <li>4人卓は、起家から下家の順に「東」「南」「西」「北」にして、4人の点棒を入れます。</li>
 <li>順位決定戦は、順位だけを決めます（ポイントはつけません）。</li>
 <li>マイナスの点棒も、そのまま入れてください。</li>
@@ -509,8 +509,8 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <li>平和ツモは、いつも20符です。</li>
 </ul>
 
-<h2 id="s11">11. 点数表</h2>
-<p>点数は、<a href="tensu.html">点数表のページ</a>にまとめました。ツモで北家の分の半分がいくら足されるかも、そこに書いてあります。</p>
+<h2 id="s11">11. 点数早見表</h2>
+<p>点数は、<a href="tensu.html">点数早見表のページ</a>にまとめました。ツモで北家の分の半分がいくら足されるかも、そこに書いてあります。</p>
 <ul>
 <li><span class="halu">Halu杯</span> ツモ損なしです。いない北家の分を、親と子で半分ずつ払います（2章）。</li>
 <li><b>切り上げ満貫あり</b>。30符4翻と60符3翻は満貫です（子8,000点、親12,000点）。</li>
@@ -532,11 +532,11 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <h2 id="s12">12. 順位点とポイント</h2>
 <ul>
 <li>半荘が終わった時の持ち点で順位を決めます。</li>
-<li id="q-calc">持ち点・返し・順位点は、回ごとに決めます。点数ページの「ポイントの計算」に、その回の数字が出ます。</li>
+<li id="q-calc">持ち点・返し・順位点は、回ごとに決めます。点数入力ページの「ポイントの計算」に、その回の数字が出ます。</li>
 <li>1,000点が1ポイントです。100点は0.1ポイントで、丸めません。</li>
 </ul>
 <div id="q-uma"></div>
-<p>点数ページに3人の点棒を入れると、自動で計算されます。</p>
+<p>点数入力ページに3人の点棒を入れると、自動で計算されます。</p>
 <h3>同点のとき</h3>
 <ul>
 <li>半荘の最後が同点なら、順位点を分けます。</li>
@@ -622,7 +622,7 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <p class="src">一般的な3人麻雀のやり方と、一般的な競技ルールを合わせて、わかりやすく書いたものです。細かい解釈で迷ったときは、運営が判断します。<span class="san">3麻</span> の印は3人麻雀だけの決まり、<span class="halu">Halu杯</span> の印は本大会だけの決まりです。</p>
 
   </main>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">参加者ページ</a><a href="../../score/">点数</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数早見表</a><a class="kuji" href="../../kuji/" hidden>くじ</a></nav>
   <a class="top" href="#" title="上へ">↑</a>
 </div>
 <script>
@@ -652,12 +652,14 @@ fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.j
   if (!c) return;
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
   if (c.title) { document.title = c.title + ' ルール'; $('ttl').textContent = '🀄 ' + c.title + ' ルール'; }
+  // くじのボタンは、くじで決める会（kuji）だけ
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
   const n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
   const junni = n > 0 && c.final.junni === 1;
   if (Number.isInteger(c.prelim)) $('q-flow').textContent = '予選' + c.prelim + '半荘' + (n ? ' → 上位' + n + '人で決勝' + c.final.hanchan + '半荘' + (junni ? '。ほかの人は順位決定戦1半荘' : '') : '（決勝なし）');
   if (n) $('q-final').textContent = '予選の合計ポイントの上位' + n + '人が、決勝に進みます。途中で帰った人は飛ばします。';
   if (junni && Number.isInteger(c.players) && c.players > n) {
-    // 順位決定戦の卓の分け方（点数ページの junniSplit と同じ）。mode 人ずつ、余りは下の卓から1人ずつ足す（3麻だけ）
+    // 順位決定戦の卓の分け方（点数入力ページの junniSplit と同じ）。mode 人ずつ、余りは下の卓から1人ずつ足す（3麻だけ）
     const m = c.players - n, k = Math.floor(m / c.mode), add = c.mode === 3 ? Math.min(m - k * c.mode, k) : 0;
     let from = n + 1;
     const parts = Array.from({ length: k }, (_, i) => { const s = c.mode + (i >= k - add ? 1 : 0), t = '予選' + from + '〜' + (from + s - 1) + '位（' + s + '人）'; from += s; return t; });
