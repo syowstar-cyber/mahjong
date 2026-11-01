@@ -187,6 +187,9 @@ const dn = p => nm(p) || p || '';                              // 表示名（�
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';     // 選ぶ欄（P番号＋名前）
 const isFinal = r => String(r).startsWith('F');
 const isLocked = r => LOCKED.includes(String(r));
+// 場決めあり（taikai.json の bakime）。席は半荘ごとに牌を引いて決めるので、組み合わせ表の並びを席として入れない
+const bakime = () => !!(CFG && CFG.bakime === true);
+const bakimeNote = () => '席は牌を引いて決めます。起家を東にして、ツモの順（' + WINDS.slice(0, MODE).join('・') + '）に座った人を選んでください。';
 const roundLabel = r => isFinal(r) ? (FINALS.length > 1 ? '決勝 ' + r.slice(1) + '半荘目' : '決勝') : '予選 ' + r + '半荘目';
 const recsOf = r => (DATA.rounds && DATA.rounds[r]) || {};
 const recOf = (r, t) => recsOf(r)[String(t)] || null;
@@ -408,7 +411,7 @@ function fillSeats() {
   const hint = $('qhint'); hint.textContent = '';
   if (!r || !t) { preview(); return; }
   const rec = recOf(r, t), mem = membersOf(r, t);
-  const ps = rec ? rec.p : (isFinal(r) ? [] : mem), raws = rec ? rec.raw : [];
+  const ps = rec ? rec.p : (isFinal(r) || bakime() ? [] : mem), raws = rec ? rec.raw : [];
   const everyone = allPlayers(), locked = isLocked(r);
   for (let i = 0; i < MODE; i++) {
     const row = document.createElement('div'); row.className = 'seat';
@@ -435,14 +438,15 @@ function fillSeats() {
   const note = [];
   if (rec) note.push('入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。');
   if (isFinal(r)) {
-    note.push('席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
+    note.push(bakime() ? bakimeNote() : '席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
     if (!prelimDone()) note.push('予選がまだ終わっていないので、「決勝のこの卓」は暫定です。');
     const fm = finalMembers();
     if (fm.edge.length) note.push('【注意】予選の合計が同点で、決勝に進む人が決まりません（' + fm.edge.map(x => dn(x.p)).join('・') + '）。集計係が決めて、座った人を選んでください。');
   } else if (mem.length && rec) {
-    if (JSON.stringify(rec.p) !== JSON.stringify(mem.slice(0, MODE))) note.push('送られた顔ぶれか席が、いまの組み合わせ表と違います（組み直しの前に送った点数かもしれません）。');
+    // 場決めありなら、席の並びは表と違ってよい（顔ぶれだけ比べる）
+    if (bakime() ? !rec.p.every(p => mem.includes(p)) : JSON.stringify(rec.p) !== JSON.stringify(mem.slice(0, MODE))) note.push('送られた顔ぶれ' + (bakime() ? '' : 'か席') + 'が、いまの組み合わせ表と違います（組み直しの前に送った点数かもしれません）。');
   } else if (mem.length) {
-    note.push('組み合わせ表の席で入っています（東が起家）。座った席が違うときは、選び直してください。');
+    note.push(bakime() ? bakimeNote() : '組み合わせ表の席で入っています（東が起家）。座った席が違うときは、選び直してください。');
   } else if (!rec) {
     note.push('組み合わせ表がまだありません。座った人を、東（起家）から順に選んでください。');
   }
@@ -631,7 +635,7 @@ function renderFinalMembers() {
   const box = $('finmem'); box.innerHTML = '';
   const fm = finalMembers(), pr = {}; fm.rk.forEach(x => { pr[x.p] = x; });
   const p0 = document.createElement('p'); p0.className = 'small';
-  p0.textContent = (prelimDone() ? '予選の上位' : '予選が終わるまでは暫定です。予選の上位') + CFG.final.tables * MODE + '人' + (CFG.final.tables > 1 ? 'を、予選の順位で蛇行に分けます（2卓なら 1・4・5・8位／2・3・6・7位）。' : 'です。') + '席は自動卓のサイコロで決めます。' + (FINALS.length > 1 ? '決勝は' + FINALS.length + '半荘です。' : '');
+  p0.textContent = (prelimDone() ? '予選の上位' : '予選が終わるまでは暫定です。予選の上位') + CFG.final.tables * MODE + '人' + (CFG.final.tables > 1 ? 'を、予選の順位で蛇行に分けます（2卓なら 1・4・5・8位／2・3・6・7位）。' : 'です。') + (bakime() ? '席は牌を引いて決め、起家はサイコロで決めます。' : '席は自動卓のサイコロで決めます。') + (FINALS.length > 1 ? '決勝は' + FINALS.length + '半荘です。' : '');
   box.appendChild(p0);
   fm.tables.forEach((ps, i) => {
     const h = document.createElement('h3'); h.textContent = CFG.final.tables > 1 ? '決勝 ' + (i + 1) + '卓' : '決勝卓'; box.appendChild(h);

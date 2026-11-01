@@ -10,6 +10,7 @@
   "players": 10,
   "prelim": 5,
   "final": { "tables": 1, "hanchan": 2 },
+  "bakime": true,
   "start": 35000,
   "return": 40000,
   "uma": { "0": [30, -10, -20], "1": [30, -10, -20], "2": [20, 0, -20] },

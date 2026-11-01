@@ -46,6 +46,7 @@ tr:nth-child(even) td{background:var(--card2)}
 td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-shadow:inset 0 0 0 2px var(--accent)}
 #mine th:first-child,#mine td:first-child{width:5.6em}
 #mine th:nth-child(2),#mine td:nth-child(2),#mine th:nth-child(3),#mine td:nth-child(3){width:3.4em}
+#mine.noseat th:nth-child(3),#mine.noseat td:nth-child(3){width:auto}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
@@ -67,7 +68,7 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 
   <div id="main" hidden>
   <div id="remade" class="hint warn" hidden></div>
-  <h2>自分の席</h2>
+  <h2 id="mineh">自分の席</h2>
   <div class="card">
     <label for="me">自分の名前</label>
     <select id="me"></select>
@@ -81,7 +82,7 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
   </div>
   <div id="rounds"></div>
   <ul class="small" style="padding-left:1.3em;margin:12px 0">
-    <li>東が起家です。</li>
+    <li id="seatnote">東が起家です。</li>
     <li>抜け番の半荘は0ポイントです。</li>
     <li id="finnote" hidden></li>
   </ul>
@@ -138,6 +139,8 @@ function players() {
   return [...s].sort((a, b) => pnum(a) - pnum(b));
 }
 const doneOf = (k, no) => !!(DATA && DATA.rounds && DATA.rounds[k] && DATA.rounds[k][String(no)]);
+// 場決めあり（taikai.json の bakime）。席は半荘ごとに牌を引いて決めるので、組み合わせ表の並びは席でない（風を出さない）
+const bakime = () => !!(CFG && CFG.bakime === true);
 
 function render() {
   const c = CFG;
@@ -148,7 +151,9 @@ function render() {
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）
   const rm = $('remade');
   rm.hidden = !(KUMI && KUMI.from > 1);
-  if (!rm.hidden) rm.textContent = KUMI.from + '半荘目から組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の席を確かめ直してください。';
+  if (!rm.hidden) rm.textContent = KUMI.from + '半荘目から組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
+  $('mineh').textContent = bakime() ? '自分の卓' : '自分の席';
+  $('seatnote').textContent = bakime() ? '席は、予選も決勝も半荘ごとに牌を引いて決めます。起家はサイコロで決めます。表の並び順は、席ではありません。' : '東が起家です。';
   // 自分の名前
   const sel = $('me'), list = players();
   sel.innerHTML = '';
@@ -169,7 +174,7 @@ function render() {
     box.appendChild(h);
     const tw = document.createElement('div'); tw.className = 'tw';
     const tbl = document.createElement('table');
-    tbl.innerHTML = '<thead><tr><th>卓</th>' + WINDS.slice(0, c.mode).map(w => '<th>' + w + '</th>').join('') + '</tr></thead>';
+    tbl.innerHTML = '<thead><tr><th>卓</th>' + (bakime() ? '<th colspan="' + c.mode + '">この卓の' + c.mode + '人</th>' : WINDS.slice(0, c.mode).map(w => '<th>' + w + '</th>').join('')) + '</tr></thead>';
     const tb = document.createElement('tbody');
     tabs.forEach(t => {
       const tr = document.createElement('tr');
@@ -185,22 +190,24 @@ function render() {
   });
   const fn = $('finnote');
   fn.hidden = !(c.final.tables > 0);
-  if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。決勝の卓は予選が終わると点数ページに出ます。席は自動卓のサイコロで決めます。';
+  if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。決勝の卓は予選が終わると点数ページに出ます。' + (bakime() ? '' : '席は自動卓のサイコロで決めます。');
 }
 function renderMine() {
   const box = $('mine'); box.innerHTML = '';
   const rs = rounds();
-  if (!ME) { box.innerHTML = '<p class="small">名前を選ぶと、半荘ごとの卓と席が出ます（この端末に覚えます）。</p>'; return; }
+  if (!ME) { box.innerHTML = '<p class="small">名前を選ぶと、半荘ごとの卓' + (bakime() ? '' : 'と席') + 'が出ます（この端末に覚えます）。</p>'; return; }
   if (!rs.length) { box.innerHTML = '<p class="small">組み合わせはまだ決まっていません。</p>'; return; }
   const tw = document.createElement('div'); tw.className = 'tw';
   const tbl = document.createElement('table'); tbl.id = 'mine';
-  tbl.innerHTML = '<thead><tr><th>半荘</th><th>卓</th><th>席</th><th>同じ卓の人</th></tr></thead>';
+  if (bakime()) tbl.className = 'noseat';
+  tbl.innerHTML = '<thead><tr><th>半荘</th><th>卓</th>' + (bakime() ? '' : '<th>席</th>') + '<th>同じ卓の人</th></tr></thead>';
   const tb = document.createElement('tbody');
   rs.forEach(k => {
     const r = KUMI.rounds[k], tr = document.createElement('tr');
     const t = (r.tables || []).find(x => (x.p || []).includes(ME));
     const cells = t ? [k + '半荘目', t.no + '卓', WINDS[t.p.indexOf(ME)], t.p.filter(p => p !== ME).map(dn).join('・')]
       : (r.rest || []).includes(ME) ? [k + '半荘目', '—', '—', '抜け番（0ポイント）'] : [k + '半荘目', '—', '—', 'お休み'];
+    if (bakime()) cells.splice(2, 1);
     cells.forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
     tb.appendChild(tr);
   });
