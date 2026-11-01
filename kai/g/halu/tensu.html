@@ -62,6 +62,13 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 .cres{margin-top:12px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font-size:1.05rem;line-height:1.8}
 .cres b{font-size:1.3rem;color:var(--accent)}
 @media (max-width:420px){.calc{grid-template-columns:1fr 1fr}.calc .ck{grid-column:1/-1}}
+/* 点数の質問。狭い画面は、聞くボタンを入力欄の下に出す */
+.qf label{display:block;font-weight:700;margin:0 0 4px}
+.qrow{display:flex;gap:8px}
+.qrow input{flex:1 1 auto;min-width:0;padding:10px;font-size:1.05rem;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+.qrow button{flex:0 0 auto;padding:10px 18px;font-size:1.05rem;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.cres .note{font-size:.9rem;line-height:1.6;margin-top:4px}
+@media (max-width:420px){.qrow{flex-wrap:wrap}.qrow input,.qrow button{flex:1 1 100%}}
 </style>
 </head>
 <body>
@@ -84,6 +91,16 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
   </div>
   <div id="cres" class="cres" aria-live="polite"></div>
   <div class="note" id="cnote" style="margin-top:6px"></div>
+</div>
+
+<h2 id="shitsumon">点数の質問</h2>
+<div class="card">
+  <form id="qf" class="qf" autocomplete="off">
+    <label for="qa">文で聞くと、点数を答えます</label>
+    <div class="qrow"><input id="qa" type="text" enterkeyhint="send" placeholder="例: 子のツモで30符2翻はいくら？"><button type="submit">聞く</button></div>
+  </form>
+  <div id="qres" class="cres" aria-live="polite" hidden></div>
+  <div class="note" style="margin-top:6px">親・子、ツモ・ロン、符と翻を読み取ります。満貫・跳満などの名前でも聞けます。役の名前から翻を数えることはしません。</div>
 </div>
 
 <h2 id="t1">1. ツモの払い方</h2>
@@ -317,6 +334,131 @@ $('cf').value = '30'; $('ch').value = '1';
 $('ck').addEventListener('change', () => { fillFu(); calc(); });
 ['cf', 'ch'].forEach(id => $(id).addEventListener('change', calc));
 calc();
+
+// ---- 点数の質問（2026-11-02）。「子のツモで30符2翻はいくら？」のような文から、親・子、ツモ・ロン、符と翻を読み取って答える ----
+// 決まった言い方を読み取るだけで、通信はしない。点数は上の basePts・handName・payOf のまま。
+// 手の範囲は早見表と同じ（20符は平和ツモだけで2翻から、25符は七対子だけで2翻から・ツモは3翻から、1翻は100符まで。kuji/index.html の handsOf と同じ考え）
+const QLIM = [  // 手の名前と、basePts に渡す翻。長い名前から先に探し、見つけた名前は文から消す（「三倍満」の中の「倍満」を読まない）
+  [/トリプル役満|トリプルやくまん|三倍役満|3倍役満/, 'y3'],
+  [/ダブル役満|ダブルやくまん|[Ww]役満|二倍役満|2倍役満/, 'y2'],
+  [/役満|やくまん|ヤクマン/, 'y1'],
+  [/三倍満|3倍満|さんばいまん|サンバイマン/, '11'],
+  [/倍満|ばいまん|バイマン/, '8'],
+  [/跳ね?満|ハネ満|はね満|ハネマン|はねまん/, '6'],
+  [/満貫|まんがん|マンガン/, '5']
+];
+const KNUM = { '〇': 0, '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
+// 漢数字を数字に（三十→30・二十五→25・百十→110・一一〇→110）
+function kanjiNum(t) {
+  if (!/[十百]/.test(t)) return [...t].map(c => KNUM[c]).join('');
+  let n = 0, d = 0;
+  [...t].forEach(c => { if (c in KNUM) d = KNUM[c]; else { n += (d || 1) * (c === '百' ? 100 : 10); d = 0; } });
+  return String(n + d);
+}
+// 文を読む。読めなかった所は undefined（oya: 親か・tsumo: ツモか・fus/hans: 書いてあった符と翻・lims: 手の名前）
+function readQ(q) {
+  let s = q.normalize('NFKC').replace(/(\d),(?=\d{3})/g, '$1');
+  const r = {};
+  // 七対子は25符、平和はツモ20符・ロン30符。七対子・萬子などの「子」を子と読まないよう、先に消す
+  r.chii = /[七7]対|チートイ|ちーとい/.test(s);
+  r.pin = /平和|ピンフ|ぴんふ|ピンヅモ|ピンツモ/.test(s);
+  s = s.replace(/[七7]対子?|チートイツ?|ちーといつ?|[萬筒索]子|親っ?(?:かぶり|被り)/g, ' ');
+  // 「親満」「親っパネ」「親倍」は、手の名前に直す
+  s = s.replace(/([親子])[っッ]?(?:パネ|ぱね|ハネ|はね|跳ね?)(?![満マまね])/g, '$1跳満').replace(/([親子])倍(?!満)/g, '$1倍満').replace(/([親子])満(?!貫)/g, '$1満貫');
+  r.kazoe = /数え役満|かぞえ役満/.test(s);
+  s = s.split(/数え役満|かぞえ役満/).join(' ');
+  r.lims = [];
+  QLIM.forEach(([re, v]) => { if (re.test(s)) { r.lims.push(v); s = s.split(re).join(' '); } });
+  s = s.replace(/[〇零一二三四五六七八九十百]+/g, kanjiNum).replace(/東家|トンチャ|おや|オヤ/g, '親').replace(/南家|西家|ナンチャ|シャーチャ/g, '子');
+  // アガった人。「親から」「子が振り込んだ」「子の払い」は払う人で、「親の」「子が」「親に振り込んだ」はアガった人。ツモ・ロンがすぐ後に続く方を先に見る。
+  // 「親と子の」「親か子か」のように並べた語は、後ろの語と同じに数える
+  const deal = /振り?込|放銃|差し?込|ふりこ/.test(s), near = [], far = [], pay = [];
+  let wait = [];
+  for (const m of s.matchAll(/[親子]/g)) {
+    const af = s.slice(m.index + 1).replace(/^(?:供|ども|の人|さん|家|方)/, '');
+    if (/^\s*[とやか・]\s*[親子]/.test(af)) { wait.push(m[0]); continue; }
+    const to = /^\s*(?:に|[のがはで]?\s*(?:ツモ|つも|ヅモ|自摸|ロン|ろん|アガ|あが|和了|出アガ|出あが|直撃))/.test(af) ? near
+      : /^\s*から/.test(af) || (deal && /^\s*[がは]/.test(af)) || /払/.test(af.split(/[親子]/)[0]) ? pay : far;
+    to.push(...wait, m[0]);
+    wait = [];
+  }
+  far.push(...wait);
+  const win = [...new Set(near.length ? near : far)];
+  r.oya = win.length === 1 ? win[0] === '親' : !win.length && pay.includes('親') ? false : undefined;
+  r.both = win.length > 1;
+  // ツモかロンか（「ツモ損なし」「つもり」「もちろん」は読まない）
+  s = s.replace(/ツモ損|つも損|ツモそん|つもそん|もちろん/g, ' ');
+  const tm = /ツモ|つも(?!り)|ヅモ|自摸|\btsumo\b/i.test(s), rn = /ロン|ろん|出アガ|出あが|出和了|直撃|振り?込|放銃|差し?込|ふりこ|\bron\b/i.test(s);
+  r.tsumo = tm === rn ? undefined : tm;
+  r.tboth = tm && rn;
+  // 符と翻。「30符2」の2も翻と読む
+  const nums = re => [...new Set([...s.matchAll(re)].map(m => Number(m[1])))];
+  r.fus = nums(/(\d+)\s*(?:符|ふ(?!ん)|フ|fu)/gi);
+  r.hans = nums(/(\d+)\s*(?:翻|はん(?!ちゃん)|ハン(?!チャン)|han(?!chan))/gi);
+  const m2 = !r.hans.length && s.match(/符\s*の?\s*(\d{1,2})(?![\d点本])/);
+  if (m2) r.hans.push(Number(m2[1]));
+  r.honba = /本場|積み?棒/.test(s);
+  r.rev = /何(?:翻|符|ハン)|なん(?:翻|はん|ハン|ぷ|ふ)|\d{3,}\s*点/.test(s);
+  return r;
+}
+// 文への答え。点数は {head, pay, sub}、聞き返しと「その手はありません」は {text}。notes は下に小さく出す字
+function answerQ(q) {
+  const r = readQ(q), notes = [], ex = '例: 子のツモで30符2翻はいくら？';
+  if (r.oya === undefined && !r.both && r.tsumo === undefined && !r.tboth && !r.fus.length && !r.hans.length && !r.lims.length && !r.kazoe && !r.chii && !r.pin) return { text: '読み取れませんでした。', notes: [ex] };
+  const han = r.hans.length === 1 ? r.hans[0] : undefined, lim = r.lims.length === 1 ? r.lims[0] : r.kazoe && !r.lims.length ? '11' : '';
+  // 1〜4翻は符も使う（3・4翻で「満貫」とだけあれば、符は要らない）。符が書いてなければ、七対子・平和から決める
+  const useFu = han >= 1 && han <= 4 && !(lim === '5' && han >= 3 && !r.fus.length);
+  const fu = r.fus.length === 1 ? r.fus[0] : r.fus.length ? undefined : r.chii ? 25 : r.pin && r.tsumo !== undefined ? (r.tsumo ? 20 : 30) : undefined;
+  const ask = [];
+  if (r.oya === undefined) ask.push(r.both ? 'アガったのは、親ですか、子ですか。' : '親ですか、子ですか。');
+  if (r.tsumo === undefined) ask.push('ツモですか、ロンですか。');
+  if (r.hans.length > 1 || r.lims.length > 1) ask.push('翻か手の名前を、1つにしてください。');
+  else if (han === undefined && !lim) ask.push('何翻ですか。');
+  else if (useFu && fu === undefined && !(r.pin && r.tsumo === undefined && !r.fus.length)) ask.push(r.fus.length > 1 ? '符を、1つにしてください。' : '何符ですか。');
+  if (ask.length) return { text: ask.join(''), notes: (r.rev && han === undefined ? ['点数から翻を探す答え方は、まだありません。'] : []).concat([ex]) };
+  if (han === 0) return { text: 'その手はありません。', notes: ['翻は、1翻からです。'] };
+  const kind = (r.oya ? 'o' : 'k') + (r.tsumo ? 't' : 'r');
+  let b, desc;
+  if (useFu) {
+    // 符は10符単位に切り上げる（七対子の25符は、そのまま）
+    const f = fu === 25 ? 25 : Math.ceil(fu / 10) * 10;
+    if (f !== fu) notes.push(fu + '符は、切り上げて' + f + '符です。');
+    const ng = f < 20 || f > 110 ? '符は、20符から110符までです。'
+      : f === 20 && !r.tsumo ? '20符は平和ツモだけです。平和のロンは30符です。'
+      : noHand(kind, f, String(han)) || (han === 1 && f > 100 ? '1翻は、100符までです。' : '')
+        || (r.chii && f !== 25 ? '七対子は、いつも25符です。' : '')
+        || (r.pin && f !== (r.tsumo ? 20 : 30) ? (r.tsumo ? '平和ツモは、いつも20符です。' : '平和のロンは、いつも30符です。') : '');
+    if (ng) return { text: 'その手はありません。', notes: [ng] };
+    b = basePts(f, String(han));
+    desc = f + '符' + han + '翻' + (handName(b) ? '（' + (f * Math.pow(2, han + 2) === 1920 ? '切り上げ' : '') + handName(b) + '）' : '');
+  } else {
+    if (han >= 5) { b = basePts(0, String(han)); desc = han + '翻（' + handName(b) + '）'; }
+    else { b = lim === 'y3' ? basePts(0, 'y1') * 3 : basePts(0, lim); desc = lim === 'y3' ? 'トリプル役満' : handName(b); }
+    if (r.fus.length) notes.push('満貫から上は、符を見ません。');
+  }
+  if (r.kazoe || han >= 13) notes.push('数え役満はありません。役満の役でなければ、13翻から上も三倍満です。');
+  if (r.honba) notes.push('本場の分は入っていません。ロンは1本300点、ツモは1人100点を足します。');
+  const ps = payOf(kind, b), total = ps.reduce((a, x) => a + x.v * x.n, 0);
+  const pay = kind === 'ot' ? fmt(ps[0].v) + 'オール' : kind === 'kt' ? fmt(ps[0].v) + '・' + fmt(ps[1].v) : fmt(ps[0].v);
+  const sub = kind === 'ot' ? '子2人が' + fmt(ps[0].v) + 'ずつ。合計' + fmt(total) : kind === 'kt' ? '子' + fmt(ps[0].v) + '・親' + fmt(ps[1].v) + '。合計' + fmt(total) : '';
+  return { head: (r.oya ? '親' : '子') + 'の' + (r.tsumo ? 'ツモ' : 'ロン') + ' ' + desc, pay, sub, notes };
+}
+function showQ() {
+  const q = $('qa').value.trim(), box = $('qres');
+  box.innerHTML = '';
+  box.hidden = !q;
+  if (!q) return;
+  const a = answerQ(q), p = document.createElement('div');
+  if (a.pay) {
+    p.appendChild(document.createTextNode(a.head + ' → '));
+    const v = document.createElement('b'); v.textContent = a.pay; p.appendChild(v);
+    if (a.sub) p.appendChild(document.createTextNode('（' + a.sub + '）'));
+  } else p.textContent = a.text;
+  box.appendChild(p);
+  a.notes.forEach(t => { const d = document.createElement('div'); d.className = 'note'; d.textContent = t; box.appendChild(d); });
+}
+// 送ったら答える。スマホは、答えが隠れないようにキーボードを閉じる
+$('qf').addEventListener('submit', e => { e.preventDefault(); showQ(); if (matchMedia('(pointer: coarse)').matches) $('qa').blur(); });
 
 fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
   if (!c) return;
