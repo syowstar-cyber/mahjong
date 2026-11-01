@@ -60,6 +60,24 @@ td.nw,th.nw{white-space:nowrap}
 .tag{display:inline-block;font-size:.8rem;font-weight:700;border-radius:4px;padding:0 6px;margin-left:4px;vertical-align:1px}
 .tag.try{background:#ececE8;color:var(--muted)}
 .tag.real{background:var(--ok);color:#fff}
+.msg.ok{color:var(--ok)}
+.neg{color:var(--ng)}
+/* ページの中の移動（組み合わせ・決勝ライン・決勝最終実況） */
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
+.jump a{flex:1 1 auto;text-align:center;padding:8px 10px;font-size:.95rem;font-weight:700;white-space:nowrap;text-decoration:none;color:var(--accent);background:var(--soft);border:1px solid var(--line);border-radius:8px}
+/* 9章 決勝最終実況 */
+.lvtools{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}
+.lv3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end;margin:4px 0 12px}
+.lv3 label{font-size:.88rem;margin:0 0 2px;overflow-wrap:anywhere}
+select,.lv3 input{width:100%;font:inherit;font-size:1.05rem;padding:9px 6px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+.lv3 input.auto{background:var(--card2)}
+.lvlab{font-weight:700;font-size:.92rem;margin-top:6px}
+.chk{display:flex;gap:8px;align-items:center;margin:4px 0 0}
+.chk input{width:22px;height:22px;margin:0}
+details.card>summary{cursor:pointer;font-weight:700}
+.ghost{background:none;color:var(--accent);font-size:.95rem;padding:10px 0 0;text-decoration:underline}
+.lvc .who{font-weight:700;font-size:1.05rem}
+.lvc ul{margin:6px 0 0}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
@@ -75,7 +93,8 @@ td.nw,th.nw{white-space:nowrap}
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
-  <h2>1. 結果</h2>
+  <nav class="jump" aria-label="見たいところへ移動"><a href="#kekka">組み合わせ</a><a id="jline" href="../score/#h2sum" hidden>決勝ライン</a><a id="jlive" href="#live" hidden>決勝最終実況</a></nav>
+  <h2 id="kekka">1. 結果</h2>
   <div id="result"></div>
 
   <h2>2. 決まるまでの流れ</h2>
@@ -108,6 +127,32 @@ td.nw,th.nw{white-space:nowrap}
 
   <h2>8. くじ値と枠</h2>
   <div id="lottery"></div>
+
+  <div id="livesec" hidden>
+  <h2 id="live">9. 決勝最終実況</h2>
+  <div class="lvtools"><button type="button" class="ghost" id="lvre">最新に更新</button><span class="small" id="lvat"></span></div>
+  <div id="livebox"></div>
+  <details id="livein" class="card">
+    <summary>運営の入力（入れるのは1人だけ）</summary>
+    <form id="liveform" autocomplete="off">
+      <p class="small">局が終わるたびに、これから打つ局と、いまの点棒を入れて送ります。点棒は1人を空けると、その人の分が自動で入ります。見ている人の画面には、30秒ほどで出ます。</p>
+      <div class="lvlab">席（東1局の並び。最初に1回）</div>
+      <div class="lv3" id="lfseat"></div>
+      <div class="lv3">
+        <div><label for="lfkyoku">これからの局</label><select id="lfkyoku"></select></div>
+        <div><label for="lfhonba">本場</label><input type="text" id="lfhonba" inputmode="numeric" maxlength="2"></div>
+        <div><label for="lfkyotaku">供託（本）</label><input type="text" id="lfkyotaku" inputmode="numeric" maxlength="2"></div>
+      </div>
+      <div class="lvlab">いまの点棒（百点単位。25,300点なら 253）</div>
+      <div class="lv3" id="lfraw"></div>
+      <label class="chk"><input type="checkbox" id="lfend">終局（この半荘が終わった）</label>
+      <div id="lfwarn" class="small warn"></div>
+      <button type="submit" class="send">この局の点数を送る</button>
+      <div id="lfmsg" class="msg" aria-live="polite"></div>
+      <button type="button" class="ghost" id="lfclear">実況を消す</button>
+    </form>
+  </details>
+  </div>
   </div>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">対戦表</a></nav>
 </div>
@@ -137,6 +182,8 @@ function applyTheme(c) {
   t.content = c.short || c.group || c.title || '';
 }
 let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
+// 受け口から読むもの（点数・年上からの順・決勝最終実況）と、受け口の URL
+let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
 const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
@@ -360,7 +407,364 @@ $('calc').addEventListener('submit', ev => {
   if (!b) { msg.textContent = 'ナンバーズ4の当せん番号を4桁で入れてください（例 0482）'; msg.className = 'msg ng'; return; }
   CALC = b; renderCalc();
 });
-function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(); renderHow(); renderCalc(); }
+// ---- 9章: 決勝最終実況（決勝の最後の半荘。2026-11-02 主催） ----
+// 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く（見ている人の画面は pull で読み直す）。
+// 前の半荘までの決勝のポイントといまの点棒から、総合の順位と、アガって総合1位になるのに要る手を出す。
+// 出すのは taikai.json の jikkyo が true の会で、3麻・決勝1卓・2半荘以上。局は東南3局ずつ（南3局がオーラス）・南場の流局は連荘・
+// 南3局の親はアガってトップならアガリやめ（g/halu/rule.html）・点の払い方はツモ損なし（g/halu/tensu.html）
+const KYOKU = ['東1局', '東2局', '東3局', '南1局', '南2局', '南3局'], ORAS = 5;
+const liveOn = () => !!(CFG && CFG.jikkyo === true && CFG.mode === 3 && CFG.final && CFG.final.tables === 1 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan >= 2
+  && Number.isInteger(CFG.start) && Number.isInteger(CFG.return) && Number.isInteger(CFG.prelim) && !!CFG.uma && typeof CFG.uma === 'object');
+const lastF = () => 'F' + CFG.final.hanchan;
+const recsOf = r => (DATA.rounds && DATA.rounds[r]) || {};
+const scoreUrl = id => '../score/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '#' + id;
+const fmt = n => n.toLocaleString('ja-JP');
+// ポイントは 0.1 単位の整数で持ち、表示で小数1桁にする（score/index.html と同じ）
+const pt1 = n => (Math.abs(n) / 10).toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fpt = n => (n > 0 ? '+' : n < 0 ? '−' : '') + pt1(n);
+function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
+const windOf = (i, d) => WINDS[(i - d + MODE) % MODE];
+
+// ポイントの計算（score/index.html の umaFor・calcTable と同じ。どちらかを直したら、もう片方も直す）。MODE・OKA は load() で大会設定から入れる
+let MODE = 3, OKA = 0;
+function umaFor(raws) {
+  const u = CFG.uma;
+  if (Array.isArray(u)) return u;
+  const n = raws.filter(v => v >= CFG.return).length;
+  return u[String(n)] || u['1'];
+}
+function calcTable(raws) {
+  if (!Array.isArray(raws) || raws.length !== MODE || raws.some(v => v === null || v === undefined || Number.isNaN(v))) return (raws || []).map(() => null);
+  const bonus = umaFor(raws).map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
+  const order = raws.map((raw, i) => ({ i, raw })).sort((a, b) => b.raw - a.raw || a.i - b.i);
+  const res = raws.map(() => null);
+  for (let k = 0; k < MODE;) {
+    let j = k; while (j + 1 < MODE && order[j + 1].raw === order[k].raw) j++;
+    const n = j - k + 1, sum = bonus.slice(k, j + 1).reduce((a, b) => a + b, 0);
+    const base = Math.floor(sum / n), rem = sum - base * n;
+    for (let m = k; m <= j; m++) {
+      const o = order[m];
+      res[o.i] = { raw: o.raw, rank: k + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+    }
+    k = j + 1;
+  }
+  return res;
+}
+// 予選の順位（score/index.html の prelimStats と同じ並べ方。どちらかを直したら、もう片方も直す）。決勝の総合の同点は、予選の順位が上の方が上位
+const nenrei = () => !!(CFG && CFG.nenrei === true);
+const age = p => (nenrei() && Number.isInteger(AGERANK[p])) ? AGERANK[p] : null;
+function prelimRank() {
+  const st = {}, add = p => st[p] || (st[p] = { p, total: 0 });
+  for (let i = 1; i <= CFG.players; i++) add('P' + i);
+  for (let r = 1; r <= CFG.prelim; r++) Object.values(recsOf(String(r))).forEach(rec => {
+    const res = calcTable(rec.raw);
+    (rec.p || []).forEach((p, i) => { const x = add(p); if (res[i]) x.total += res[i].pts; });
+  });
+  const list = Object.values(st).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  for (let i = 0; i < list.length;) {
+    let j = i; while (j + 1 < list.length && list[j + 1].total === list[i].total) j++;
+    const g = list.slice(i, j + 1), byAge = g.length > 1 && g.every(x => age(x.p) !== null);
+    if (byAge) g.sort((a, b) => age(a.p) - age(b.p) || pnum(a.p) - pnum(b.p));
+    g.forEach((x, m) => { x.byAge = byAge; list[i + m] = x; });
+    i = j + 1;
+  }
+  const rk = {};
+  list.forEach((x, i) => { const y = list[i - 1]; x.rank = y && y.total === x.total && (!x.byAge || age(y.p) === age(x.p)) ? y.rank : i + 1; rk[x.p] = x.rank; });
+  return rk;
+}
+
+// 点の払い方（g/halu/tensu.html の basePts・handName・payOf と同じ。ツモ損なし・切り上げ満貫あり・数え役満なし。どちらかを直したら、もう片方も直す）
+const up100 = v => Math.ceil(v / 100) * 100, down100 = v => Math.floor(v / 100) * 100;
+function basePts(fu, han) {
+  if (han === 'y1') return 8000;
+  if (han === 'y2') return 16000;
+  const h = Number(han);
+  if (h >= 11) return 6000;
+  if (h >= 8) return 4000;
+  if (h >= 6) return 3000;
+  if (h >= 5) return 2000;
+  const b = fu * Math.pow(2, h + 2);
+  return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
+}
+const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満' })[b] || '';
+// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）
+function payOf(kind, b) {
+  if (kind === 'kr') return [{ who: '放銃した人', v: up100(b * 4), n: 1 }];
+  if (kind === 'or') return [{ who: '放銃した人', v: up100(b * 6), n: 1 }];
+  if (kind === 'kt') {
+    const ko = up100(b), oya = up100(b * 2);
+    return [{ who: '子', v: ko + down100(ko / 2), n: 1 }, { who: '親', v: oya + up100(ko / 2), n: 1 }];
+  }
+  const ko = up100(b * 2);
+  return [{ who: '子', v: ko + up100(ko / 2), n: 2 }];
+}
+// 早見表にある手（tensu.html の表と同じ）。20符は平和ツモだけで2翻から、25符は七対子だけで2翻から（ツモは3翻から）、1翻は100符まで。満貫から上は翻だけ（lim は目安に出す字）
+const LIMITS = [['5', '5翻'], ['6', '6翻'], ['8', '8翻'], ['11', '11翻'], ['y1', '役満'], ['y2', 'ダブル役満']];
+function handsOf(tsumo) {
+  const hs = [];
+  for (let h = 1; h <= 4; h++) [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110].forEach(f => {
+    if ((f === 20 && (!tsumo || h < 2)) || (f === 25 && h < (tsumo ? 3 : 2)) || (h === 1 && f > 100)) return;
+    hs.push({ han: h, fu: f, b: basePts(f, String(h)) });
+  });
+  LIMITS.forEach(([h, t]) => hs.push({ han: h, fu: 0, b: basePts(0, h), lim: t }));
+  return hs;
+}
+// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場（ロンは1本300・ツモは1人100）と供託は、アガった人へ
+function afterWin(st, w, how, b) {
+  const R = st.raw.slice(), d = st.kyoku % MODE, oya = w === d;
+  if (how === 'tsumo') {
+    const ps = payOf(oya ? 'ot' : 'kt', b);
+    R.forEach((_, i) => { if (i === w) return; const v = (oya || i !== d ? ps[0].v : ps[1].v) + 100 * st.honba; R[i] -= v; R[w] += v; });
+  } else {
+    const v = payOf(oya ? 'or' : 'kr', b)[0].v + 300 * st.honba;
+    R[how] -= v; R[w] += v;
+  }
+  R[w] += 1000 * st.kyotaku;
+  return R;
+}
+// 総合（前の半荘までの決勝のポイント＋この半荘のポイント）。席の順。calcTable も席の順に渡す＝同点で0.1が割り切れない分は起家に近い方（この半荘は席が分かる）
+function totalsOf(R, seats, ctx) {
+  const res = calcTable(R);
+  return seats.map((p, i) => ({ p, i, raw: R[i], rank2: res[i].rank, total: ctx.prev[p] + res[i].pts }));
+}
+// 総合の順（合計が多い方。同じなら予選の順位が上の方）
+const beats = (a, b, prk) => a.total > b.total || (a.total === b.total && prk[a.p] < prk[b.p]);
+const byTotal = (T, prk) => T.slice().sort((a, b) => b.total - a.total || prk[a.p] - prk[b.p]);
+// その手でアガって、総合1位で終わるか。オーラスの子のアガリは終局。オーラスの親は、アガってこの半荘のトップならアガリやめで終われる（トップでなければ続く）。
+// オーラスより前は、アガった後に総合1位に立つか（参考）
+function winsBy(st, ctx, w, how, b) {
+  const T = totalsOf(afterWin(st, w, how, b), st.seats, ctx), me = T[w];
+  if (!T.every(x => x === me || beats(me, x, ctx.prk))) return false;
+  return st.kyoku !== ORAS || w !== st.kyoku % MODE || me.rank2 === 1;
+}
+// 1つのアガリ方で要る手。any＝どの手でも・none＝届かない・b＝届く一番小さい手の基本点・gap＝それより大きいのに届かない手（順位点の表の切り替わりで、まれに出る）
+function condOf(st, ctx, w, how) {
+  const hs = handsOf(how === 'tsumo');
+  hs.forEach(x => { x.ok = winsBy(st, ctx, w, how, x.b); });
+  const ok = hs.filter(x => x.ok);
+  if (ok.length === hs.length) return { any: true };
+  if (!ok.length) return { none: true };
+  const b = Math.min(...ok.map(x => x.b));
+  return { b, hint: handHint(hs), gap: [...new Set(hs.filter(x => !x.ok && x.b > b).map(x => x.b))].sort((x, y) => x - y) };
+}
+// 手の目安: 翻ごとに、届く一番小さい符（その翻のどの符でも届くなら符は書かない）。30符以下で届く翻まで並べる。1〜4翻で届かなければ、満貫から上の翻
+function handHint(hs) {
+  const toks = [];
+  for (let h = 1; h <= 4; h++) {
+    const at = hs.filter(x => x.han === h), ok = at.filter(x => x.ok);
+    if (!ok.length) continue;
+    const f = Math.min(...ok.map(x => x.fu)), all = f === Math.min(...at.map(x => x.fu));
+    toks.push(h + '翻' + (all ? '' : f + '符'));
+    if (all || f <= 30) return toks.join('・');
+  }
+  const lim = hs.find(x => x.lim && x.ok);
+  return toks.concat(lim ? [lim.lim] : []).join('・');
+}
+// 要る点（早見表の点＝本場を足す前）。子のツモは「子の払い・親の払い」、親のツモは「〇〇オール」（tensu.html の申告と同じ）
+function payText(kind, b) {
+  const ps = payOf(kind, b), n = handName(b);
+  return (kind === 'ot' ? fmt(ps[0].v) + 'オール' : kind === 'kt' ? fmt(ps[0].v) + '・' + fmt(ps[1].v) : fmt(ps[0].v)) + (n ? '（' + n + '）' : '');
+}
+// 決勝の人（決勝1半荘目の1卓の顔ぶれ）・前の半荘までの決勝のポイント・予選の順位。前の半荘の点数がまだなら wait（その半荘）
+function liveCtx() {
+  const prev = {};
+  let mem = null;
+  for (let h = 1; h < CFG.final.hanchan; h++) {
+    const rec = recsOf('F' + h)['1'];
+    if (!rec || !Array.isArray(rec.p) || rec.p.length !== MODE) return { wait: h };
+    if (!mem) { mem = rec.p.slice(); mem.forEach(p => { prev[p] = 0; }); }
+    const res = calcTable(rec.raw);
+    rec.p.forEach((p, i) => { if (p in prev && res[i]) prev[p] += res[i].pts; });
+  }
+  return { mem, prev, prk: prelimRank() };
+}
+// 受け口の live（運営の入力）。形が違うか、席の人が決勝の人と違えば bad
+function liveState(ctx) {
+  const v = LIVE;
+  if (!v || typeof v !== 'object') return null;
+  const ok = Array.isArray(v.seats) && v.seats.length === MODE && new Set(v.seats).size === MODE && v.seats.every(p => ctx.mem.includes(p))
+    && Array.isArray(v.raw) && v.raw.length === MODE && v.raw.every(Number.isInteger)
+    && Number.isInteger(v.kyoku) && v.kyoku >= 0 && v.kyoku <= ORAS && Number.isInteger(v.honba) && Number.isInteger(v.kyotaku);
+  return ok ? v : { bad: true };
+}
+const prevLabel = () => CFG.final.hanchan === 2 ? '1半荘目' : '決勝' + (CFG.final.hanchan - 1) + '半荘目まで';
+// 総合の順位の表。d は親の席（-1 なら風を出さない）。raw が null（まだ始まっていない）なら点棒の列を出さない
+function standHtml(T, ctx, d) {
+  const S = byTotal(T, ctx.prk), raw = S.some(x => x.raw !== null);
+  let h = '<div class="tw"><table><thead><tr><th class="nw">順位</th><th>名前</th>' + (raw ? '<th class="nw">点棒</th>' : '') + '<th class="nw">総合pt</th></tr></thead><tbody>';
+  S.forEach((x, k) => {
+    const gap = S[0].total - x.total;
+    h += '<tr><td class="nw">' + (k + 1) + '位</td><td><b>' + esc(dn(x.p)) + '</b>' + (d >= 0 ? '<div class="small">' + windOf(x.i, d) + (x.i === d ? '・親' : '') + '</div>' : '') + '</td>'
+      + (raw ? '<td class="nw' + (x.raw < 0 ? ' neg' : '') + '">' + fmt(x.raw) + '</td>' : '')
+      + '<td class="nw"><b>' + fpt(x.total) + '</b>' + (raw ? '<div class="small">' + prevLabel() + ' ' + fpt(ctx.prev[x.p]) + '</div>' : '')
+      + (k ? '<div class="small">' + (gap ? '1位まで ' + pt1(gap) : '同点（予選の順位で下）') + '</div>' : '') + '</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+// アガリの条件（総合の順に1人ずつ。ツモと、ほかの2人からのロン）
+function condHtml(st, ctx, S, d, oras) {
+  let h = '<h3>' + (oras ? 'アガリの条件（優勝＝総合1位）' : 'この局のアガリで総合1位に立つには（参考）') + '</h3><p class="small">'
+    + (oras ? 'オーラスです。子がアガると、ここで終わります。親は、アガってこの半荘のトップならアガリやめで終われます（トップでなければ続きます）。流局は連荘です。'
+      : 'オーラス（南3局）の前です。いまアガって、総合1位に立つのに要る手です。') + '</p>';
+  S.forEach((x, k) => {
+    const w = x.i, oya = w === d;
+    const cs = ['tsumo'].concat([0, 1, 2].filter(i => i !== w)).map(how => ({ how, c: condOf(st, ctx, w, how), kind: (oya ? 'o' : 'k') + (how === 'tsumo' ? 't' : 'r') }));
+    const li = cs.every(y => y.c.any) ? ['<li>アガれば、どの手でも</li>'] : cs.map(({ how, c, kind }) => {
+      const what = how === 'tsumo' ? 'ツモ' : esc(dn(st.seats[how])) + 'から';
+      const need = c.any ? 'どの手でも' : c.none ? '届かない' : payText(kind, c.b) + ' 以上';
+      const note = c.none ? 'ダブル役満でも足りません' : c.any ? '' : c.hint + 'から' + (c.gap.length ? '（ただし ' + c.gap.map(b => payText(kind, b)).join('・') + ' では届きません）' : '');
+      return '<li><b>' + what + '</b>　' + need + (note ? '<div class="small">' + note + '</div>' : '') + '</li>';
+    });
+    h += '<div class="card lvc"><div class="who">' + esc(dn(x.p)) + ' <span class="small">' + windOf(w, d) + '・' + (oya ? '親' : '子') + '／いま' + (k + 1) + '位</span></div><ul>' + li.join('') + '</ul></div>';
+  });
+  return h + '<p class="small">自分がアガったときの条件です（ほかの人どうしのアガリと、ダブロンは入れていません）。点は早見表の点で、本場と供託は計算に入れてあります。総合の同点は、予選の順位が上の方が上位です。</p>';
+}
+function renderLive() {
+  const on = liveOn();
+  $('livesec').hidden = !on; $('jlive').hidden = !on;
+  if (!on) return;
+  const box = $('livebox'), ctx = liveCtx(), n = CFG.final.hanchan;
+  $('livein').hidden = !!ctx.wait;
+  if (ctx.wait) { box.innerHTML = '<div class="hint">決勝' + ctx.wait + '半荘目の点数が入ると、ここに決勝' + n + '半荘目の実況が出ます。<br>運営が局ごとに点数を入れます。当日は、30秒ごとに読み直します。</div>'; return; }
+  fillLiveForm(ctx);
+  const done = !!recsOf(lastF())['1'], st = liveState(ctx);
+  let h = done ? '<div class="hint"><span class="big">決勝' + n + '半荘目の点数が入りました。</span><br>最終順位は<a href="' + scoreUrl('finh') + '">点数入力ページ</a>で見られます。</div>' : '';
+  if (!st) {
+    box.innerHTML = h + (done ? '' : '<p>決勝' + n + '半荘目が始まると、局ごとの点棒と、優勝に要るアガリがここに出ます。</p>')
+      + '<h3>いまの総合（' + prevLabel() + '）</h3>' + standHtml(ctx.mem.map(p => ({ p, i: -1, raw: null, total: ctx.prev[p] })), ctx, -1);
+    return;
+  }
+  if (st.bad) { box.innerHTML = h + '<p class="warn">運営の入力が、決勝の人と合いません。運営の入力で、席を選び直してください。</p>'; return; }
+  const d = st.kyoku % MODE, oras = st.kyoku === ORAS, fin = st.end || done, T = totalsOf(st.raw, st.seats, ctx), S = byTotal(T, ctx.prk);
+  h += '<div class="card"><div class="big">' + (st.end ? '終局' : KYOKU[st.kyoku] + (oras ? '（オーラス）' : '') + '　' + st.honba + '本場' + (st.kyotaku ? '・供託' + st.kyotaku + '本' : '')) + '</div>'
+    + '<div class="small">' + (st.end ? '' : '親は ' + esc(dn(st.seats[d])) + '。') + '運営の入力 ' + esc(String(st.ts || '').slice(11, 16)) + '</div></div>';
+  if (st.end) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、点数入力ページの最終順位です。</p>';
+  h += '<h3>' + (fin ? '総合の順位' : '総合の順位（いまの点棒で終わったら）') + '</h3>' + standHtml(T, ctx, fin ? -1 : d);
+  if (!fin && st.kyotaku) h += '<p class="small">供託の' + st.kyotaku + '本は、順位に入れていません。</p>';
+  if (!fin) h += condHtml(st, ctx, S, d, oras);
+  box.innerHTML = h;
+}
+
+// ---- 9章: 運営の入力 ----
+// 席（東1局の東・南・西）・これから打つ局・本場・供託・いまの点棒（百点単位。1人を空けると自動）を送る。
+// 受け口の live が変わったら、入れかけでなければ、欄をその値に合わせ直す（読み直しで入れかけを消さない）
+const SEAT_LABEL = ['東（起家）', '南', '西'];
+let LF_DIRTY = false, LF_KEY = '';
+// 数を読む（全角の数字とマイナスも）。数でなければ NaN
+const numOf = s => { s = String(s).normalize('NFKC').replace(/−/g, '-').trim(); return /^-?\d+$/.test(s) ? Number(s) : NaN; };
+function fillLiveForm(ctx) {
+  if (!$('lfkyoku').options.length) KYOKU.forEach((t, i) => $('lfkyoku').appendChild(new Option(t, String(i))));
+  if (!$('lfr0')) $('lfraw').innerHTML = [0, 1, 2].map(i => '<div><label for="lfr' + i + '" id="lfl' + i + '"></label><input type="text" id="lfr' + i + '" inputmode="numeric" maxlength="6"></div>').join('');
+  // 選ぶ欄は、決勝の人か名前が変わったときだけ作り直す（選んでいた人は残す）
+  const mk = JSON.stringify(ctx.mem.map(p => [p, dn(p)]));
+  if ($('lfseat').dataset.mk !== mk) {
+    const was = [0, 1, 2].map(i => $('lfs' + i) ? $('lfs' + i).value : '');
+    $('lfseat').dataset.mk = mk;
+    $('lfseat').innerHTML = SEAT_LABEL.map((t, i) => '<div><label for="lfs' + i + '">' + t + '</label><select id="lfs' + i + '"><option value="">（選ぶ）</option>' + ctx.mem.map(p => '<option value="' + esc(p) + '">' + esc(dn(p)) + '</option>').join('') + '</select></div>').join('');
+    was.forEach((p, i) => { if (ctx.mem.includes(p)) $('lfs' + i).value = p; });
+  }
+  const key = JSON.stringify(LIVE || null);
+  if (!LF_DIRTY && key !== LF_KEY) {
+    LF_KEY = key;
+    const v = liveState(ctx), s = v && !v.bad ? v : null;
+    [0, 1, 2].forEach(i => {
+      $('lfs' + i).value = s ? s.seats[i] : '';
+      const r = $('lfr' + i); r.value = String((s ? s.raw[i] : CFG.start) / 100); delete r.dataset.auto; r.classList.remove('auto');
+    });
+    $('lfr2').dataset.auto = '1'; $('lfr2').classList.add('auto');
+    $('lfkyoku').value = String(s ? s.kyoku : 0);
+    $('lfhonba').value = String(s ? s.honba : 0);
+    $('lfkyotaku').value = String(s ? s.kyotaku : 0);
+    $('lfend').checked = !!(s && s.end);
+    $('lfwarn').textContent = '';
+  }
+  lfLabels();
+}
+// 点棒の欄の見出しは、選んだ人の名前（選ぶ前は席）
+function lfLabels() { [0, 1, 2].forEach(i => { const p = $('lfs' + i) ? $('lfs' + i).value : ''; $('lfl' + i).textContent = p ? dn(p) : SEAT_LABEL[i]; }); }
+// 点棒の自動: 2人に数が入っていれば、空いている1人を「持ち点の合計−供託−2人」にする（score/index.html の autoFill と同じ考え方）
+function lfAuto() {
+  const ins = [0, 1, 2].map(i => $('lfr' + i)), ky = numOf($('lfkyotaku').value);
+  const manual = ins.filter(i => !i.dataset.auto && i.value.trim() !== ''), units = manual.map(i => numOf(i.value));
+  const ok = manual.length === MODE - 1 && units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999) && ky >= 0 && ky <= 99;
+  const target = ok ? ins.find(i => !manual.includes(i)) : null;
+  ins.forEach(i => { if (i.dataset.auto && i !== target) { i.value = ''; delete i.dataset.auto; i.classList.remove('auto'); } });
+  if (!target) return;
+  target.value = String((CFG.start * MODE - 1000 * ky) / 100 - units.reduce((a, b) => a + b, 0));
+  target.dataset.auto = '1'; target.classList.add('auto');
+}
+$('liveform').addEventListener('input', ev => {
+  LF_DIRTY = true;
+  // 自動の欄に打ったら、その欄は手で入れた欄になる
+  if (ev.target.dataset && ev.target.dataset.auto) { delete ev.target.dataset.auto; ev.target.classList.remove('auto'); }
+  lfAuto(); lfLabels();
+  const ps = [0, 1, 2].map(i => $('lfs' + i) ? $('lfs' + i).value : '').filter(Boolean);
+  $('lfwarn').textContent = new Set(ps).size < ps.length ? '同じ人が2つの席に選ばれています。' : '';
+});
+const LIVE_ERR = { action: '受け口がまだ実況に対応していません。主催が受け口の新しいバージョンをデプロイすると送れます', live: '送り方が不正です', player: '席の人の指定が不正です', score: '点棒の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', kai: '回の名前（大会設定）が不正です', bad_json: '送り方が不正です' };
+async function postLive(live) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'live', kai: CFG.kai, live }) });
+  return r.json();
+}
+$('liveform').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (!API) { say('lfmsg', '点数の受け口が設定されていません', false); return; }
+  if (liveCtx().wait) return;
+  lfAuto();
+  const seats = [0, 1, 2].map(i => $('lfs' + i).value);
+  if (seats.some(p => !p) || new Set(seats).size < MODE) { say('lfmsg', '席に3人を1人ずつ選んでください', false); return; }
+  const kyoku = Number($('lfkyoku').value), honba = numOf($('lfhonba').value), kyotaku = numOf($('lfkyotaku').value), end = $('lfend').checked;
+  if (!(honba >= 0 && honba <= 99 && kyotaku >= 0 && kyotaku <= 99)) { say('lfmsg', '本場と供託は、0〜99の数で入れてください', false); return; }
+  const units = [0, 1, 2].map(i => numOf($('lfr' + i).value));
+  if (units.some(u => !Number.isInteger(u) || u < -2000 || u > 9999)) { say('lfmsg', '点棒は百点単位の整数で入れてください（25,300点なら 253）', false); return; }
+  const raw = units.map(u => u * 100), want = CFG.start * MODE - 1000 * kyotaku;
+  if (raw.reduce((a, b) => a + b, 0) !== want) { say('lfmsg', '点棒の合計が ' + fmt(want) + '（持ち点の合計−供託）になりません。点棒を確かめてください', false); return; }
+  const btn = $('liveform').querySelector('.send');
+  btn.disabled = true;
+  try {
+    say('lfmsg', '送信中…', true);
+    const j = await postLive({ seats, kyoku, honba, kyotaku, raw, end }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok) { say('lfmsg', LIVE_ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください', false); return; }
+    LF_DIRTY = false; LF_KEY = ''; take(j.data);
+    say('lfmsg', (end ? '終局' : KYOKU[kyoku] + ' ' + honba + '本場') + 'を送りました。見ている人の画面には、30秒ほどで出ます', true);
+  } finally { btn.disabled = false; }
+});
+$('lfclear').addEventListener('click', async () => {
+  if (!API || !LIVE) { say('lfmsg', '消す実況はありません', false); return; }
+  if (!confirm('決勝最終実況を消しますか？（見ている人の画面からも消えます）')) return;
+  const j = await postLive(null).catch(() => ({ ok: false, error: 'net' }));
+  if (!j.ok) { say('lfmsg', LIVE_ERR[j.error] || '消せませんでした。少し待ってから、もう一度押してください', false); return; }
+  LF_DIRTY = false; LF_KEY = ''; take(j.data);
+  say('lfmsg', '消しました', true);
+});
+// 受け口の返事を持つ（点数・名簿・年上からの順・決勝最終実況）。名前が変わったときだけ、全部を出し直す
+let PULL_AT = 0;
+function take(d) {
+  const was = JSON.stringify(ROSTER);
+  DATA = { rounds: d.rounds || {} }; AGERANK = d.agerank || {}; LIVE = d.live || null; ROSTER = d.roster || {};
+  PULL_AT = Date.now();
+  $('lvat').textContent = '読み直し ' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 19);
+  if (JSON.stringify(ROSTER) !== was) renderAll(); else renderLive();
+}
+// 読み直し。開催日だけ、画面に出ているときに、決勝の最後の半荘の間は30秒ごと・ほかは2分ごと（受け口の読み取りは1日の回数に上限があるため。ほかの日は読み直さない）
+async function pull() {
+  PULL_AT = Date.now();
+  try { const j = await getJson(API + '?kai=' + encodeURIComponent(CFG.kai)); if (j.ok && j.data && j.data.kai === CFG.kai) take(j.data); } catch (e) {}
+}
+const isDay = () => !!CFG && new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10) === CFG.date;
+const pullGap = () => (!liveCtx().wait && !recsOf(lastF())['1'] && !(LIVE && LIVE.end)) ? 30000 : 120000;
+setInterval(() => { if (liveOn() && API && isDay() && !document.hidden && Date.now() - PULL_AT >= pullGap()) pull(); }, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && liveOn() && API && isDay() && Date.now() - PULL_AT >= 30000) pull(); });
+$('lvre').addEventListener('click', () => { if (API) pull(); });
+// URL の # の場所へ（本文は読み込みの後に出るので、ブラウザが自分では飛べない）
+function jumpToHash() {
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { id = ''; }
+  const el = id ? document.getElementById(id) : null;
+  if (el && !el.closest('[hidden]')) el.scrollIntoView();
+}
+
+function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(); renderHow(); renderCalc(); renderLive(); }
 
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
@@ -372,7 +776,11 @@ async function load() {
   catch (e) { setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
   if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || !Number.isInteger(c.players)) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
   CFG = c;
+  MODE = c.mode; OKA = Number.isInteger(c.start) && Number.isInteger(c.return) ? (c.return - c.start) * c.mode / 100 : 0;
   applyTheme(c);
+  // ページの中の移動。決勝ラインは、決勝のある会だけ（点数入力ページの集計へ）
+  $('jline').hidden = !(c.final && c.final.tables > 0);
+  $('jline').setAttribute('href', scoreUrl('h2sum'));
   // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
@@ -396,12 +804,14 @@ async function load() {
   setup(notes.join(' '));
   $('main').hidden = false;
   renderAll();
-  const api = String(c.api || '').trim();
-  if (!api) return;
-  try {
-    const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
-    if (j.ok && j.data && j.data.kai === c.kai) { ROSTER = j.data.roster || {}; renderAll(); }
-  } catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); setup(notes.join(' ')); }
+  API = String(c.api || '').trim();
+  if (API) {
+    try {
+      const j = await getJson(API + '?kai=' + encodeURIComponent(c.kai));
+      if (j.ok && j.data && j.data.kai === c.kai) take(j.data);
+    } catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); setup(notes.join(' ')); }
+  }
+  jumpToHash();
 }
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない

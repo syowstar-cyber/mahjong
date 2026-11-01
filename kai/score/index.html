@@ -995,12 +995,23 @@ async function load() {
   $('main').hidden = false;
   if (!API) notes.push('点数の受け口（API）がまだ設定されていません。送信はできません。');
   setup(notes.join(' '));
-  if (!API) { render(null); return; }
+  if (!API) { render(null); jumpOnce(); return; }
   try {
     const j = await getJson(API + '?kai=' + encodeURIComponent(CFG.kai));
     if (j.ok && j.data && j.data.kai === CFG.kai) render(j.data);
     else $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）';
   } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; }
+  jumpOnce();
+}
+// URL の # の場所へ（対戦表の「決勝ライン」から来たとき）。本文は読み込みの後に出るので、ブラウザが自分では飛べない。最初の1回だけ
+let JUMPED = false;
+function jumpOnce() {
+  if (JUMPED) return;
+  JUMPED = true;
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { id = ''; }
+  const el = id ? document.getElementById(id) : null;
+  if (el && !el.closest('[hidden]')) el.scrollIntoView();
 }
 $('reload').addEventListener('click', load);
 load();

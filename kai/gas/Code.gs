@@ -8,18 +8,21 @@
 //     生年月日そのものは GET でも返事でも返さない。返すのは入れた人どうしの年上からの順 agerank（1 が最年長・同じ日は同じ数）だけ
 //   A_<kai> = 締め切った後の agerank（エディタの closeBirth で生年月日を消したとき。順位が元に戻らないように固定する）
 //   K_<kai> = {"P3": {choice:'yes', ts:'…'}, …}   打ち上げの出欠（yes＝参加・no＝不参加。参加者ページで本人が答える。第20回の PARTY を P番号で持つ形。2026-11-01）
+//   L_<kai> = {seats:['P3','P7','P1'], kyoku:5, honba:1, kyotaku:2, raw:[41000,35000,27000], end:false, ts:'…'}   決勝最終実況（決勝の最後の半荘。対戦表のページで運営が局ごとに入れる。2026-11-02）
+//     seats と raw は席の順（東1局の東＝起家から）。kyoku は東1局が 0。end は終局。点数ではないので最終更新（U_）は動かさない
 //   LOG = 送信履歴の直近 LOG_MAX 件（1件＝'MMDDHHmmss|kai|操作|半荘|卓'）
 // 回を替えても消す作業は要らない（kai が違えば置き場が別）。古い回を消すのはエディタの purgeKai。
 //
 // 受け口（URL は1つ。キーなし＝第20回と同じ。範囲だけ検査し、送信履歴に時刻を残す）:
-//   GET  ?kai=<kai>                                          … その回の点数・名簿・最終更新・年上からの順・打ち上げの出欠
+//   GET  ?kai=<kai>                                          … その回の点数・名簿・最終更新・年上からの順・打ち上げの出欠・決勝最終実況
 //   POST {action:'score', kai, round, table, p:[…], raw:[…]} … 1卓ぶん（3人か4人）。同じ卓は上書き
 //   POST {action:'clear', kai, round, table}                 … 1卓ぶんを消す
 //   POST {action:'roster', kai, names:{P1:'名前', …}}        … 名簿（渡したキーだけ直す。'' で消す）
 //   POST {action:'birth', kai, player:'P3', date:'YYYY-MM-DD'|''} … 生年月日（'' で消す。締め切った回は error:'closed'）
 //   POST {action:'uchiage', kai, player:'P3', choice:'yes'|'no'|''} … 打ち上げの出欠（同じ人は上書き。'' で消す）
+//   POST {action:'live', kai, live:{seats:[…], kyoku, honba, kyotaku, raw:[…], end}|null} … 決勝最終実況（上書き。null で消す）
 //   round は予選 '1'〜'20'・決勝 'F1'〜'F9'、table は 1〜TABLE_MAX。
-//   返事は {ok:true, data:{kai, rounds, roster, updated, agerank, uchiage}} か {ok:false, error:'…'}。
+//   返事は {ok:true, data:{kai, rounds, roster, updated, agerank, uchiage, live}} か {ok:false, error:'…'}。
 //   同じ半荘のほかの卓に入っている人を送ると error:'dup'（players に該当者）で断る（卓の取り違え）
 
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;   // '_' は置き場の名前の区切りに使うので入れない
@@ -57,7 +60,7 @@ function data_(kai) {
     const r = k.slice(pre.length);
     if (ROUND_RE.test(r)) rounds[r] = json_(k, {});
   });
-  return { kai: kai, rounds: rounds, roster: json_('R_' + kai, {}), updated: get_('U_' + kai), agerank: ageRankOut_(kai), uchiage: json_('K_' + kai, {}) };
+  return { kai: kai, rounds: rounds, roster: json_('R_' + kai, {}), updated: get_('U_' + kai), agerank: ageRankOut_(kai), uchiage: json_('K_' + kai, {}), live: json_('L_' + kai, null) };
 }
 
 // 入れた人どうしの年上からの順。早く生まれた人ほど小さい数（1 が最年長）。同じ日は同じ数（第20回と同じ）
@@ -120,6 +123,7 @@ function doPost(e) {
   if (b.action === 'roster') return roster_(kai, b.names);
   if (b.action === 'birth') return birth_(kai, b.player, b.date);
   if (b.action === 'uchiage') return uchiage_(kai, b.player, b.choice);
+  if (b.action === 'live') return live_(kai, b.live);
   if (b.action !== 'score' && b.action !== 'clear') return out_({ ok: false, error: 'action' });
 
   const round = String(b.round || ''), table = Number(b.table);
@@ -209,6 +213,29 @@ function uchiage_(kai, player, choice) {
   });
 }
 
+// 決勝最終実況（対戦表のページで運営が局ごとに入れる）。v = {seats, kyoku, honba, kyotaku, raw, end}。null で消す。点数ではないので、最終更新（U_）は動かさない
+function live_(kai, v) {
+  let o = null;
+  if (v !== null) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return out_({ ok: false, error: 'live' });
+    if (!Array.isArray(v.seats) || (v.seats.length !== 3 && v.seats.length !== 4)) return out_({ ok: false, error: 'player' });
+    const seats = v.seats.map(String);
+    if (seats.some(function (p, i) { return !PLAYER_RE.test(p) || seats.indexOf(p) !== i; })) return out_({ ok: false, error: 'player' });
+    if (!Array.isArray(v.raw) || v.raw.length !== seats.length) return out_({ ok: false, error: 'score' });
+    const raw = v.raw.map(Number);
+    if (raw.some(function (x) { return !Number.isInteger(x) || x % 100 !== 0 || x < RAW_MIN || x > RAW_MAX; })) return out_({ ok: false, error: 'score' });
+    // 局は東南の8局まで（3麻は6局）。本場と供託は99本まで
+    if (!Number.isInteger(v.kyoku) || v.kyoku < 0 || v.kyoku > 7) return out_({ ok: false, error: 'live' });
+    if ([v.honba, v.kyotaku].some(function (x) { return !Number.isInteger(x) || x < 0 || x > 99; })) return out_({ ok: false, error: 'live' });
+    o = { seats: seats, kyoku: v.kyoku, honba: v.honba, kyotaku: v.kyotaku, raw: raw, end: v.end === true };
+  }
+  return withLock_(function () {
+    if (o) { o.ts = now_(); set_('L_' + kai, JSON.stringify(o)); } else if (get_('L_' + kai) !== null) del_('L_' + kai);
+    log_(kai, 'live', '', o ? String(o.kyoku) : '');
+    return out_({ ok: true, data: data_(kai) });
+  });
+}
+
 // ---- ここから下はエディタで動かす（受け口からは呼べない） ----
 
 // 置いてある回の一覧（点数の卓数・名簿の人数・最終更新）をログに出す
@@ -217,14 +244,15 @@ function listKai() {
   try {
     const kais = {};
     Object.keys(SNAP).forEach(function (k) {
-      const m = /^([SRUBAK])_([0-9A-Za-z-]+)(?:_(.+))?$/.exec(k);
+      const m = /^([SRUBAKL])_([0-9A-Za-z-]+)(?:_(.+))?$/.exec(k);
       if (!m) return;
-      const o = kais[m[2]] || (kais[m[2]] = { tables: 0, names: 0, births: 0, uchiage: 0, closed: false, updated: '' });
+      const o = kais[m[2]] || (kais[m[2]] = { tables: 0, names: 0, births: 0, uchiage: 0, closed: false, live: false, updated: '' });
       if (m[1] === 'S') o.tables += Object.keys(json_(k, {})).length;
       if (m[1] === 'R') o.names = Object.keys(json_(k, {})).length;
       if (m[1] === 'B') o.births = Object.keys(json_(k, {})).length;
       if (m[1] === 'K') o.uchiage = Object.keys(json_(k, {})).length;
       if (m[1] === 'A') o.closed = true;
+      if (m[1] === 'L') o.live = true;
       if (m[1] === 'U') o.updated = get_(k);
     });
     Logger.log(JSON.stringify(kais, null, 1));
@@ -234,13 +262,13 @@ function listKai() {
   }
 }
 
-// PURGE に回の名前を入れて動かすと、その回の点数・名簿・生年月日・打ち上げの出欠・最終更新を消す（終わったら '' に戻す）
+// PURGE に回の名前を入れて動かすと、その回の点数・名簿・生年月日・打ち上げの出欠・決勝最終実況・最終更新を消す（終わったら '' に戻す）
 const PURGE = '';
 function purgeKai() {
   if (!KAI_RE.test(PURGE)) { Logger.log('PURGE に回の名前を入れてください'); return; }
   const props = PropertiesService.getScriptProperties();
   const keys = Object.keys(props.getProperties()).filter(function (k) {
-    return k === 'R_' + PURGE || k === 'U_' + PURGE || k === 'B_' + PURGE || k === 'A_' + PURGE || k === 'K_' + PURGE || k.indexOf('S_' + PURGE + '_') === 0;
+    return k === 'R_' + PURGE || k === 'U_' + PURGE || k === 'B_' + PURGE || k === 'A_' + PURGE || k === 'K_' + PURGE || k === 'L_' + PURGE || k.indexOf('S_' + PURGE + '_') === 0;
   });
   keys.forEach(function (k) { props.deleteProperty(k); });
   Logger.log(PURGE + ' を消しました（' + keys.length + '項目）');

@@ -12,6 +12,7 @@
   "players": 10,
   "prelim": 7,
   "final": { "tables": 1, "hanchan": 2, "junni": 1 },
+  "jikkyo": true,
   "bakime": true,
   "nenrei": true,
   "start": 35000,

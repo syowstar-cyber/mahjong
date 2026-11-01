@@ -6,7 +6,7 @@
   python kai/tools/meibo.py <名簿ファイル>   … 名簿を送る。ファイルは UTF-8 で1行1人「P1 呼び名」（空白かタブで区切る）
                                                渡した番号だけ直す（直したい人の行だけ送ってもよい）
   python kai/tools/meibo.py --show            … 受け口の名簿の人数と番号を出す
-  python kai/tools/meibo.py --test            … 初回のテスト送信。回 setup-test に名簿と1卓を送り、読み直し、消して空に戻るかを見る
+  python kai/tools/meibo.py --test            … 初回のテスト送信。回 setup-test に決勝最終実況と名簿と1卓を送り、読み直し、消して空に戻るかを見る
   --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config は試験用（既定は kai/g/<会>/taikai.json）
 成功は1行目が OK で始まる。失敗は NG で始まり、終了コード 1"""
 import argparse, json, re, sys, urllib.parse, urllib.request
@@ -90,13 +90,19 @@ def show(api):
 
 
 def test(api):
-    """回 setup-test で、名簿→1卓→読み直し→取り消し→名簿を消す→空に戻る、を確かめる（送信履歴 LOG と最終更新 U_setup-test は残る）"""
+    """回 setup-test で、決勝最終実況→名簿→1卓→読み直し→取り消し→名簿と実況を消す→空に戻る、を確かめる（送信履歴 LOG と最終更新 U_setup-test は残る）"""
     steps = []
     def need(ok, what):
         steps.append(("OK " if ok else "NG ") + what)
         if not ok:
             print("\n".join(steps))
             raise SystemExit(f"NG test（{what}）")
+    # 実況を最初に送る（古い受け口は action で断り、何も書かない＝setup-test に残り物を作らない）
+    live = {"seats": ["P2", "P3", "P1"], "kyoku": 5, "honba": 1, "kyotaku": 1, "raw": [52000, 30000, 22000], "end": False}
+    j = api.post({"action": "live", "kai": TEST_KAI, "live": live})
+    if j.get("error") == "action":
+        raise SystemExit("NG test 受け口が古い（決勝最終実況に未対応）。kai/gas/README.md の手順で新しいバージョンをデプロイする")
+    need(j.get("ok") and (j["data"].get("live") or {}).get("raw") == live["raw"], "決勝最終実況を送る")
     j = api.post({"action": "roster", "kai": TEST_KAI, "names": {"P1": "テスト１", "P2": "テスト２"}})
     need(j.get("ok") and j["data"]["roster"].get("P1") == "テスト１", "名簿（日本語）を送る")
     j = api.post({"action": "score", "kai": TEST_KAI, "round": "1", "table": 1, "p": ["P1", "P2", "P3"], "raw": [45000, 35000, 25000]})
@@ -106,14 +112,17 @@ def test(api):
     j = api.post({"action": "score", "kai": TEST_KAI, "round": "1", "table": 3, "p": ["P6", "P7", "P8"], "raw": [1000000, 0, 0]})
     need(not j.get("ok") and j.get("error") == "score", "範囲外の点数を断る")
     j = api.get(TEST_KAI)
-    need(j.get("ok") and j["data"]["rounds"]["1"]["1"]["p"] == ["P1", "P2", "P3"] and j["data"]["roster"].get("P2") == "テスト２", "読み直す（GET）")
+    need(j.get("ok") and j["data"]["rounds"]["1"]["1"]["p"] == ["P1", "P2", "P3"] and j["data"]["roster"].get("P2") == "テスト２"
+         and (j["data"].get("live") or {}).get("seats") == live["seats"], "読み直す（GET）")
     j = api.post({"action": "clear", "kai": TEST_KAI, "round": "1", "table": 1})
     need(j.get("ok") and "1" not in j["data"]["rounds"], "1卓を取り消す")
     j = api.post({"action": "roster", "kai": TEST_KAI, "names": {"P1": "", "P2": ""}})
     need(j.get("ok") and not j["data"]["roster"], "名簿を消す")
+    j = api.post({"action": "live", "kai": TEST_KAI, "live": None})
+    need(j.get("ok") and j["data"].get("live") is None, "決勝最終実況を消す")
     j = api.get(TEST_KAI)
-    need(j.get("ok") and not j["data"]["rounds"] and not j["data"]["roster"], "空に戻った")
-    print("OK test 受け口は使える（8項目）")
+    need(j.get("ok") and not j["data"]["rounds"] and not j["data"]["roster"] and j["data"].get("live") is None, "空に戻った")
+    print("OK test 受け口は使える（10項目）")
     print("\n".join(steps))
 
 
