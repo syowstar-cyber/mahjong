@@ -17,6 +17,7 @@
   "tables": [],
   "locked": [],
   "rule": "rule.html",
+  "tensu": "tensu.html",
   "schedule": [
     ["10:45", "集合・受付"],
     ["11:00", "予選 1半荘目"],

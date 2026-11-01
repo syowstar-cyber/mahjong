@@ -43,6 +43,7 @@ button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700
 .pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
 th,td{border-bottom:1px solid var(--line);padding:8px 8px;text-align:right;white-space:nowrap}
@@ -82,7 +83,7 @@ summary{cursor:pointer;font-weight:700}
     <h1 id="ttl">🀄 点数</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -138,7 +139,7 @@ summary{cursor:pointer;font-weight:700}
     <div id="results"></div>
   </details>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">組み合わせ</a><a href="./" aria-current="page">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
 </div>
 
 <script>
@@ -153,8 +154,8 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 // 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
-// ページ間のリンクにも会を付ける（halu は付けない）
-document.querySelectorAll('.pnav a').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数表は会のフォルダの中なので付けない
+document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
@@ -164,6 +165,13 @@ function applyTheme(c) {
   let t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
   if (!t) { t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; document.head.appendChild(t); }
   t.content = c.short || c.group || c.title || '';
+}
+// ルール・点数表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+function pageLinks(c) {
+  ['rule', 'tensu'].forEach(k => {
+    const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
+    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
+  });
 }
 const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
@@ -220,6 +228,7 @@ function checkCfg(c) {
 function applyCfg(c, k) {
   CFG = c; KUMI = k;
   applyTheme(c);
+  pageLinks(c);
   MODE = c.mode; TOTAL = c.start * MODE;
   OKA = (c.return - c.start) * MODE / 100;   // オカ（返し−持ち点）×人数。0.1ポイント単位
   API = String(c.api || '').trim();
