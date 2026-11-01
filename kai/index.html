@@ -81,7 +81,7 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <h1 id="ttl">🀄 トップページ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>くじ</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -108,7 +108,9 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
   <div id="uchibox" hidden>
   <h2>打ち上げ</h2>
   <div class="card party">
-    <p id="uwho" style="margin:0 0 4px;font-weight:700"></p>
+    <label for="ume">自分の名前</label>
+    <select id="ume"></select>
+    <p class="small" style="margin:4px 0 8px">上の「自分の名前」と同じです。どちらで選んでも、同じ名前になります。</p>
     <label class="opt"><input type="radio" name="uch" value="yes"><span>参加する</span></label>
     <label class="opt"><input type="radio" name="uch" value="no"><span>参加しない</span></label>
     <button type="button" class="send" id="usend">この内容で回答する</button>
@@ -133,7 +135,7 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <li id="finnote" hidden></li>
   </ul>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>くじ</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 </div>
 
 <script>
@@ -269,13 +271,16 @@ function render() {
   $('mineh').textContent = bakime() ? '自分の卓' : '自分の席';
   const junni = c.final.tables > 0 && c.final.junni === 1;
   $('seatnote').textContent = bakime() ? '席は、予選も決勝も' + (junni ? '順位決定戦も、' : '') + '半荘ごとに牌を引いて決めます。起家はサイコロで決めます。表の並び順は、席ではありません。' : '東が起家です。';
-  // 自分の名前
-  const sel = $('me'), list = players();
-  sel.innerHTML = '';
-  sel.appendChild(new Option('（選ぶ）', ''));
-  list.forEach(p => sel.appendChild(new Option(dnf(p), p)));
+  // 自分の名前。上の「自分の卓」と打ち上げの欄の2か所に同じ選び方を出す（どちらで選んでも同じ ME）
+  const list = players();
+  ['me', 'ume'].forEach(id => {
+    const sel = $(id);
+    sel.innerHTML = '';
+    sel.appendChild(new Option('（選ぶ）', ''));
+    list.forEach(p => sel.appendChild(new Option(dnf(p), p)));
+  });
   ME = list.includes(SAVED) ? SAVED : '';
-  sel.value = ME;
+  $('me').value = ME; $('ume').value = ME;
   renderInfo();
   renderMine();
   renderSched();
@@ -334,14 +339,20 @@ function renderMine() {
   });
   tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
 }
-$('me').addEventListener('change', () => {
-  SAVED = $('me').value;
+// 名前を選んだら（上の欄でも打ち上げの欄でも）、この端末に覚えて出し直す。
+// 打ち上げの欄で選んだときは、上の表が伸び縮みしても、その欄が画面の同じ所に残るようにする
+function pickMe(v, keep) {
+  SAVED = v;
   try { localStorage.setItem('halukai:me:' + G, SAVED); } catch (e) {}
+  const y = keep ? keep.getBoundingClientRect().top : 0;
   render();
-});
+  if (keep) window.scrollBy(0, keep.getBoundingClientRect().top - y);
+}
+$('me').addEventListener('change', () => pickMe($('me').value));
+$('ume').addEventListener('change', () => pickMe($('ume').value, $('ume')));
 
 // ---- 打ち上げ（taikai.json の uchiage が true の会。第20回の参加者ページ7章を、P番号で答える形にしたもの） ----
-// 答えるのは上の「自分の名前」で選んだ人。受け口に P番号ごとに置き、全員の出欠を表に出す
+// 答えるのは「自分の名前」で選んだ人（この欄の名前の欄は、上の「自分の名前」と同じ ME）。受け口に P番号ごとに置き、全員の出欠を表に出す
 const UCH_LABEL = { yes: '参加する', no: '参加しない' }, UCH_SHORT = { yes: '参加', no: '不参加' };
 // 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし）
 let UCHI = {}, UCHI_ST = 'none';
@@ -351,12 +362,11 @@ function renderUchi() {
   $('uchibox').hidden = !(CFG.uchiage === true);
   if (CFG.uchiage !== true) return;
   const list = players(), ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
-  $('uwho').textContent = ME ? dnf(ME) + ' の回答' : '上の「自分の名前」を選ぶと、ここで答えられます。';
   document.querySelectorAll('input[name=uch]').forEach(x => { x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
   $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
   if (!ok) sayU(UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
   else if (mine) sayU('回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）', 'ok');
-  else sayU(ME ? 'まだ回答がありません。' : '');
+  else sayU(ME ? 'まだ回答がありません。' : '名前を選ぶと、答えられます。');
   const ans = p => UCHI[p] && UCH_SHORT[UCHI[p].choice] ? UCHI[p].choice : '';
   const y = list.filter(p => ans(p) === 'yes').length, n = list.filter(p => ans(p) === 'no').length;
   $('ucount').textContent = ok ? '参加 ' + y + '人・不参加 ' + n + '人・まだ ' + (list.length - y - n) + '人' : '';
@@ -370,7 +380,7 @@ function renderUchi() {
   t.appendChild(tb);
 }
 async function sendUchi(choice) {
-  if (!ME) { sayU('上の「自分の名前」を選んでください', 'ng'); return; }
+  if (!ME) { sayU('名前を選んでください', 'ng'); return; }
   if (choice === undefined) { const r = document.querySelector('input[name=uch]:checked'); if (!r) { sayU('「参加する」か「参加しない」を選んでください', 'ng'); return; } choice = r.value; }
   const who = ME;
   sayU('送信中…');
@@ -395,7 +405,7 @@ function renderKuji() {
   box.appendChild(document.createTextNode(n4
     ? '組み合わせは、' + dayText(d) + 'のナンバーズ4の当せん番号「' + n4 + '」で、くじで決めました。'
     : '卓と抜け番の並び（型）は決めてあります。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'));
-  const a = document.createElement('a'); a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : ''); a.textContent = 'くじのページ（決まり・型・検算）';
+  const a = document.createElement('a'); a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : ''); a.textContent = '対戦表のページ（くじの決まり・型・検算）';
   box.appendChild(document.createElement('br')); box.appendChild(a);
 }
 

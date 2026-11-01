@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>くじ</title>
+<title>対戦表</title>
 <script>
 // 会ごとのホーム画面のアプリ（manifest とアイコン）。会は URL の ?g=（付けなければ halu）。読み込みの途中で書き出す＝ブラウザが最初から見つけられる
 (function () {
@@ -65,10 +65,10 @@ td.nw,th.nw{white-space:nowrap}
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 くじ</h1>
+    <h1 id="ttl">🀄 対戦表</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">くじ</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -107,11 +107,11 @@ td.nw,th.nw{white-space:nowrap}
   <h2>8. くじ値と枠</h2>
   <div id="lottery"></div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">くじ</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">対戦表</a></nav>
 </div>
 
 <script>
-// 普段の回のくじのページ（第20回の kuji/ を、会ごとの設定で動く形にしたもの）。taikai.json の kuji（抽せんの日）・kata.json（型。抽せんの前に kumiawase.py が書く）・
+// 普段の回のくじのページ（切り替えボタンと見出しは「対戦表」。第20回の kuji/ を、会ごとの設定で動く形にしたもの）。taikai.json の kuji（抽せんの日）・kata.json（型。抽せんの前に kumiawase.py が書く）・
 // kumiawase.json（本番の番号と、いまの組み合わせ。kuji.py が書く）を読んで出す。受け口からは名前（名簿）だけを読み、送るものはない。
 // くじの計算は kai/tools/kumiawase.py の kuji_seed・draw と同じ。どちらかを直したら、もう片方も直す
 const $ = id => document.getElementById(id);
@@ -254,7 +254,7 @@ function lotteryHtml(seed, tag) {
 function renderResult() {
   const box = $('result'), lot = $('lottery');
   if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
-  if (!N4) { box.innerHTML = '<div class="hint"><span class="big">結果は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは「4. 計算してみる」で、仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは「4. 計算してみる」で、仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   const want = roundsOf(draw(seedOf(N4))), now = (KUMI && KUMI.rounds) || {}, ks = kataKeys();
   const remade = !!KUMI && (KUMI.remade === true || KUMI.from > 1), from = remade ? Number(KUMI.from) || 1 : ks.length + 1;
   const bad = ks.filter(k => Number(k) < from && !sameRound(now[k], want[k]));
@@ -265,6 +265,8 @@ function renderResult() {
     const outs = [...new Set(ks.filter(k => Number(k) >= from).flatMap(k => (now[k] && now[k].out) || []))].sort((a, b) => pnum(a) - pnum(b));
     h += '<p>' + (from > 1 ? (from - 1) + '半荘目までは、型と本番の番号のとおりです。' : '') + from + '半荘目からは、当日の組み直しです' + (outs.length ? '（お休み: ' + outs.map(p => esc(dn(p))).join('・') + '）' : '') + '。組み直しでも、くじで決まった枠と No. の組は変えません。</p>';
   }
+  // 対戦表（いまの組み合わせ。当日に組み直したら、組み直した後の表。トップページの「半荘ごとの組み合わせ」と同じ）
+  h += roundTables(now, dn);
   h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
   h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">トップページ</a>で見られます。</p>';
   box.innerHTML = h;
@@ -374,8 +376,8 @@ async function load() {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
   });
-  document.title = (c.title || '') + ' くじ';
-  $('ttl').textContent = '🀄 ' + (c.title || '') + ' くじ';
+  document.title = (c.title || '') + ' 対戦表';
+  $('ttl').textContent = '🀄 ' + (c.title || '') + ' 対戦表';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '')) { $('sub').textContent = ''; setup('この会は、組み合わせをくじで決めていません。組み合わせはトップページで見られます。'); return; }
   $('sub').textContent = mdText(c.kuji) + 'のナンバーズ4の当せん番号で、組み合わせを決めるくじ';
   const notes = [];
