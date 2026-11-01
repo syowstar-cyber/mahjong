@@ -44,6 +44,8 @@ button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700
 .pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 @media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
+/* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
+#main[hidden]~.pnav{display:none}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
 th,td{border-bottom:1px solid var(--line);padding:8px 8px;text-align:right;white-space:nowrap}
