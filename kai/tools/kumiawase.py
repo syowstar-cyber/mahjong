@@ -5,16 +5,22 @@
 ・席の風（東南西北）を、一人ひとりできるだけ均等にする
 ・卓番号は、同じ卓に続けて座らないよう散らす
 乱数の種は回の名前と引数から作る＝同じ引数なら何度作っても同じ表（--seed で別の表）。
+くじの会（taikai.json の kuji＝抽せんの日）は、抽せんの前に型（kata.json。P番号の代わりに枠1〜枠N）だけを作り、
+誰がどの枠に入るかを、その日のナンバーズ4の当せん番号で決める（kai/tools/kuji.py。第20回と同じ仕組み）。
 
 使い方:
   python kai/tools/kumiawase.py                      … 作って成績を出すだけ（何も書かない）
   python kai/tools/kumiawase.py --write              … 前日: kumiawase.json に書く（早川研は --group hayakawa を足す）
+                                                       くじの会の抽せんの前は、kata.json（型）と、表が空の kumiawase.json を書く
+                                                       （来られなくなった人は --absent P5 でくじから外す。抽せんの日の18時から後は書かない）
   python kai/tools/kumiawase.py --from 3 --absent P5 --write
                                                      … 当日: 3半荘目から組み直す（1・2半荘目はそのまま。P5 は抜けた）
                                                        増えた人は taikai.json の players を増やしてから
-  python kai/tools/kumiawase.py --check              … いまの kumiawase.json を検査し、成績を出す
-  --group で会を選ぶ（既定は halu）。--config / --out は試験用（既定は kai/g/<会>/taikai.json と kumiawase.json）"""
-import argparse, hashlib, itertools, json, math, random, re, sys
+                                                       くじの会の抽せんの後は、枠の並びに戻して組み直す（くじで決まった枠を保つ）
+                                                       型で外した人が来たら --back P5（外したときの枠で入る）
+  python kai/tools/kumiawase.py --check              … いまの kumiawase.json を検査し、成績を出す（くじの会の抽せんの前は型）
+  --group で会を選ぶ（既定は halu）。--config / --out / --kata は試験用（既定は kai/g/<会>/ の taikai.json・kumiawase.json・kata.json）"""
+import argparse, hashlib, itertools, json, math, random, re, sys, unicodedata
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -206,10 +212,81 @@ def to_strs(rnd):
     return o
 
 
-def dump(obj):
-    """1卓を1行にして書く（人が読んで確かめやすいように）。中身は json.loads で元に戻る"""
+# ---- くじ（kai/kuji/index.html と同じ計算。kuji.py もここを使う） ----
+def norm_n4(s):
+    """当せん番号の書き方をそろえる（全角は半角に。先頭の0も残して4桁）"""
+    s = re.sub(r"\s", "", unicodedata.normalize("NFKC", str(s)))
+    if not re.fullmatch(r"\d{4}", s):
+        raise SystemExit(f"ナンバーズ4の当せん番号の形が違う: {s!r}（4桁。例 0482）")
+    return s
+
+
+def kuji_seed(kata, n4):
+    """くじの種＝回の名前・抽せんの日・当せん番号（例 halu-2026-11-14|2026-11-13|N4=0482）"""
+    return f"{kata['kai']}|{kata['date']}|N4={norm_n4(n4)}"
+
+
+def draw(seed, ps):
+    """くじを引く人（P番号の並び）の [(P番号, くじ値)] を、くじ値の小さい順に返す。先頭が枠1。くじ値＝SHA-256(種 + "|" + P番号) の16進64桁"""
+    vals = [(p, hashlib.sha256(f"{seed}|{p}".encode("utf-8")).hexdigest()) for p in ps]
+    return sorted(vals, key=lambda x: (x[1], pnum(x[0])))
+
+
+def kata_out(kata):
+    """型を作るときに外した人（抽せんの前に来られなくなった人。くじに入らない）"""
+    return sorted(kata.get("out", []), key=pnum)
+
+
+def kata_present(kata):
+    """くじを引く人＝P1〜P(型の人数) から、型で外した人を除いたもの"""
+    out = set(kata_out(kata))
+    return [f"P{i}" for i in range(1, kata["players"] + 1) if f"P{i}" not in out]
+
+
+def out_slots(players, out):
+    """型で外した人に当てる枠（くじを引く人の後ろ）。型の中では、この枠が「お休み」"""
+    return ["P%d" % s for s in range(players - len(out) + 1, players + 1)]
+
+
+def slot_map(kata, n4, players):
+    """P番号の数 → 枠の番号。くじを引いた人は抽せんの順。型で外した人はその後ろ（番号の順）。
+    抽せんより後に増えた人（型の人数より大きい番号）は、番号のまま"""
+    m = {pnum(p): k + 1 for k, (p, _) in enumerate(draw(kuji_seed(kata, n4), kata_present(kata)))}
+    m.update({pnum(p): pnum(s) for p, s in zip(kata_out(kata), out_slots(kata["players"], kata_out(kata)))})
+    m.update({i: i for i in range(kata["players"] + 1, players + 1)})
+    return m
+
+
+def rename(rnd, f):
+    """1半荘の表（P番号の形）の人を、f（数 → 数）で置き換える。P番号と枠のあいだの行き来に使う"""
+    g = lambda ps: ["P%d" % f[pnum(p)] for p in ps]
+    o = {"tables": [{"no": t["no"], "p": g(t["p"])} for t in rnd["tables"]], "rest": g(rnd.get("rest", []))}
+    if rnd.get("out"):
+        o["out"] = g(rnd["out"])
+    return o
+
+
+def kata_rounds(kata):
+    """型（枠の数）を、P番号の形の表にする（"P3"＝枠3）。検査と成績をそのまま使うため。型で外した人の枠は「お休み」に入れる"""
+    o = out_slots(kata["players"], kata_out(kata))
+    res = {}
+    for k, r in kata["rounds"].items():
+        res[k] = {"tables": [{"no": t["no"], "p": ["P%d" % w for w in t["w"]]} for t in r["tables"]], "rest": ["P%d" % w for w in r.get("rest", [])]}
+        if o:
+            res[k]["out"] = list(o)
+    return res
+
+
+def lottery_rounds(kata, n4):
+    """抽せんの結果の表（型の枠を P番号に置き換えたもの）。型で外した人は、どの半荘も「お休み」"""
+    inv = {v: k for k, v in slot_map(kata, n4, kata["players"]).items()}
+    return {k: rename(r, inv) for k, r in kata_rounds(kata).items()}
+
+
+def dump(obj, head=("kai", "made", "from", "remade", "kuji")):
+    """1卓を1行にして書く（人が読んで確かめやすいように）。中身は json.loads で元に戻る。head は rounds より前に書く項目（ないものは飛ばす）"""
     j = lambda v: json.dumps(v, ensure_ascii=False)
-    lines = ["{", f'  "kai": {j(obj["kai"])},', f'  "made": {j(obj["made"])},', f'  "from": {obj["from"]},', '  "rounds": {']
+    lines = ["{"] + [f'  {j(k)}: {j(obj[k])},' for k in head if k in obj] + ['  "rounds": {']
     keys = sorted(obj["rounds"], key=int)
     for ki, k in enumerate(keys):
         r = obj["rounds"][k]
@@ -239,6 +316,15 @@ def check_cfg(cfg):
         raise SystemExit("players は mode〜99")
     if not (isinstance(cfg["prelim"], int) and 1 <= cfg["prelim"] <= 20):
         raise SystemExit("prelim は 1〜20")
+    if cfg.get("kuji"):
+        try:
+            d = datetime.strptime(str(cfg["kuji"]), "%Y-%m-%d")
+        except ValueError:
+            raise SystemExit("kuji は抽せんの日（例 2026-11-13）")
+        if d.weekday() >= 5:
+            print(f"※ kuji（{cfg['kuji']}）は土日です。ナンバーズの抽せんは月〜金なので、日を確かめてください")
+        if cfg.get("date") and str(cfg["kuji"]) >= str(cfg["date"]):
+            print(f"※ kuji（{cfg['kuji']}）が開催日（{cfg['date']}）より前ではありません")
 
 
 def validate(cfg, kumi, absent=()):
@@ -279,8 +365,8 @@ def validate(cfg, kumi, absent=()):
     return errs
 
 
-def report(cfg, rounds):
-    """成績: 同じ相手と2回以上当たった組・風・抜け番・同じ卓"""
+def report(cfg, rounds, label="P"):
+    """成績: 同じ相手と2回以上当たった組・風・抜け番・同じ卓。label は人の呼び方（型は「枠」）"""
     M = cfg["mode"]
     h = Hist()
     keys = sorted(rounds, key=int)
@@ -296,7 +382,7 @@ def report(cfg, rounds):
     print(f"■ 成績（{len(keys)}半荘・{len(everyone)}人・{M}麻）")
     print(f"  同じ相手と2回以上: {len(rep)}組" + (f"（最多 {rep[0][2]}回）" if rep else "") + f"　余分に当たった回数 {over}（下限 {lower}）")
     if rep:
-        print("    " + "・".join(f"P{a}-P{b}×{m}" for a, b, m in rep[:20]) + (" …" if len(rep) > 20 else ""))
+        print("    " + "・".join(f"{label}{a}-{label}{b}×{m}" for a, b, m in rep[:20]) + (" …" if len(rep) > 20 else ""))
     spread = max(max(h.wind[p][:M]) - min(h.wind[p][:M]) for p in everyone) if everyone else 0
     print(f"  風の偏り（一人の中で最多と最少の差）: 最大 {spread}")
     pl = [h.played[p] for p in everyone]
@@ -307,21 +393,22 @@ def report(cfg, rounds):
     print("  一人ずつ（打った・抜け・風 " + "".join(WINDS[:M]) + "・当たった人数）:")
     for p in everyone:
         opp = sum(1 for q in everyone if q != p and h.meets[p][q] > 0)
-        print(f"    P{p:<3} {h.played[p]}・{h.rested[p]}・" + "".join(str(x) for x in h.wind[p][:M]) + f"・{opp}人")
+        print(f"    {label + str(p):<5} {h.played[p]}・{h.rested[p]}・" + "".join(str(x) for x in h.wind[p][:M]) + f"・{opp}人")
     return {"repeats": len(rep), "max_meet": max((m for _, _, m in pairs), default=0), "over": over,
             "lower": lower, "wind_spread": spread, "played": (min(pl), max(pl)), "rested": (min(rs), max(rs)), "same_table": same}
 
 
-def show(cfg, rounds):
+def show(cfg, rounds, label="P"):
+    nm = lambda p: label + p[1:]
     for k in sorted(rounds, key=int):
         r = rounds[k]
         print(f"■ {k}半荘目")
         for t in r["tables"]:
-            print(f"  {t['no']:>2}卓  " + "  ".join(f"{WINDS[i]} {p:<4}" for i, p in enumerate(t["p"])))
+            print(f"  {t['no']:>2}卓  " + "  ".join(f"{WINDS[i]} {nm(p):<4}" for i, p in enumerate(t["p"])))
         if r.get("rest"):
-            print("  抜け番 " + "・".join(r["rest"]))
+            print("  抜け番 " + "・".join(map(nm, r["rest"])))
         if r.get("out"):
-            print("  お休み " + "・".join(r["out"]))
+            print("  お休み " + "・".join(map(nm, r["out"])))
 
 
 def make(cfg, kumi_old, start, absent, seed):
@@ -353,13 +440,81 @@ def make(cfg, kumi_old, start, absent, seed):
     return {"kai": cfg["kai"], "made": datetime.now(JST).strftime("%Y-%m-%d %H:%M"), "from": start, "rounds": rounds}
 
 
+def lottery_done(cfg, old):
+    """くじの会で、抽せんの結果（kuji.py が書く kuji.n4）が、もう kumiawase.json に入っているか"""
+    return bool(cfg.get("kuji") and old and old.get("kai") == cfg["kai"] and (old.get("kuji") or {}).get("n4"))
+
+
+KUJI_CUT = "18:00"   # 抽せんの日のこの時刻から後は、型を書かない（ナンバーズの抽せんは夕方。当せん番号が分かった後に型を選べないように）
+
+
+def make_kata(cfg, absent, seed):
+    """抽せんの前の型。P1〜PN を枠1〜枠N と読み替えて、ふつうと同じ作り方で作る。
+    抽せんの前に来られなくなった人（absent）はくじに入れず、後ろの枠（お休み）にする＝抽せんの後の組み直しと同じ種になる"""
+    out = sorted(set(absent), key=pnum)
+    over = [p for p in out if pnum(p) > cfg["players"]]
+    if over:
+        raise SystemExit(f"--absent の {over} は players（{cfg['players']}）より大きい番号")
+    k = make(cfg, None, 1, out_slots(cfg["players"], out), seed)
+    kata = {"kai": cfg["kai"], "made": k["made"], "date": str(cfg["kuji"]), "players": cfg["players"]}
+    if out:
+        kata["out"] = out
+    if seed:
+        kata["seed"] = seed
+    kata["rounds"] = {r: {"tables": [{"no": t["no"], "w": [pnum(p) for p in t["p"]]} for t in x["tables"]], "rest": [pnum(p) for p in x["rest"]]}
+                      for r, x in k["rounds"].items()}
+    return kata
+
+
+def load_kata(path, cfg, date):
+    """抽せんに使う型を読み、回と抽せんの日が合っているか確かめる"""
+    kata = load(path)
+    if not kata or kata.get("kai") != cfg["kai"] or not isinstance(kata.get("rounds"), dict):
+        raise SystemExit(f"型（{path}）がないか、別の回のもの（抽せんの前に kumiawase.py --write で作る）")
+    if kata.get("date") != date:
+        raise SystemExit(f"型の抽せんの日（{kata.get('date')}）が {date} と違う")
+    return kata
+
+
+def remake_after_kuji(cfg, kata, old, start, absent, back=()):
+    """抽せんの後の組み直し。枠の並びに戻して作り、P番号に戻す（くじで決まった枠と P番号の対応を保つ）。
+    種は型と同じ＝人が変わらなければ、型のとおりの表に戻る（--seed は使わせない。抽せんの後に表を選べてしまう）"""
+    if cfg["players"] < kata["players"]:
+        raise SystemExit(f"抽せんの後は players を減らさない（型は{kata['players']}人）。来られない人は --absent で外す")
+    m = slot_map(kata, old["kuji"]["n4"], cfg["players"])
+    inv = {v: k for k, v in m.items()}
+    bad = [p for p in absent if pnum(p) not in m]
+    if bad:
+        raise SystemExit(f"--absent の {bad} は players（{cfg['players']}）より大きい番号")
+    kout = kata_out(kata)
+    nb = [p for p in back if p not in kout]
+    if nb:
+        raise SystemExit(f"--back の {nb} は、型で外した人ではない（型で外した人: {'・'.join(kout) or 'なし'}）")
+    # 型で外した人（くじに入っていない）は、--back で戻さないかぎりお休みのまま。戻った人は、外したときの枠（後ろの枠）で打つ
+    absent = sorted((set(absent) | set(kout)) - set(back), key=pnum)
+    old_s = {"kai": old["kai"], "rounds": {k: rename(r, m) for k, r in old["rounds"].items() if int(k) < start}}
+    k = make(cfg, old_s, start, ["P%d" % m[pnum(p)] for p in absent], kata.get("seed", ""))
+    k["rounds"] = {r: rename(x, inv) for r, x in k["rounds"].items()}
+    # 組み直しの印（参加者ページの知らせ。前の晩に表を見た人が取り違えないように）。表が変わらなければ、前の印と from のまま
+    if k["rounds"] == old["rounds"]:
+        k["from"] = old.get("from", 1)
+        if old.get("remade"):
+            k["remade"] = True
+    else:
+        k["remade"] = True
+    k["kuji"] = old["kuji"]
+    return k
+
+
 def main():
     ap = argparse.ArgumentParser(description="普段の回の組み合わせを作る")
     ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
     ap.add_argument("--config")
     ap.add_argument("--out")
+    ap.add_argument("--kata")
     ap.add_argument("--from", dest="start", type=int, default=1, help="この半荘から作る（前の半荘はそのまま）")
     ap.add_argument("--absent", default="", help="打たない人（カンマ区切り。例 P5,P9）")
+    ap.add_argument("--back", default="", help="くじの会の抽せんの後に、型で外した人を戻す（カンマ区切り）")
     ap.add_argument("--seed", default="", help="別の組み合わせにしたいときの種")
     ap.add_argument("--write", action="store_true", help="kumiawase.json に書く")
     ap.add_argument("--check", action="store_true", help="いまの kumiawase.json を検査して成績を出す")
@@ -370,9 +525,11 @@ def main():
     gdir = KAI / "g" / a.group
     a.config = a.config or str(gdir / "taikai.json")
     a.out = a.out or str(gdir / "kumiawase.json")
+    a.kata = a.kata or str(gdir / "kata.json")
     cfg = load(a.config)
     check_cfg(cfg)
     old = load(a.out)
+    done = lottery_done(cfg, old)
     if a.check:
         errs = validate(cfg, old)
         if errs:
@@ -383,11 +540,76 @@ def main():
             if not a.quiet:
                 show(cfg, old["rounds"])
             report(cfg, old["rounds"])
+        elif cfg.get("kuji"):
+            # くじの会の抽せんの前は、型を検査する
+            kata = load(a.kata)
+            if not kata or kata.get("kai") != cfg["kai"]:
+                print("■ 型（kata.json）がまだない（kumiawase.py --write で作る）"); sys.exit(1)
+            ko = kata.get("out", [])
+            if not (isinstance(ko, list) and all(P_RE.match(str(p)) and pnum(p) <= cfg["players"] for p in ko) and len(set(ko)) == len(ko)):
+                print(f"■ 型に問題あり\n  外した人（out）の形が違う {ko}"); sys.exit(1)
+            errs = validate(cfg, {"kai": kata["kai"], "rounds": kata_rounds(kata)})
+            if kata.get("players") != cfg["players"]:
+                errs.append(f"型の人数（{kata.get('players')}）が players（{cfg['players']}）と違う（--write で作り直す）")
+            if kata.get("date") != str(cfg["kuji"]):
+                errs.append(f"型の抽せんの日（{kata.get('date')}）が kuji（{cfg['kuji']}）と違う（--write で作り直す）")
+            if str(kata.get("made", "")) >= f"{kata.get('date')} {KUJI_CUT}":
+                errs.append(f"型を作った時刻（{kata.get('made')}）が、抽せんの日の{KUJI_CUT}より後")
+            if errs:
+                print("■ 型に問題あり"); [print("  " + e) for e in errs]
+                sys.exit(1)
+            print(f"■ 型は問題なし（{kata['made']} に作成・抽せんは {kata['date']}"
+                  + (f"・外した人 {'・'.join(kata_out(kata))}" if ko else "") + "）")
+            if not a.quiet:
+                show(cfg, kata_rounds(kata), "枠")
+            report(cfg, kata_rounds(kata), "枠")
         return
     if not (1 <= a.start <= cfg["prelim"]):
         raise SystemExit(f"--from は 1〜{cfg['prelim']}")
     absent = [s.strip() for s in a.absent.split(",") if s.strip()]
-    kumi = make(cfg, old, a.start, absent, a.seed)
+    back = [s.strip() for s in a.back.split(",") if s.strip()]
+    [pnum(p) for p in absent + back]   # 形を確かめる（P1〜P99）
+    if set(absent) & set(back):
+        raise SystemExit(f"同じ人が --absent と --back の両方にいる {sorted(set(absent) & set(back), key=pnum)}")
+    if cfg.get("kuji") and not done:
+        # くじの会の抽せんの前: 型（枠1〜枠N）を作る。前の表を出さないよう、表が空の kumiawase.json も書く
+        if a.start != 1 or back:
+            raise SystemExit("くじの会は、抽せんの前に --from・--back を使わない（表はまだない）。"
+                             "来られなくなった人は --absent で外して型を作り直す。外した人が戻れるようになったら、--absent から消して作り直す")
+        kata = make_kata(cfg, absent, a.seed)
+        kr = kata_rounds(kata)
+        errs = validate(cfg, {"kai": cfg["kai"], "rounds": kr})
+        if errs:
+            print("■ 作った型に問題あり（書きません）"); [print("  " + e) for e in errs]
+            sys.exit(1)
+        if not a.quiet:
+            show(cfg, kr, "枠")
+        report(cfg, kr, "枠")
+        ko, n = kata_out(kata), len(kata_present(kata))
+        print(f"くじ: {kata['date']} のナンバーズ4の当せん番号で、P1〜P{cfg['players']}"
+              + (f"（{'・'.join(ko)} を除く{n}人）" if ko else "") + f" を枠1〜枠{n} に入れる（kuji.py）")
+        if ko:
+            print(f"  {'・'.join(ko)} はくじに入れない（来られない人）。枠{n + 1}〜枠{cfg['players']} に当て、どの半荘もお休み")
+        if a.write:
+            # 当せん番号が分かった後に型を作り直せないよう、抽せんの日の夕方から後は書かない
+            cut = datetime.strptime(f"{kata['date']} {KUJI_CUT}", "%Y-%m-%d %H:%M").replace(tzinfo=JST)
+            if datetime.now(JST) >= cut:
+                raise SystemExit(f"抽せんの日（{kata['date']}）の{KUJI_CUT}を過ぎたので、型は書かない（当せん番号が分かった後に型を選べないように）。"
+                                 "抽せんを延ばすときは、taikai.json の kuji を次の抽せんの日にしてから作る")
+            Path(a.kata).write_text(dump(kata, ("kai", "made", "date", "players", "out", "seed")), encoding="utf-8")
+            Path(a.out).write_text(dump({"kai": cfg["kai"], "made": kata["made"], "from": 1, "rounds": {}}), encoding="utf-8")
+            print(f"書きました: {a.kata}（型）・{a.out}（表は空。抽せんの後に kuji.py が書く）")
+        else:
+            print("（書いていません。--write で書きます）")
+        return
+    if done:
+        if a.seed:
+            raise SystemExit("抽せんの後は --seed を使わない（組み直しの表を選べてしまう）")
+        kumi = remake_after_kuji(cfg, load_kata(a.kata, cfg, old["kuji"].get("date")), old, a.start, absent, back)
+    else:
+        if back:
+            raise SystemExit("--back は、くじの会の抽せんの後に、型で外した人を戻すときだけ使う")
+        kumi = make(cfg, old, a.start, absent, a.seed)
     errs = validate(cfg, kumi)
     if errs:
         print("■ 作った表に問題あり（書きません）"); [print("  " + e) for e in errs]

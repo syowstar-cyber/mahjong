@@ -61,6 +61,17 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .info:not([hidden])+.info{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
 .info .k{flex:0 0 auto;font-weight:700;color:var(--accent)}
 .info .v{flex:1;min-width:0}
+/* 打ち上げ（第20回の参加者ページ7章と同じ形） */
+.party .opt{display:flex;gap:10px;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0;font-weight:400;cursor:pointer}
+.party .opt input{width:24px;height:24px;margin:0;flex:0 0 auto;accent-color:var(--accent)}
+.party .send{width:100%;margin-top:10px;padding:12px;background:var(--accent);color:var(--accent-fg)}
+.party .ghost{width:100%;margin-top:6px;font-weight:400}
+.party button:disabled,.party .opt input:disabled{opacity:.5;cursor:default}
+.party .st{font-size:.95rem;margin-top:8px;color:var(--muted)}
+.party .st.ok{color:var(--ok);font-weight:700}
+.party .st.ng{color:var(--ng);font-weight:700}
+#utbl th:first-child,#utbl td:first-child{width:auto}
+#utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
 </head>
@@ -94,7 +105,23 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
   <p class="hint" id="schedmemo" style="margin:8px 0 0" hidden></p>
   </div>
 
+  <div id="uchibox" hidden>
+  <h2>打ち上げ</h2>
+  <div class="card party">
+    <p id="uwho" style="margin:0 0 4px;font-weight:700"></p>
+    <label class="opt"><input type="radio" name="uch" value="yes"><span>参加する</span></label>
+    <label class="opt"><input type="radio" name="uch" value="no"><span>参加しない</span></label>
+    <button type="button" class="send" id="usend">この内容で回答する</button>
+    <button type="button" class="ghost" id="udel">回答を消す</button>
+    <div class="st" id="ust" aria-live="polite"></div>
+  </div>
+  <h3>みんなの出欠</h3>
+  <p class="small" id="ucount" style="margin:4px 0"></p>
+  <div class="tw"><table id="utbl"></table></div>
+  </div>
+
   <h2>半荘ごとの組み合わせ</h2>
+  <p class="hint" id="kujibox" hidden></p>
   <div class="tools">
     <button class="ghost" type="button" id="reload">最新に更新</button>
     <span class="small" id="updated"></span>
@@ -110,8 +137,8 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 </div>
 
 <script>
-// 普段の回の参加者ページ（日時と場所・自分の卓・当日の流れ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py が書く）を読んで出すだけで、
-// 受け口からは名前（名簿）と入力済みの卓を読むだけ（何も送らない）。当日に組み直して push したら、開き直すか「最新に更新」で出る
+// 普段の回の参加者ページ（日時と場所・自分の卓・当日の流れ・打ち上げ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
+// 受け口からは名前（名簿）・入力済みの卓・打ち上げの回答を読む。送るのは打ち上げの回答だけ。当日に組み直して push したら、開き直すか「最新に更新」で出る
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
@@ -232,10 +259,10 @@ function render() {
   $('ttl').textContent = '🀄 ' + c.title + ' 参加者ページ';
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   const rs = rounds();
-  // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）
+  // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
   const rm = $('remade');
-  rm.hidden = !(KUMI && KUMI.from > 1);
-  if (!rm.hidden) rm.textContent = KUMI.from + '半荘目から組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
+  rm.hidden = !(KUMI && (KUMI.from > 1 || KUMI.remade === true));
+  if (!rm.hidden) rm.textContent = (KUMI.from > 1 ? KUMI.from + '半荘目から' : '組み合わせを') + '組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
   $('mineh').textContent = bakime() ? '自分の卓' : '自分の席';
   const junni = c.final.tables > 0 && c.final.junni === 1;
   $('seatnote').textContent = bakime() ? '席は、予選も決勝も' + (junni ? '順位決定戦も、' : '') + '半荘ごとに牌を引いて決めます。起家はサイコロで決めます。表の並び順は、席ではありません。' : '東が起家です。';
@@ -249,9 +276,11 @@ function render() {
   renderInfo();
   renderMine();
   renderSched();
+  renderUchi();
+  renderKuji();
   // 半荘ごと
   const box = $('rounds'); box.innerHTML = '';
-  if (!rs.length) { box.innerHTML = '<p><b>組み合わせはまだ決まっていません。前日に出ます。</b></p>'; }
+  if (!rs.length) { box.innerHTML = '<p><b>組み合わせはまだ決まっていません。' + (kujiDay() ? dayText(kujiDay()) + 'の夜に、くじで決まります。' : '前日に出ます。') + '</b></p>'; }
   rs.forEach(k => {
     const r = KUMI.rounds[k], tabs = (r.tables || []).slice().sort((a, b) => a.no - b.no);
     const h = document.createElement('h3');
@@ -308,6 +337,65 @@ $('me').addEventListener('change', () => {
   render();
 });
 
+// ---- 打ち上げ（taikai.json の uchiage が true の会。第20回の参加者ページ7章を、P番号で答える形にしたもの） ----
+// 答えるのは上の「自分の名前」で選んだ人。受け口に P番号ごとに置き、全員の出欠を表に出す
+const UCH_LABEL = { yes: '参加する', no: '参加しない' }, UCH_SHORT = { yes: '参加', no: '不参加' };
+// 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし）
+let UCHI = {}, UCHI_ST = 'none';
+const uts = ts => ts ? String(ts).slice(5, 16).replace('-', '/') : '';
+function sayU(t, cls) { const m = $('ust'); m.textContent = t; m.className = 'st' + (cls ? ' ' + cls : ''); }
+function renderUchi() {
+  $('uchibox').hidden = !(CFG.uchiage === true);
+  if (CFG.uchiage !== true) return;
+  const list = players(), ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
+  $('uwho').textContent = ME ? dnf(ME) + ' の回答' : '上の「自分の名前」を選ぶと、ここで答えられます。';
+  document.querySelectorAll('input[name=uch]').forEach(x => { x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
+  $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
+  if (!ok) sayU(UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
+  else if (mine) sayU('回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）', 'ok');
+  else sayU(ME ? 'まだ回答がありません。' : '');
+  const ans = p => UCHI[p] && UCH_SHORT[UCHI[p].choice] ? UCHI[p].choice : '';
+  const y = list.filter(p => ans(p) === 'yes').length, n = list.filter(p => ans(p) === 'no').length;
+  $('ucount').textContent = ok ? '参加 ' + y + '人・不参加 ' + n + '人・まだ ' + (list.length - y - n) + '人' : '';
+  const t = $('utbl'); t.innerHTML = '<thead><tr><th>名前</th><th>打ち上げ</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  list.forEach(p => {
+    const tr = document.createElement('tr');
+    [dnf(p), ans(p) ? UCH_SHORT[ans(p)] : '―'].forEach(v => { const td = document.createElement('td'); td.textContent = v; if (p === ME) td.className = 'me'; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+async function sendUchi(choice) {
+  if (!ME) { sayU('上の「自分の名前」を選んでください', 'ng'); return; }
+  if (choice === undefined) { const r = document.querySelector('input[name=uch]:checked'); if (!r) { sayU('「参加する」か「参加しない」を選んでください', 'ng'); return; } choice = r.value; }
+  const who = ME;
+  sayU('送信中…');
+  try {
+    const r = await fetch(String(CFG.api || '').trim(), { method: 'POST', body: JSON.stringify({ action: 'uchiage', kai: CFG.kai, player: who, choice }) });
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'ng');
+    UCHI = (j.data && j.data.uchiage) || {};
+    renderUchi();
+    if (!choice) sayU('回答を消しました');
+  } catch (e) { sayU(e.message === 'action' ? '受け口が古いため、まだ答えられません（幹部に知らせてください）' : '送れませんでした。電波のよい所でもう一度お試しください', 'ng'); }
+}
+$('usend').addEventListener('click', () => sendUchi());
+$('udel').addEventListener('click', () => { if (confirm('打ち上げの回答を消しますか？')) sendUchi(''); });
+
+// ---- くじ（taikai.json の kuji＝抽せんの日。その日のナンバーズ4の当せん番号で、誰がどの枠に入るかを決める。kai/tools/kuji.py） ----
+const kujiDay = () => /^\d{4}-\d{2}-\d{2}$/.test(CFG.kuji || '') ? CFG.kuji : '';
+function renderKuji() {
+  const d = kujiDay(), box = $('kujibox');
+  box.hidden = !d; box.innerHTML = '';
+  if (!d) return;
+  const n4 = KUMI && KUMI.kuji && /^\d{4}$/.test(KUMI.kuji.n4 || '') ? KUMI.kuji.n4 : '';
+  box.appendChild(document.createTextNode(n4
+    ? '組み合わせは、' + dayText(d) + 'のナンバーズ4の当せん番号「' + n4 + '」で、くじで決めました。'
+    : '卓と抜け番の並び（型）は決めてあります。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'));
+  const a = document.createElement('a'); a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : ''); a.textContent = 'くじのページ（決まり・型・検算）';
+  box.appendChild(document.createElement('br')); box.appendChild(a);
+}
+
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
@@ -327,9 +415,18 @@ async function load() {
   applyTheme(c);
   pageLinks(c);
   const api = String(c.api || '').trim();
+  if (!api) UCHI_ST = 'none';
   if (api) {
-    try { const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai)); if (j.ok && j.data && j.data.kai === c.kai) { ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : ''; } }
-    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); }
+    try {
+      const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
+      if (j.ok && j.data && j.data.kai === c.kai) {
+        ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : '';
+        // 打ち上げの回答（古い受け口は uchiage を返さない）
+        const u = j.data.uchiage;
+        UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
+      }
+    }
+    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
   setup(notes.join(' '));
   $('main').hidden = false;

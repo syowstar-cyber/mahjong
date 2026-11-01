@@ -65,6 +65,15 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
+  <div id="junbibox" hidden>
+  <h2>準備</h2>
+  <div class="card">
+    <div class="big" id="jcount"></div>
+    <div id="junbi"></div>
+  </div>
+  <p class="small">チェックはこの端末だけに残ります。ほかの人の端末とは共有しません。</p>
+  </div>
+
   <h2>時間割</h2>
   <div class="tw"><table id="sched"></table></div>
   <p class="small" id="schednote"></p>
@@ -93,7 +102,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 </div>
 
 <script>
-// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から時間割（schedule）と設定を出し、受け口からは名前（名簿）と年上からの順（agerank）を読む。
+// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から準備（junbi）・時間割（schedule）と設定を出し、受け口からは名前（名簿）と年上からの順（agerank）を読む。
 // 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない。
 // 送るのは生年月日だけ（taikai.json の nenrei が true の会。予選の合計が同点のときだけ、その人たちの分を入れる）
 const $ = id => document.getElementById(id);
@@ -138,6 +147,32 @@ function renderSched() {
   $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
   const memo = typeof CFG.schedule_note === 'string' ? CFG.schedule_note.trim() : '';
   $('schedmemo').hidden = !memo; $('schedmemo').textContent = memo;
+}
+
+// ---- 準備（taikai.json の junbi＝["タイマーの準備", …]。書いた会だけ出す）。チェックは出席確認と同じく、端末の中に回ごとに置く ----
+const jkey = () => 'halukai:junbi:' + CFG.kai;
+const junbiItems = () => Array.isArray(CFG.junbi) ? CFG.junbi.filter(s => typeof s === 'string' && s.trim()).map(s => s.trim()) : [];
+function renderJunbi() {
+  const items = junbiItems(), box = $('junbi');
+  $('junbibox').hidden = !items.length; box.innerHTML = '';
+  if (!items.length) return;
+  let done = new Set();
+  try { const a = JSON.parse(localStorage.getItem(jkey()) || '[]'); if (Array.isArray(a)) done = new Set(a.filter(s => items.includes(s))); } catch (e) {}
+  const count = () => { $('jcount').textContent = '済み ' + done.size + ' / ' + items.length; };
+  items.forEach(s => {
+    const row = document.createElement('div'); row.className = 'att' + (done.has(s) ? ' here' : '');
+    const lab = document.createElement('label'); lab.className = 'who';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = done.has(s);
+    cb.addEventListener('change', () => {
+      if (cb.checked) done.add(s); else done.delete(s);
+      row.classList.toggle('here', cb.checked);
+      try { localStorage.setItem(jkey(), JSON.stringify([...done])); } catch (e) {}
+      count();
+    });
+    const sp = document.createElement('span'); sp.textContent = s;
+    lab.append(cb, sp); row.appendChild(lab); box.appendChild(row);
+  });
+  count();
 }
 
 // ---- 出席確認（P1〜P人数。チェックは端末の中に回ごとに置く） ----
@@ -272,7 +307,7 @@ async function load() {
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
-  renderSched(); renderAttend(); renderCfg();
+  renderJunbi(); renderSched(); renderAttend(); renderCfg();
 }
 $('reload').addEventListener('click', load);
 $('clear').addEventListener('click', () => {

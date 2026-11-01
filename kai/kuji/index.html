@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>くじ</title>
+<script>
+// 会ごとのホーム画面のアプリ（manifest とアイコン）。会は URL の ?g=（付けなければ halu）。読み込みの途中で書き出す＝ブラウザが最初から見つけられる
+(function () {
+  var g = new URLSearchParams(location.search).get('g') || 'halu';
+  if (!/^[a-z0-9-]{1,20}$/.test(g)) return;
+  var b = '../g/' + g + '/';
+  document.write('<link rel="manifest" href="' + b + 'manifest.json"><link rel="apple-touch-icon" href="' + b + 'icon-180.png"><link rel="icon" type="image/png" href="' + b + 'icon-192.png">');
+})();
+</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
+p{margin:8px 0}
+ul,ol{padding-left:1.4em;margin:8px 0}
+li{margin:5px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+label{display:block;font-weight:700;margin:0 0 4px}
+input[type=text]{width:100%;font:inherit;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.send{width:100%;margin-top:10px;padding:12px;background:var(--accent);color:var(--accent-fg)}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);margin:8px 0}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top;word-break:keep-all;overflow-wrap:anywhere}
+th{background:#ececE8;font-weight:700}
+tr:nth-child(even) td{background:var(--card2)}
+th.c,td.c{text-align:center}
+td.nw,th.nw{white-space:nowrap}
+.mtx th,.mtx td{text-align:center;white-space:nowrap;padding:6px 4px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88rem;word-break:break-all}
+.small{color:var(--muted);font-size:.9rem}
+.hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+.big{font-size:1.05rem;font-weight:700}
+.msg{margin-top:8px;font-weight:700}
+.msg.ng,.warn{color:var(--ng);font-weight:700}
+.tag{display:inline-block;font-size:.8rem;font-weight:700;border-radius:4px;padding:0 6px;margin-left:4px;vertical-align:1px}
+.tag.try{background:#ececE8;color:var(--muted)}
+.tag.real{background:var(--ok);color:#fff}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 くじ</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">参加者ページ</a><a href="../score/">点数</a><a href="./" aria-current="page">くじ</a></nav>
+
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <h2>1. 結果</h2>
+  <div id="result"></div>
+
+  <h2>2. 決まるまでの流れ</h2>
+  <div class="tw"><table id="flow"></table></div>
+
+  <h2>3. 公平にするための決まり</h2>
+  <ul id="rules"></ul>
+
+  <h2>4. 計算してみる（検算）</h2>
+  <p id="calclead"></p>
+  <form id="calc" class="card" autocomplete="off">
+    <label for="n4">ナンバーズ4の当せん番号（4桁）</label>
+    <input type="text" id="n4" inputmode="numeric" maxlength="4" placeholder="例 0482">
+    <button type="submit" class="send">計算する</button>
+    <div id="cmsg" class="msg" aria-live="polite"></div>
+  </form>
+  <p class="small">当せん番号の確かめ先: <a href="https://www.takarakuji-official.jp/check/" target="_blank" rel="noopener">宝くじ公式サイト 当せん番号のご案内</a></p>
+  <div id="calcout"></div>
+
+  <h2 id="katah">5. 組み合わせの型</h2>
+  <div id="kata"></div>
+
+  <h2>6. 出席者一覧</h2>
+  <p id="rosterlead"></p>
+  <div class="tw"><table id="roster"></table></div>
+
+  <h2>7. 計算のしかた（くわしく）</h2>
+  <ol id="how"></ol>
+  <ul class="small"><li>SHA-256 は世界共通の計算方法です。Webの計算サイトやパソコンでも、同じくじ値になります。</li></ul>
+
+  <h2>8. くじ値と枠</h2>
+  <div id="lottery"></div>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">参加者ページ</a><a href="../score/">点数</a><a href="./" aria-current="page">くじ</a></nav>
+</div>
+
+<script>
+// 普段の回のくじのページ（第20回の kuji/ を、会ごとの設定で動く形にしたもの）。taikai.json の kuji（抽せんの日）・kata.json（型。抽せんの前に kumiawase.py が書く）・
+// kumiawase.json（本番の番号と、いまの組み合わせ。kuji.py が書く）を読んで出す。受け口からは名前（名簿）だけを読み、送るものはない。
+// くじの計算は kai/tools/kumiawase.py の kuji_seed・draw と同じ。どちらかを直したら、もう片方も直す
+const $ = id => document.getElementById(id);
+const WINDS = ['東', '南', '西', '北'];
+const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
+// 会（g）。URL の ?g=（英小文字・数字・-）で選ぶ。付けなければ halu（Halu杯）。設定と組み合わせは kai/g/<会>/ に置く
+const G = new URLSearchParams(location.search).get('g') || 'halu';
+const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
+// 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
+const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
+// ページ間のリンクにも会を付ける（halu は付けない）
+document.querySelectorAll('.pnav a').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
+function applyTheme(c) {
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
+    document.documentElement.style.setProperty('--accent', c.color);
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', c.color);
+  }
+  let t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if (!t) { t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; document.head.appendChild(t); }
+  t.content = c.short || c.group || c.title || '';
+}
+let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
+const nm = p => (p && ROSTER[p]) || '';
+const dn = p => nm(p) || p || '';
+const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
+const pnum = p => Number(String(p).slice(1));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// 場決めあり（taikai.json の bakime）。席は半荘ごとに牌を引いて決めるので、表の並びは席でない（風を出さない）
+const bakime = () => !!(CFG && CFG.bakime === true);
+const WDAY = ['日', '月', '火', '水', '木', '金', '土'];
+// 「11月13日（金）」。made（"2026-11-12 21:00"）は「11月12日 21:00」
+function mdText(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+  if (!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number(m[2]) + '月' + Number(m[3]) + '日（' + WDAY[d.getDay()] + '）';
+}
+const madeText = s => { const m = /^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(s || ''); return m ? Number(m[1]) + '月' + Number(m[2]) + '日 ' + m[3] : String(s || ''); };
+
+// SHA-256（標準の手順どおり。ブラウザの設定に左右されないよう自前で計算）
+const SHA_K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+function sha256hex(str) {
+  const bytes = new TextEncoder().encode(str), len = bytes.length, nblk = (len + 72) >> 6;
+  const m = new Uint8Array(nblk * 64); m.set(bytes); m[len] = 0x80;
+  const dv = new DataView(m.buffer), bits = len * 8;
+  dv.setUint32(m.length - 8, Math.floor(bits / 4294967296)); dv.setUint32(m.length - 4, bits >>> 0);
+  const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]), W = new Uint32Array(64);
+  const rot = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let blk = 0; blk < nblk; blk++) {
+    for (let t = 0; t < 16; t++) W[t] = dv.getUint32(blk * 64 + t * 4);
+    for (let t = 16; t < 64; t++) {
+      const s0 = rot(W[t - 15], 7) ^ rot(W[t - 15], 18) ^ (W[t - 15] >>> 3), s1 = rot(W[t - 2], 17) ^ rot(W[t - 2], 19) ^ (W[t - 2] >>> 10);
+      W[t] = (W[t - 16] + s0 + W[t - 7] + s1) >>> 0;
+    }
+    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    for (let t = 0; t < 64; t++) {
+      const t1 = (h + (rot(e, 6) ^ rot(e, 11) ^ rot(e, 25)) + ((e & f) ^ (~e & g)) + SHA_K[t] + W[t]) >>> 0;
+      const t2 = ((rot(a, 2) ^ rot(a, 13) ^ rot(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    H[0] += a; H[1] += b; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+  }
+  return [...H].map(x => x.toString(16).padStart(8, '0')).join('');
+}
+
+// 当せん番号の書き方をそろえる（kumiawase.py の norm_n4 と同じ。全角は半角に）。null は形の誤り
+function normN4(s) { s = String(s).normalize('NFKC').replace(/\s/g, ''); return /^\d{4}$/.test(s) ? s : null; }
+// 種: 回の名前・抽せんの日・当せん番号（kumiawase.py の kuji_seed と同じ）
+const seedOf = n4 => KATA.kai + '|' + KATA.date + '|N4=' + n4;
+// 型で外した人（抽せんの前に来られなくなった人。くじに入らない）・くじを引く人・外した人の枠（kumiawase.py の kata_out・kata_present・out_slots と同じ）
+const kataOut = () => (Array.isArray(KATA.out) ? KATA.out : []).slice().sort((a, b) => pnum(a) - pnum(b));
+const kataPresent = () => { const o = kataOut(); return Array.from({ length: KATA.players }, (_, i) => 'P' + (i + 1)).filter(p => !o.includes(p)); };
+const outSlots = () => kataOut().map((_, i) => KATA.players - kataOut().length + 1 + i);
+// 型を書ける時刻（抽せんの日のこの時刻より前。kumiawase.py の KUJI_CUT と同じ）
+const KUJI_CUT = '18:00';
+// くじ: くじを引く人のくじ値を小さい順に並べ、先頭から枠1〜（kumiawase.py の draw と同じ。同じくじ値なら番号の順）
+function draw(seed) {
+  const v = kataPresent().map(p => ({ p, n: pnum(p), h: sha256hex(seed + '|' + p) }));
+  v.sort((x, y) => (x.h < y.h ? -1 : x.h > y.h ? 1 : x.n - y.n));
+  v.forEach((x, k) => { x.slot = k + 1; });
+  return v;
+}
+const kataKeys = () => Object.keys(KATA.rounds).filter(k => /^\d+$/.test(k)).sort((a, b) => a - b);
+// 型の枠を P番号に置き換えた組み合わせ（kumiawase.json の rounds と同じ形・同じ並び）。order を渡さなければ、枠の番号のまま。型で外した人は、どの半荘も「お休み」
+function roundsOf(order) {
+  const slot = {}, os = outSlots(); if (order) order.forEach(x => { slot[x.slot] = x.p; });
+  kataOut().forEach((p, i) => { slot[os[i]] = p; });
+  const f = w => order ? slot[w] : w, out = {}, o = os.map(f);
+  kataKeys().forEach(k => {
+    const r = KATA.rounds[k];
+    out[k] = { tables: (r.tables || []).map(t => ({ no: t.no, p: (t.w || []).map(f) })), rest: (r.rest || []).map(f) };
+    if (o.length) out[k].out = o;
+  });
+  return out;
+}
+// 同じ組み合わせか（卓の番号・卓の人の並び・抜け番。お休みは比べない）
+const shape = r => JSON.stringify({ t: ((r && r.tables) || []).map(t => [t.no, t.p]), r: (r && r.rest) || [] });
+const sameRound = (a, b) => !!a && !!b && shape(a) === shape(b);
+
+// 半荘ごとの表。show は人の出し方（名前か「枠3」）
+function roundTables(rounds, show) {
+  const M = CFG.mode;
+  let h = '';
+  Object.keys(rounds).sort((a, b) => a - b).forEach(k => {
+    const r = rounds[k];
+    h += '<h3>予選 ' + k + '半荘目</h3><div class="tw"><table><thead><tr><th class="nw" style="width:3.6em">卓</th>' + (bakime() ? '<th colspan="' + M + '">この卓の' + M + '人</th>' : WINDS.slice(0, M).map(w => '<th>' + w + '</th>').join('')) + '</tr></thead><tbody>';
+    (r.tables || []).forEach(t => { h += '<tr><td class="nw">' + t.no + '卓</td>' + t.p.map(p => '<td>' + esc(show(p)) + '</td>').join('') + '</tr>'; });
+    h += '</tbody></table></div>';
+    const extra = [];
+    if ((r.rest || []).length) extra.push('抜け番: ' + r.rest.map(show).join('・'));
+    if ((r.out || []).length) extra.push('お休み: ' + r.out.map(show).join('・'));
+    if (extra.length) h += '<p class="small" style="margin:4px 0">' + esc(extra.join('　')) + '</p>';
+  });
+  return h;
+}
+// 一人ずつの抜け番（いつ休むか）。お休み（来られない半荘）も出す
+function restTable(rounds, people, show) {
+  const ks = Object.keys(rounds).sort((a, b) => a - b);
+  let h = '<div class="tw"><table><thead><tr><th>名前</th><th style="width:9em">抜け番の半荘</th></tr></thead><tbody>';
+  people.forEach(p => {
+    const rest = ks.filter(k => (rounds[k].rest || []).includes(p)), out = ks.filter(k => (rounds[k].out || []).includes(p));
+    const v = (rest.length ? rest.join('・') + '半荘目' : out.length ? '' : 'なし（全部打つ）') + (out.length ? (rest.length ? '／' : '') + 'お休み ' + out.join('・') : '');
+    h += '<tr><td>' + esc(show(p)) + '</td><td>' + esc(v) + '</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+const peopleOf = rounds => { const s = new Set(); Object.values(rounds).forEach(r => { (r.tables || []).forEach(t => t.p.forEach(p => s.add(p))); (r.rest || []).forEach(p => s.add(p)); (r.out || []).forEach(p => s.add(p)); }); return [...s].sort((a, b) => pnum(a) - pnum(b)); };
+// 種の文字列と、くじ値の表（枠・No.・名前・くじ値の先頭12桁。全部の桁は行に指を置くか、マウスを重ねると出る）
+function lotteryHtml(seed, tag) {
+  let h = '<div class="card"><div>種の文字列 ' + tag + '</div><div class="mono">' + esc(seed) + '</div></div>';
+  h += '<div class="tw"><table><thead><tr><th class="nw" style="width:3.6em">枠</th><th>No.・名前</th><th style="width:9.5em">くじ値（先頭12桁）</th></tr></thead><tbody>';
+  draw(seed).forEach(x => { h += '<tr><td class="nw">枠' + x.slot + '</td><td>' + esc(dnf(x.p)) + '</td><td class="mono" title="' + x.h + '">' + x.h.slice(0, 12) + '</td></tr>'; });
+  const os = outSlots();
+  kataOut().forEach((p, i) => { h += '<tr><td class="nw">枠' + os[i] + '</td><td>' + esc(dnf(p)) + '</td><td class="small">くじなし（お休み）</td></tr>'; });
+  return h + '</tbody></table></div><p class="small">くじ値の全部の桁は、行に指を置くか、マウスを重ねると出ます。' + (os.length ? '「くじなし」は、抽せんの前に来られなくなった人です。' : '') + '</p>';
+}
+
+// ---- 1章・8章: 本番の結果 ----
+function renderResult() {
+  const box = $('result'), lot = $('lottery');
+  if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  if (!N4) { box.innerHTML = '<div class="hint"><span class="big">結果は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは「4. 計算してみる」で、仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  const want = roundsOf(draw(seedOf(N4))), now = (KUMI && KUMI.rounds) || {}, ks = kataKeys();
+  const remade = !!KUMI && (KUMI.remade === true || KUMI.from > 1), from = remade ? Number(KUMI.from) || 1 : ks.length + 1;
+  const bad = ks.filter(k => Number(k) < from && !sameRound(now[k], want[k]));
+  let h = '<div class="card"><div class="big">本番の番号</div>' + esc(mdText(KATA.date)) + 'のナンバーズ4の当せん番号: <b>' + esc(N4) + '</b></div>';
+  if (bad.length) h += '<p class="warn">' + bad.join('・') + '半荘目が、型と本番の番号のとおりではありません。集計係に知らせてください。</p>';
+  else if (!remade) h += '<p>いまの組み合わせは、型と本番の番号のとおりです。</p>';
+  else {
+    const outs = [...new Set(ks.filter(k => Number(k) >= from).flatMap(k => (now[k] && now[k].out) || []))].sort((a, b) => pnum(a) - pnum(b));
+    h += '<p>' + (from > 1 ? (from - 1) + '半荘目までは、型と本番の番号のとおりです。' : '') + from + '半荘目からは、当日の組み直しです' + (outs.length ? '（お休み: ' + outs.map(p => esc(dn(p))).join('・') + '）' : '') + '。組み直しでも、くじで決まった枠と No. の組は変えません。</p>';
+  }
+  h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
+  h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">参加者ページ</a>で見られます。</p>';
+  box.innerHTML = h;
+  lot.innerHTML = lotteryHtml(seedOf(N4), '<span class="tag real">本番</span>');
+}
+// ---- 2章・3章 ----
+function renderFlow() {
+  const kd = mdText(KATA ? KATA.date : CFG.kuji), done = '<span class="tag real">済み</span>';
+  const rows = [
+    [KATA ? madeText(KATA.made) : '抽せんの前', '型（卓と抜け番の並び）と出席者一覧を、このページに出して固定する' + (KATA ? done : '')],
+    [kd + ' 夕方', 'ナンバーズ4の抽せん' + (N4 ? '（当せん番号 ' + esc(N4) + '）' + done : '')],
+    [kd + ' 夜', '当せん番号で計算して、組み合わせを発表する（参加者ページとこのページ）' + (N4 ? done : '')],
+    [mdText(CFG.date), '組み合わせのとおりに打つ']
+  ];
+  $('flow').innerHTML = '<thead><tr><th style="width:9em">いつ</th><th>決まること</th></tr></thead><tbody>' + rows.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td></tr>').join('') + '</tbody>';
+  const rules = [
+    'くじの種は、ナンバーズ4の当せん番号です。主催を含めて、抽せんまで誰にも分かりません。',
+    '計算の手順・型・出席者一覧は、抽せんの前に公開して固定します。抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時から後は、型を作り直せません。',
+    '抽せんの後に、くじを引き直すことはできません。同じ番号からは、いつ誰が計算しても同じ結果です。',
+    '誰がどの半荘で抜け番になるかも、くじで決まります。',
+    '抽せんの前に来られなくなった人は、くじに入れません。型の後ろの枠に入り、どの半荘もお休みです。',
+    '当日に来られない人や、増えた人が出たときは、その半荘から先を組み直します。くじで決まった枠と No. の組は変えません。'
+  ];
+  $('rules').innerHTML = rules.map(t => '<li>' + esc(t) + '</li>').join('');
+}
+// ---- 5章: 型 ----
+function renderKata() {
+  const box = $('kata');
+  if (!KATA) { $('katah').textContent = '5. 組み合わせの型'; box.innerHTML = '<p>型はまだできていません。抽せんの前に、ここへ出ます。</p>'; return; }
+  const N = kataPresent().length, ks = kataKeys(), kr = roundsOf(null), M = CFG.mode, os = outSlots(), ko = kataOut();
+  $('katah').textContent = '5. 組み合わせの型（枠1〜枠' + N + '）';
+  // 枠ごとの抜け番の回数と、同じ相手と当たる回数（型で外した人の枠は数えない）
+  const rest = {}, meet = {};
+  for (let w = 1; w <= N; w++) rest[w] = 0;
+  ks.forEach(k => { (kr[k].rest || []).forEach(w => { rest[w]++; }); (kr[k].tables || []).forEach(t => t.p.forEach((a, i) => t.p.slice(i + 1).forEach(b => { const key = Math.min(a, b) + '-' + Math.max(a, b); meet[key] = (meet[key] || 0) + 1; }))); });
+  const total = Object.values(rest).reduce((s, x) => s + x, 0), cnt = {};
+  Object.values(rest).forEach(x => { cnt[x] = (cnt[x] || 0) + 1; });
+  const maxMeet = Math.max(0, ...Object.values(meet));
+  let h = '<p>卓と抜け番は、先にこの「型」で決めてあります。くじで決めるのは、<b>誰がどの枠に入るか</b>だけです。</p><ul>';
+  const early = String(KATA.made || '') < KATA.date + ' ' + KUJI_CUT;
+  h += '<li>型を作った日時: ' + esc(madeText(KATA.made)) + '（' + N + '枠・予選' + ks.length + '半荘・' + M + '麻）。'
+    + (early ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前です。' : '<span class="warn">抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より後です。集計係に知らせてください。</span>') + '</li>';
+  if (ko.length) h += '<li>' + ko.map(p => esc(dn(p))).join('・') + ' は、抽せんの前に来られなくなりました。くじに入らず、枠' + os.join('・枠') + '（どの半荘もお休み）です。</li>';
+  h += '<li>' + (total ? '抜け番は全部で' + total + '回です。' + Object.keys(cnt).sort((a, b) => b - a).map(x => (Number(x) ? x + '回の枠が' : '抜け番なしの枠が') + cnt[x]).join('、') + 'です。' : '抜け番はありません。') + '</li>';
+  h += '<li>同じ相手と当たる回数は、最多' + maxMeet + '回です（できるだけ、ならしてあります）。</li>';
+  h += '<li>' + (bakime() ? '席は、半荘ごとに牌を引いて決めます。型の並び順は、席ではありません。' : '東が起家です。風の回数も、枠ごとにできるだけそろえてあります。') + '</li></ul>';
+  h += roundTables(kr, w => '枠' + w);
+  // 枠別（半荘ごとの卓。抜け番は「抜」）
+  h += '<h3>枠別（半荘ごとの卓' + (bakime() ? '' : 'と風') + '）</h3><div class="tw"><table class="mtx"><thead><tr><th>枠</th>' + ks.map(k => '<th>' + k + '</th>').join('') + '<th>抜け番</th></tr></thead><tbody>';
+  for (let w = 1; w <= N; w++) {
+    h += '<tr><td>枠' + w + '</td>' + ks.map(k => { const t = (kr[k].tables || []).find(x => x.p.includes(w)); return '<td>' + (t ? t.no + (bakime() ? '' : WINDS[t.p.indexOf(w)]) : (kr[k].rest || []).includes(w) ? '抜' : '') + '</td>'; }).join('') + '<td>' + rest[w] + '回</td></tr>';
+  }
+  h += '</tbody></table></div><p class="small">表の上の数字は半荘、中の数字は卓の番号です' + (bakime() ? '' : '（東・南・西' + (M === 4 ? '・北' : '') + 'は席の風）') + '。「抜」は抜け番です。</p>';
+  box.innerHTML = h;
+}
+// ---- 6章・7章 ----
+function renderRoster() {
+  const N = KATA ? KATA.players : CFG.players, more = KATA && CFG.players > KATA.players, ko = KATA ? kataOut() : [];
+  $('rosterlead').textContent = 'くじは、このNo.で引きます（P1〜P' + N + (ko.length ? '。' + ko.join('・') + ' は来られなくなったため、くじに入りません' : '') + '）。'
+    + (more ? 'P' + (N + 1) + '〜P' + CFG.players + ' は、型を作った後に増えた人です（くじには入らず、番号のまま組み直しで入ります）。' : '');
+  let h = '<thead><tr><th style="width:4em">No.</th><th>名前</th></tr></thead><tbody>';
+  for (let i = 1; i <= Math.max(N, CFG.players); i++) h += '<tr><td>P' + i + '</td><td>' + esc(nm('P' + i)) + (ko.includes('P' + i) ? ' <span class="small">（くじに入らない）</span>' : '') + '</td></tr>';
+  $('roster').innerHTML = h + '</tbody>';
+}
+function renderHow() {
+  const kai = KATA ? KATA.kai : CFG.kai, d = KATA ? KATA.date : CFG.kuji, N = KATA ? KATA.players : CFG.players, ex = kai + '|' + d + '|N4=0482';
+  const ko = KATA ? kataOut() : [], os = KATA ? outSlots() : [], NP = N - ko.length;
+  $('how').innerHTML = [
+    '種の文字列を作ります。<br><span class="mono">' + esc(kai + '|' + d) + '|N4=当せん番号</span><br>回の名前・抽せんの日・ナンバーズ4の当せん番号です。当せん番号は、先頭の0も残して4桁で書きます（例 <span class="mono">' + esc(ex) + '</span>）。',
+    'P1〜P' + N + (ko.length ? '（' + esc(ko.join('・')) + ' を除く）' : ' ') + 'それぞれ、種の後ろに「|P番号」を付けて SHA-256 で計算します（例 <span class="mono">' + esc(ex) + '|P7</span>）。出てきた64桁の英数字が、その人のくじ値です。',
+    'くじ値の小さい順に、枠1・枠2…枠' + NP + ' を割り当てます（0〜9、a〜f の順で比べます）。' + (ko.length ? esc(ko.join('・')) + ' は、その後ろの枠' + os.join('・枠') + ' です。' : ''),
+    '5章の型のとおりに、卓' + (bakime() ? '' : 'と席') + 'と抜け番が決まります。'
+  ].map(t => '<li>' + t + '</li>').join('');
+  $('calclead').textContent = KATA ? (N4 ? 'ナンバーズ4の当せん番号（' + N4 + '）を入れて「計算する」を押すと、1章の抜け番・8章のくじ値・参加者ページの組み合わせと同じになることを確かめられます。' : '好きな4桁の数字を入れて「計算する」を押すと、くじの決まり方を試せます（本番の結果ではありません）。') : '型ができると、ここで計算を試せます。';
+}
+// ---- 4章: 検算 ----
+function renderCalc() {
+  const out = $('calcout');
+  if (!CALC || !KATA) { out.innerHTML = ''; return; }
+  const real = N4 && CALC === N4, seed = seedOf(CALC), rounds = roundsOf(draw(seed));
+  out.innerHTML = lotteryHtml(seed, real ? '<span class="tag real">本番と同じ番号</span>' : '<span class="tag try">試し（本番の結果ではありません）</span>')
+    + '<h3>抜け番</h3>' + restTable(rounds, peopleOf(rounds), dnf) + roundTables(rounds, dn);
+}
+$('calc').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const b = normN4($('n4').value), msg = $('cmsg');
+  msg.textContent = ''; msg.className = 'msg';
+  if (!KATA) { msg.textContent = '型がまだできていません'; msg.className = 'msg ng'; return; }
+  if (!b) { msg.textContent = 'ナンバーズ4の当せん番号を4桁で入れてください（例 0482）'; msg.className = 'msg ng'; return; }
+  CALC = b; renderCalc();
+});
+function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(); renderHow(); renderCalc(); }
+
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+async function load() {
+  if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
+  let c;
+  try { c = await getJson('../' + CONF + 'taikai.json'); }
+  catch (e) { setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
+  if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || !Number.isInteger(c.players)) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
+  CFG = c;
+  applyTheme(c);
+  document.title = (c.title || '') + ' くじ';
+  $('ttl').textContent = '🀄 ' + (c.title || '') + ' くじ';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '')) { $('sub').textContent = ''; setup('この会は、組み合わせをくじで決めていません。組み合わせは参加者ページで見られます。'); return; }
+  $('sub').textContent = mdText(c.kuji) + 'のナンバーズ4の当せん番号で、組み合わせを決めるくじ';
+  const notes = [];
+  let kt = null, k = null;
+  try { kt = await getJson('../' + CONF + 'kata.json'); } catch (e) { kt = null; }
+  if (kt && (kt.kai !== c.kai || !kt.rounds || typeof kt.rounds !== 'object' || !Number.isInteger(kt.players))) kt = null;
+  if (kt && kt.out !== undefined && !(Array.isArray(kt.out) && kt.out.every(p => /^P[1-9]\d?$/.test(p) && pnum(p) <= kt.players))) { notes.push('型の「来られない人」の書き方が違うので、型を出していません。'); kt = null; }
+  if (kt && kt.date !== c.kuji) { notes.push('型の抽せんの日（' + kt.date + '）が大会設定と違うので、型を出していません。'); kt = null; }
+  try { k = await getJson('../' + CONF + 'kumiawase.json'); } catch (e) { k = null; }
+  if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) k = null;
+  KATA = kt; KUMI = k;
+  N4 = KATA && k && k.kuji && k.kuji.date === KATA.date ? (normN4(k.kuji.n4 || '') || '') : '';
+  if (N4 && !$('n4').value) $('n4').value = N4;
+  setup(notes.join(' '));
+  $('main').hidden = false;
+  renderAll();
+  const api = String(c.api || '').trim();
+  if (!api) return;
+  try {
+    const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
+    if (j.ok && j.data && j.data.kai === c.kai) { ROSTER = j.data.roster || {}; renderAll(); }
+  } catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); setup(notes.join(' ')); }
+}
+load();
+// ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
+if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
+</script>
+<a class="top" href="#" title="上へ">↑</a>
+</body>
+</html>

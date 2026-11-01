@@ -51,6 +51,7 @@ th{background:#ececE8;font-weight:700;position:sticky;top:0}
 td.l,th.l{text-align:left}
 tr:nth-child(even) td{background:var(--card2)}
 tr.fin td.nm{font-weight:700;color:var(--accent)}
+tr.line td{border-bottom:4px solid var(--ng)}
 td.neg,.neg{color:var(--ng)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .small{color:var(--muted);font-size:.9rem}
@@ -143,6 +144,15 @@ summary{cursor:pointer;font-weight:700}
     <table id="tbl"><thead></thead><tbody></tbody></table>
   </div>
   <ul class="small" id="tblnote" style="padding-left:1.3em;margin:8px 0"></ul>
+
+  <div id="linesec" hidden>
+  <h2 id="lineh">決勝ライン</h2>
+  <div class="card">
+    <label for="bdplayer" style="margin-top:0">プレイヤー</label>
+    <select id="bdplayer"></select>
+    <div id="bd" style="margin-top:8px"></div>
+  </div>
+  </div>
 
   <div id="finsec" hidden>
   <h2 id="finh">決勝の卓</h2>
@@ -530,6 +540,111 @@ function finalRanking() {
   return { rows, started: FINALS.some(r => doneTables(r) > 0), done: FINALS.every(roundDone) };
 }
 
+// ---- 決勝ライン（第20回の6位ラインと同じ考え方。決勝に進む人数を K として K位ライン） ----
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lineK = () => FINALS.length ? CFG.final.tables * MODE : 0;
+const lineShow = () => lineK() > 0 && !PRELIM.concat(FINALS).every(isLocked);
+// 途中で抜けた人（予選の最後の半荘の組み合わせ表で「お休み」）。決勝には進まない
+const goneList = () => { const k = kumiRound(PRELIM[PRELIM.length - 1]); return (k && Array.isArray(k.out)) ? k.out : []; };
+// 自分を除いた人の合計の、上から K 番目（途中で抜けた人と、まだ打っていない人は数えない）。K人に満たなければ null
+function borderFor(rk, p) {
+  const gone = goneList(), K = lineK();
+  const others = rk.filter(x => x.p !== p && x.n > 0 && !gone.includes(x.p)).map(x => x.total).sort((a, b) => b - a);
+  return others.length < K ? null : others[K - 1];
+}
+// ラインと同じ合計のとき（同点は年齢が上の方が上位）: まだ決まらない同点のかたまり（順位の数字が同じ人）が、K位と K+1位の境目をまたぐかで分ける。
+// K位以内に収まれば「圏内（年齢）」、K+1位より下なら ''（ふつうの「あと」を出す）。
+// またぐときは、生年月日が足りなければ「同点（年齢で決まる）」、全員入っても同じ日なら「同点（集計係が決める）」（第20回と同じ）
+function lineTie(rk, x) {
+  const gone = goneList(), ok = rk.filter(y => y.n > 0 && !gone.includes(y.p)), i = ok.indexOf(x), K = lineK();
+  if (i < 0) return '';
+  let lo = i, hi = i;
+  while (lo > 0 && ok[lo - 1].rank === x.rank) lo--;
+  while (hi + 1 < ok.length && ok[hi + 1].rank === x.rank) hi++;
+  if (lo > K - 1) return '';
+  if (hi <= K - 1) return x.byAge || x.tie ? '圏内（年齢）' : '';
+  return !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（集計係が決める）' : '同点（年齢で決まる）';
+}
+// 集計表の列。「あと +N」＝上回るのに要るポイント（同点は年齢順のため、ラインより0.1多く）、「圏内 (+N)」＝K+1位との差
+function borderText(rk, x) {
+  if (!x.n || goneList().includes(x.p)) return '';
+  const B = borderFor(rk, x.p); if (B === null) return '';
+  const D = B - x.total;
+  if (D === 0) { const t = lineTie(rk, x); if (t) return t; }
+  return D >= 0 ? 'あと ' + fpt(D + 1) : '圏内 (' + fpt(-D) + ')';
+}
+// 赤い線を引く行（K位ラインの下）。上から K 番目の人と同じ順位の、最後の行の下（K位と K+1位が同点なら、同点の最後の行の下）
+function lineRow(rk) {
+  const gone = goneList(), K = lineK(), ok = rk.filter(x => x.n > 0 && !gone.includes(x.p));
+  if (ok.length < K) return -1;
+  let last = -1;
+  rk.forEach((x, i) => { if (x.n > 0 && !gone.includes(x.p) && x.rank <= ok[K - 1].rank) last = i; });
+  return last;
+}
+// 逆算で使う点棒の上限と下限（受け口と同じ）。r 位（0 始まり）で取れる点棒の上限は、卓の合計から、上の人が自分と同じ・下の人が下限のとき
+const RAW_TOP = 999900, RAW_LOW = -200000;
+const rawCap = r => Math.min(RAW_TOP, Math.floor((TOTAL - (MODE - 1 - r) * RAW_LOW) / (r + 1) / 100) * 100);
+// r 位の点棒の下限。1位は卓の合計の人数割り（全員同じ点）より下にならない。2位から下は受け口の下限
+const rawMin = r => r === 0 ? Math.ceil(TOTAL / MODE / 100) * 100 : RAW_LOW;
+// r 位の順位点（オカ込み・0.1単位）。返し以上の人数で変わる会（3麻）は、いちばん少ない場合で見る（目安を甘くしない）。
+// 自分が返し以上なら、返し以上は r+1 人以上。返し未満なら r 人以下。卓の合計で上限がある。その形になれないときは null
+function bonusLow(r, up) {
+  const cap = Math.floor(TOTAL / CFG.return), lo = up ? r + 1 : 0, hi = up ? Math.min(MODE, cap) : Math.min(r, cap);
+  let b = null;
+  for (let n = lo; n <= hi; n++) {
+    if (n === 0 && TOTAL >= MODE * CFG.return) continue;   // 全員が返し未満にはなれない
+    const u = Array.isArray(CFG.uma) ? CFG.uma : (CFG.uma[String(n)] || CFG.uma['1']);
+    const v = Math.round(u[r] * 10) + (r === 0 ? OKA : 0);
+    if (b === null || v < b) b = v;
+  }
+  return b;
+}
+// 次の半荘を r 位で終えて need（0.1単位）を取るのに要る点棒（この点棒以上ならOK）。取れないときは Infinity
+function needRaw(r, need) {
+  const R = CFG.return, bU = bonusLow(r, true), bD = bonusLow(r, false);
+  const rU = bU === null ? Infinity : Math.max(R, R + (need - bU) * 100);   // 返し以上で足りる一番小さい点棒
+  const rD = bD === null ? Infinity : R + (need - bD) * 100;                // 返し未満で足りる一番小さい点棒
+  // 返し未満で足りても、返しちょうどで足りないとき（3麻で2人浮きになると順位点が下がる）は、返し以上の側の値を出す
+  return rD < R && (rU === R || rU === Infinity) ? rD : rU;
+}
+function renderBorder() {
+  const box = $('bd'), p = $('bdplayer').value, K = lineK();
+  const rk = prelimStats(), x = rk.find(y => y.p === p);
+  if (!p || !x) { box.innerHTML = '<p class="small">プレイヤーを選ぶと、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
+  let h = x.n ? '<p>' + esc(dn(p)) + ' の現在: 合計 <b>' + fpt(x.total) + '</b>（' + x.n + '半荘）</p>' : '<p>' + esc(dn(p)) + ' はまだポイントがありません。</p>';
+  if (goneList().includes(p)) { box.innerHTML = h + '<p class="small">途中で抜けたため、決勝には進みません。</p>'; return; }
+  const B = borderFor(rk, p);
+  if (B === null) { box.innerHTML = h + '<p class="small">' + K + '位ラインは、ほかの' + K + '人以上のポイントがそろってから出ます。</p>'; return; }
+  const D = B - x.total, t = D === 0 && x.n ? lineTie(rk, x) : '';
+  h += '<p>' + K + '位ライン（自分を除いた' + K + '番目の合計）: <b>' + fpt(B) + '</b></p>';
+  if (D < 0) h += '<p>いまは<b>圏内</b>。' + (K + 1) + '位との差は ' + fpt(-D) + ' です。</p>';
+  else if (t) h += '<p>' + K + '位ラインと同じ合計です。' + (t === '圏内（年齢）' ? 'いまは<b>圏内</b>です（年齢が上のため）。' : t === '同点（集計係が決める）' ? (nenrei() ? '生年月日も同じなので、' : '') + '集計係が決めます。' : '同点は年齢が上の方が上位なので、生年月日で決まります。') + '</p>';
+  else h += '<p>圏内に入るには <b>あと ' + fpt(D + 1) + '</b> 必要です（同点は' + (nenrei() ? '年齢順の' : '集計係が決める') + 'ため、上回る数字）。</p>';
+  // 予選の残り（まだ点数がなく、抜け番でもない半荘）
+  const left = PRELIM.filter(r => !x.by[r] && !isLocked(r) && !roundDone(r) && !restOf(r).includes(p)).length;
+  if (!left) { box.innerHTML = h + '<p class="small">予選の半荘は、もう残っていません。</p>'; return; }
+  const need = D + 1;
+  h += '<p>次の半荘で圏内に' + (D < 0 ? '残る' : '入る') + '目安（順位ごとに、この点棒以上ならOK。予選の残りは' + left + '半荘）:</p><div class="tw"><table><thead><tr><th class="l">順位</th><th>必要ポイント</th><th>必要な点棒</th></tr></thead><tbody>';
+  for (let r = 0; r < MODE; r++) {
+    const raw = needRaw(r, need);
+    const c = raw > rawCap(r) ? '届かない' : raw <= rawMin(r) ? 'どんな点数でもOK' : fmt(raw) + ' 以上';
+    h += '<tr><td class="l">' + (r + 1) + '位</td><td>' + fpt(need) + '</td><td>' + c + '</td></tr>';
+  }
+  h += '</tbody></table></div><p class="small">ほかの人の結果でラインは動きます。目安として見てください。' + (Array.isArray(CFG.uma) ? '' : '順位点が浮きの人数で変わるため、少ない方の順位点で計算しています。') + '</p>';
+  box.innerHTML = h;
+}
+// 選ぶ欄。前に選んだ人（なければ参加者ページで選んだ自分の名前）を出す
+let BD_SAVED = '';
+try { BD_SAVED = localStorage.getItem('halukai:bd:' + G) || localStorage.getItem('halukai:me:' + G) || ''; } catch (e) {}
+function fillBd() {
+  const sel = $('bdplayer'), keep = sel.value || BD_SAVED;
+  sel.innerHTML = '';
+  sel.appendChild(new Option('（選ぶ）', ''));
+  allPlayers().forEach(p => sel.appendChild(new Option(dnf(p), p)));
+  if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+$('bdplayer').addEventListener('change', () => { BD_SAVED = $('bdplayer').value; try { localStorage.setItem('halukai:bd:' + G, BD_SAVED); } catch (e) {} renderBorder(); });
+
 // ---- 作り直し（大会設定・組み合わせの形が変わったとき） ----
 const umaText = u => u.map((x, i) => (i + 1) + '位 ' + fpt(Math.round(x * 10) + (i === 0 ? OKA : 0))).join('／');
 function ruleBox() {
@@ -553,9 +668,12 @@ function buildStatic() {
   $('entry').hidden = allLocked;
   $('sub').textContent = allLocked ? '点数はすべて確定しました。集計と順位を見られます。' : '半荘が終わったら、卓の代表が' + MODE + '人分の点棒を送ってください。ポイントは自動で計算します。';
   ruleBox();
-  $('tbl').querySelector('thead').innerHTML = '<tr><th>順位</th><th class="l">プレイヤー</th>' + PRELIM.map(r => '<th>' + r + '</th>').join('') + '<th>合計pt</th><th>半荘</th></tr>';
+  $('tbl').querySelector('thead').innerHTML = '<tr><th>順位</th><th class="l">プレイヤー</th>' + PRELIM.map(r => '<th>' + r + '</th>').join('') + '<th>合計pt</th>' + (lineShow() ? '<th>' + lineK() + '位ライン</th>' : '') + '<th>半荘</th></tr>';
   $('h2sum').textContent = FINALS.length ? '集計（予選の合計ポイント）' : '集計・順位（合計ポイント）';
   $('finsec').hidden = !FINALS.length;
+  // 決勝ライン（第20回の6位ライン）。全部の半荘が確定したら、列・赤い線・欄とも出さない（第20回と同じ）
+  $('linesec').hidden = !lineShow();
+  $('lineh').textContent = lineK() + '位ライン（決勝に行ける目安）';
   fillTables();
 }
 
@@ -808,21 +926,26 @@ function render(d) {
   // 予選の集計表
   const rk = prelimStats(), K = FINALS.length ? CFG.final.tables * MODE : 0;
   const finPs = K ? finalMembers().tables.flat() : [];
+  const showLine = lineShow(), last = showLine ? lineRow(rk) : -1;
   const tb = $('tbl').querySelector('tbody'); tb.innerHTML = '';
-  rk.forEach(x => {
+  rk.forEach((x, i) => {
     const tr = document.createElement('tr');
     if (finPs.includes(x.p)) tr.className = 'fin';
+    if (i === last) tr.classList.add('line');
     cell(tr, rankText(x));
     cell(tr, dn(x.p), 'l nm');
     PRELIM.forEach(r => cell(tr, x.by[r] ? fpt(x.by[r].pts) : restOf(r).includes(x.p) ? '抜け' : ''));
     cell(tr, x.n ? fpt(x.total) : '');
+    if (showLine) cell(tr, borderText(rk, x));
     cell(tr, x.n + '/' + PRELIM.length);
     tb.appendChild(tr);
   });
   const notes = ['合計ポイントの順です。抜け番の半荘は0ポイントです。', nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
   if (K) notes.push('名前が太字の' + K + '人が決勝に進みます（上から順。途中で抜けた人は飛ばします）。' + (junni() ? 'ほかの人は順位決定戦です。' : ''));
+  if (showLine) notes.push('「' + K + '位ライン」は、自分を除いた人の合計の上から' + K + '番目との差です。「あと」は上回るのに要るポイント、「圏内」は' + (K + 1) + '位との差です。赤い線より上が、いまの決勝の圏内です。');
   $('tblnote').innerHTML = ''; notes.forEach(t => { const li = document.createElement('li'); li.textContent = t; $('tblnote').appendChild(li); });
   if (FINALS.length) { renderFinalMembers(); renderFinal(); }
+  if (showLine) { fillBd(); renderBorder(); }
   renderResults();
   if (!ROUND_PICKED && API && d) {
     ROUND_PICKED = true;
