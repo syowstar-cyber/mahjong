@@ -6,7 +6,7 @@ URL の `openExternalBrowser=1` は、LINE の中のブラウザでなく Safari
 ## Halu杯
 
 ```
-【Halu杯】組み合わせと点数のページです。毎回このページを使います。
+【Halu杯】参加者ページです（組み合わせと点数）。毎回このページを使います。
 https://syowstar-cyber.github.io/mahjong/kai/?openExternalBrowser=1
 
 ホーム画面に入れると、アプリのように開けます（入れなくても使えます）。
@@ -18,7 +18,7 @@ https://syowstar-cyber.github.io/mahjong/kai/?openExternalBrowser=1
 ## 早川麻雀研究会
 
 ```
-【早川麻雀研究会】組み合わせと点数のページです。前のページから引っ越しました。
+【早川麻雀研究会】参加者ページです（組み合わせと点数）。前のページから引っ越しました。
 https://syowstar-cyber.github.io/mahjong/kai/?g=hayakawa&openExternalBrowser=1
 
 ホーム画面に入れると、アプリのように開けます（入れなくても使えます）。

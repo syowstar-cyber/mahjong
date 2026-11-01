@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#7a1a1a">
-<title>組み合わせ</title>
+<title>参加者ページ</title>
 <script>
 // 会ごとのホーム画面のアプリ（manifest とアイコン）。会は URL の ?g=（付けなければ halu）。読み込みの途中で書き出す＝ブラウザが最初から見つけられる
 (function () {
@@ -56,20 +56,29 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .warn{color:var(--ng);font-weight:700}
 .done{color:var(--ok);font-weight:700}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.info{display:flex;gap:12px;align-items:baseline}
+.info[hidden]{display:none}
+.info:not([hidden])+.info{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.info .k{flex:0 0 auto;font-weight:700;color:var(--accent)}
+.info .v{flex:1;min-width:0}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 組み合わせ</h1>
+    <h1 id="ttl">🀄 参加者ページ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">組み合わせ</a><a href="score/">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">参加者ページ</a><a href="score/">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
+  <div class="card" id="info" hidden>
+    <div class="info" id="whenrow"><span class="k">日時</span><span class="v" id="when"></span></div>
+    <div class="info" id="whererow"><span class="k">場所</span><span class="v" id="where"></span></div>
+  </div>
   <div id="remade" class="hint warn" hidden></div>
   <h2 id="mineh">自分の席</h2>
   <div class="card">
@@ -79,8 +88,7 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
   </div>
 
   <div id="schedbox" hidden>
-  <h2 id="schedh">当日の流れ</h2>
-  <p class="hint" id="place" style="margin:0 0 10px" hidden></p>
+  <h2>当日の流れ</h2>
   <div class="tw" id="schedtw"><table id="sched"></table></div>
   <p class="small" id="schednote" style="margin:6px 0 0"></p>
   <p class="hint" id="schedmemo" style="margin:8px 0 0" hidden></p>
@@ -98,11 +106,11 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <li id="finnote" hidden></li>
   </ul>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">組み合わせ</a><a href="score/">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">参加者ページ</a><a href="score/">点数</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数表</a></nav>
 </div>
 
 <script>
-// 普段の回の組み合わせページ。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py が書く）を読んで出すだけで、
+// 普段の回の参加者ページ（日時と場所・自分の卓・当日の流れ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py が書く）を読んで出すだけで、
 // 受け口からは名前（名簿）と入力済みの卓を読むだけ（何も送らない）。当日に組み直して push したら、開き直すか「最新に更新」で出る
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
@@ -163,14 +171,11 @@ const bakime = () => !!(CFG && CFG.bakime === true);
 const T_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 const mins = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+const str = v => typeof v === 'string' ? v.trim() : '';
+const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
 function renderSched() {
-  const s = Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
-  const str = v => typeof v === 'string' ? v.trim() : '';
-  const place = str(CFG.place), memo = str(CFG.schedule_note);
-  $('schedbox').hidden = !s.length && !place;
-  $('schedh').textContent = place ? '会場と当日の流れ' : '当日の流れ';
-  renderPlace(place, str(CFG.address));
-  $('schedtw').hidden = !s.length;
+  const s = schedRows(), memo = str(CFG.schedule_note);
+  $('schedbox').hidden = !s.length;
   $('schedmemo').hidden = !(s.length && memo); $('schedmemo').textContent = memo;
   if (!s.length) { $('schednote').textContent = ''; return; }
   const isToday = CFG.date === today();
@@ -187,11 +192,33 @@ function renderSched() {
   t.appendChild(tb);
   $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
 }
-// 会場（taikai.json の place・address）。地図はグーグルマップで住所を探す（郵便番号は外す）
+// ページの一番上の日時と場所。日時は開催日（taikai.json の date）と、当日の流れの最初と最後の時刻。
+// 場所は taikai.json の place・address。地図はグーグルマップで住所を探す（郵便番号は外す）
+const WDAY = ['日', '月', '火', '水', '木', '金', '土'];
+function dayText(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+  if (!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return m[1] + '年' + Number(m[2]) + '月' + Number(m[3]) + '日（' + WDAY[d.getDay()] + '）';
+}
+function renderInfo() {
+  const day = dayText(CFG.date), place = str(CFG.place), s = schedRows();
+  // 「10:45 集合 〜 18:30 終了（目安）」。内容は「・」の前だけ（集合・受付・写真撮影 → 集合）
+  const at = r => r[0] + ' ' + r[1].split('・')[0];
+  const when = $('when'); when.innerHTML = '';
+  if (day) {
+    when.appendChild(document.createTextNode(day));
+    if (s.length > 1) { when.appendChild(document.createElement('br')); when.appendChild(document.createTextNode(at(s[0]) + ' 〜 ' + at(s[s.length - 1]))); }
+  }
+  $('whenrow').hidden = !day;
+  $('whererow').hidden = !place;
+  renderPlace(place, str(CFG.address));
+  $('info').hidden = !day && !place;
+}
 function renderPlace(place, addr) {
-  const box = $('place'); box.innerHTML = ''; box.hidden = !place;
+  const box = $('where'); box.innerHTML = '';
   if (!place) return;
-  const b = document.createElement('b'); b.textContent = '会場　' + place; box.appendChild(b);
+  const b = document.createElement('b'); b.textContent = place; box.appendChild(b);
   if (addr) { box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(addr)); }
   const a = document.createElement('a');
   a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((addr.replace(/^〒?\s*\d{3}-\d{4}\s*/, '') + ' ' + place).trim());
@@ -201,9 +228,9 @@ function renderPlace(place, addr) {
 
 function render() {
   const c = CFG;
-  document.title = c.title + ' 組み合わせ';
-  $('ttl').textContent = '🀄 ' + c.title + ' 組み合わせ';
-  $('sub').textContent = [c.date, c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
+  document.title = c.title + ' 参加者ページ';
+  $('ttl').textContent = '🀄 ' + c.title + ' 参加者ページ';
+  $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   const rs = rounds();
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）
   const rm = $('remade');
@@ -219,6 +246,7 @@ function render() {
   list.forEach(p => sel.appendChild(new Option(dnf(p), p)));
   ME = list.includes(SAVED) ? SAVED : '';
   sel.value = ME;
+  renderInfo();
   renderMine();
   renderSched();
   // 半荘ごと
