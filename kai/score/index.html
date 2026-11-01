@@ -67,6 +67,9 @@ td.neg,.neg{color:var(--ng)}
 .seat .in{display:flex;align-items:center;gap:2px;min-width:0}.seat .in input{flex:1;width:100%;min-width:0}.seat .in span{font-weight:700;font-size:1.1rem}.seat input.auto{background:var(--soft);color:var(--accent);font-weight:700}
 .seat .sign{flex:none;width:2em;padding:8px 0;font-size:1.15rem;line-height:1.2;background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:6px}.seat .sign.on{background:var(--ng);border-color:var(--ng);color:#fff}.seat .sign:disabled{opacity:.4;cursor:default}
 .seat .pt{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
+/* 場決めの会（bakime）は席を出さず、名前（くじの前は枠の番号）と点棒だけ */
+.seat.nw{grid-template-columns:minmax(0,1fr) 8.6em 5.8em;grid-template-areas:"sel in pt"}
+.seat .nm{grid-area:sel;font-weight:700;min-width:0;overflow-wrap:anywhere}.seat .nm.ph{color:var(--muted)}
 .sum{display:flex;justify-content:space-between;padding:8px 0;font-weight:700}
 .status span{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:.9rem}
 .status span.done{background:#e3f2e6;border-color:#9fcfa9;color:var(--ok)}
@@ -76,7 +79,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:8px;pa
 summary{cursor:pointer;font-weight:700}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 /* 狭い画面は、選ぶ欄（P番号と名前）を1行目に、点棒とポイントを2行目に分ける */
-@media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:2em}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}}
+@media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:2em}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}.seat.nw{grid-template-columns:minmax(0,1fr) 6.6em;grid-template-areas:"sel sel" "in pt"}}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
 </head>
@@ -193,7 +196,7 @@ const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP'
 const fpt = n => (n === null || n === undefined) ? '' : (n > 0 ? '+' : n < 0 ? '−' : '') + (Math.abs(n) / 10).toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
 
-let CFG = null, KUMI = null, DATA = { rounds: {}, roster: {}, updated: null }, ROSTER = {}, AGERANK = {};
+let CFG = null, KUMI = null, KATA = null, DATA = { rounds: {}, roster: {}, updated: null }, ROSTER = {}, AGERANK = {};
 let MODE = 4, TOTAL = 100000, OKA = 0, API = '', PRELIM = [], FINALS = [], LOCKED = [];
 // 点棒の欄や選ぶ欄を触ったら true。自動更新で入力中の欄を作り直さない（送信・取り消し・卓の切り替えで false）
 let EDITING = false;
@@ -208,9 +211,12 @@ const dn = p => nm(p) || p || '';                              // 表示名（�
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';     // 選ぶ欄（P番号＋名前）
 const isFinal = r => String(r).startsWith('F');
 const isLocked = r => LOCKED.includes(String(r));
-// 場決めあり（taikai.json の bakime）。席は半荘ごとに牌を引いて決めるので、組み合わせ表の並びを席として入れない
+// 場決めあり（taikai.json の bakime）。席と起家は卓で決めるので、報告の欄は席（東・南・西・北）を出さず、その卓の人の名前だけを出す（2026-11-02 主催）。
+// 並びは席ではない＝同点で0.1が割り切れないときの「起家に近い方」は使えない（README の bakime）
 const bakime = () => !!(CFG && CFG.bakime === true);
-const bakimeNote = n => '席は牌を引いて決めます。起家を東にして、ツモの順（' + WINDS.slice(0, n).join('・') + '）に座った人を選んでください。';
+const NAME_NOTE = '席は卓で決めるので、名前ごとに点棒を入れてください。';
+const PICK_NOTE = '打った人を選んでください（並びは席と関係ありません）。';
+const PH_NOTE = '組み合わせはくじで決まります。決まると、枠の番号のところに名前が出ます。点数はそれから送れます。';
 // 年齢の上下（taikai.json の nenrei が true の会）。予選の合計が同点なら、年齢が上の方が上位。
 // 受け口の agerank＝生年月日を入れた人どうしの年上からの順（1 が最年長・同じ日は同じ数）。生年月日は同点のときだけ幹部用ページで入れ、受け口からは返らない
 const nenrei = () => !!(CFG && CFG.nenrei === true);
@@ -246,8 +252,8 @@ function checkCfg(c) {
   if (c.locked !== undefined && !Array.isArray(c.locked)) e.push('locked は並び');
   return e;
 }
-function applyCfg(c, k) {
-  CFG = c; KUMI = k;
+function applyCfg(c, k, kt) {
+  CFG = c; KUMI = k; KATA = kt || null;
   applyTheme(c);
   pageLinks(c);
   MODE = c.mode; TOTAL = c.start * MODE;
@@ -258,7 +264,7 @@ function applyCfg(c, k) {
   LOCKED = (c.locked || []).map(String);
   document.title = c.title + ' 点数入力';
   $('ttl').textContent = '🀄 ' + c.title + ' 点数入力';
-  const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, k ? k.rounds : null]);
+  const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, k ? k.rounds : null, KATA ? KATA.rounds : null, !!c.bakime]);
   // 入力中は作り直さない（次の読み込みでもう一度比べる）
   if (shape !== SHAPE && !EDITING) { SHAPE = shape; buildStatic(); }
 }
@@ -300,6 +306,9 @@ function allPlayers() {
 }
 const kumiRound = r => (KUMI && KUMI.rounds && KUMI.rounds[r]) || null;
 const restOf = r => { const k = kumiRound(r); return (k && Array.isArray(k.rest)) ? k.rest : []; };
+// くじの前（組み合わせ表にその半荘がない）は、型（kata.json）の枠の番号で仮置きする。w は枠の番号
+const kataRound = r => (!kumiRound(r) && KATA && KATA.rounds && KATA.rounds[r]) || null;
+const wk = w => '枠' + w;
 // その半荘の卓。予選は組み合わせ表の卓、表がなければ設定の卓番号（なければ1から）を人数ぶん。決勝は決勝の卓数（決勝1半荘目は、その後ろに順位決定戦の卓）
 const junniLabel = j => '順位決定戦 ' + j.from + '〜' + (j.from + j.p.length - 1) + '位';
 function tablesOf(r) {
@@ -309,6 +318,8 @@ function tablesOf(r) {
   }
   const k = kumiRound(r);
   if (k && Array.isArray(k.tables) && k.tables.length) return k.tables.map(t => ({ no: t.no, label: t.no + '卓', p: Array.isArray(t.p) ? t.p : [] }));
+  const kt = kataRound(r);
+  if (kt && Array.isArray(kt.tables) && kt.tables.length) return kt.tables.map(t => ({ no: t.no, label: t.no + '卓', p: [], w: Array.isArray(t.w) ? t.w : [] }));
   const n = Math.floor(CFG.players / MODE);
   const nos = (CFG.tables && CFG.tables.length >= n) ? CFG.tables.slice(0, n) : Array.from({ length: n }, (_, i) => i + 1);
   return nos.map(no => ({ no, label: no + '卓' }));
@@ -610,6 +621,12 @@ function membersOf(r, t) {
   const k = tablesOf(r).find(x => String(x.no) === String(t));
   return (k && k.p) || [];
 }
+// くじの前の仮置き（その卓の枠の番号）。組み合わせ表が出たら空
+function slotsOf(r, t) {
+  if (isFinal(r)) return [];
+  const k = tablesOf(r).find(x => String(x.no) === String(t));
+  return (k && k.w) || [];
+}
 // その卓で打つ人数。順位決定戦の卓は顔ぶれの人数（3麻は4人の卓がある）、点数が入っていれば送られた人数。ほかは mode 人
 function seatsOf(r, t) {
   const rec = recOf(r, t);
@@ -634,54 +651,74 @@ function fillSeats() {
   $('qsumlab').textContent = '合計（' + fmt(CFG.start * N) + 'になるはず）';
   $('qhow').textContent = '00は打ちません（25,300点 → 253）。マイナスは「−」ボタンで付けます（先に押しても、後で押しても同じ）。' + (N - 1) + '人入れると、残りの1人は自動で入ります。';
   if (!r || !t) { preview(); return; }
-  const rec = recOf(r, t), mem = membersOf(r, t), jn = isJunni(r, t);
+  const rec = recOf(r, t), mem = membersOf(r, t), jn = isJunni(r, t), fm = isFinal(r) ? finalMembers() : null;
+  // 場決めの会は名前だけを出す。出す人＝送った点数があればその人、なければその卓の顔ぶれ。くじの前は型の枠の番号（ph＝仮置き。送れない）。
+  // 決勝・順位決定戦の顔ぶれが同点で決まらないときだけ、選ぶ欄を出す
+  let named = null, ph = false;
+  if (bakime() && !(fm && (fm.edge.length || (jn && fm.jedge.length)))) {
+    if (rec) named = rec.p;
+    else if (mem.length === N) named = mem;
+    else if (slotsOf(r, t).length === N) { named = slotsOf(r, t); ph = true; }
+  }
   const ps = rec ? rec.p : (isFinal(r) || bakime() ? [] : mem), raws = rec ? rec.raw : [];
   const everyone = allPlayers(), locked = isLocked(r);
   for (let i = 0; i < N; i++) {
-    const row = document.createElement('div'); row.className = 'seat';
-    const w = document.createElement('div'); w.className = 'w'; w.textContent = WINDS[i];
-    const sel = document.createElement('select'); sel.setAttribute('aria-label', WINDS[i] + 'の人');
-    sel.appendChild(new Option('（選ぶ）', ''));
-    if (mem.length) {
-      const g = document.createElement('optgroup'); g.label = jn ? '順位決定戦のこの卓' : isFinal(r) ? '決勝のこの卓' : 'この卓';
-      mem.forEach(p => g.appendChild(new Option(dnf(p), p))); sel.appendChild(g);
+    const row = document.createElement('div'); row.className = 'seat' + (bakime() ? ' nw' : '');
+    let lab;
+    if (named) {
+      lab = ph ? wk(named[i]) : dn(named[i]);
+      const nmEl = document.createElement('div'); nmEl.className = 'nm' + (ph ? ' ph' : ''); nmEl.textContent = lab;
+      row.dataset.p = ph ? '' : named[i];
+      row.appendChild(nmEl);
+    } else {
+      lab = bakime() ? (i + 1) + '人目' : WINDS[i];
+      if (!bakime()) { const w = document.createElement('div'); w.className = 'w'; w.textContent = WINDS[i]; row.appendChild(w); }
+      const sel = document.createElement('select'); sel.setAttribute('aria-label', bakime() ? lab : lab + 'の人');
+      sel.appendChild(new Option('（選ぶ）', ''));
+      if (mem.length) {
+        const g = document.createElement('optgroup'); g.label = jn ? '順位決定戦のこの卓' : isFinal(r) ? '決勝のこの卓' : 'この卓';
+        mem.forEach(p => g.appendChild(new Option(dnf(p), p))); sel.appendChild(g);
+      }
+      const g2 = document.createElement('optgroup'); g2.label = mem.length ? 'ほかの人' : 'プレイヤー';
+      everyone.filter(p => !mem.includes(p)).forEach(p => g2.appendChild(new Option(dnf(p), p))); sel.appendChild(g2);
+      sel.value = ps[i] || '';
+      sel.addEventListener('change', () => { EDITING = true; preview(); });
+      if (locked) sel.disabled = true;
+      row.appendChild(sel);
     }
-    const g2 = document.createElement('optgroup'); g2.label = mem.length ? 'ほかの人' : 'プレイヤー';
-    everyone.filter(p => !mem.includes(p)).forEach(p => g2.appendChild(new Option(dnf(p), p))); sel.appendChild(g2);
-    sel.value = ps[i] || '';
     const inw = document.createElement('div'); inw.className = 'in';
-    inw.innerHTML = '<button type="button" class="sign" aria-label="マイナス" aria-pressed="false">−</button><input type="number" inputmode="numeric" step="1" min="-2000" max="9999" placeholder="例 253" aria-label="' + WINDS[i] + 'の点棒（百点単位）"><span>00</span>';
+    inw.innerHTML = '<button type="button" class="sign" aria-label="マイナス" aria-pressed="false">−</button><input type="number" inputmode="numeric" step="1" min="-2000" max="9999" placeholder="例 253" aria-label="' + esc(lab) + 'の点棒（百点単位）"><span>00</span>';
     const inp = inw.querySelector('input');
     inp.value = (raws[i] === null || raws[i] === undefined) ? '' : raws[i] / 100;
     const pt = document.createElement('div'); pt.className = 'pt';
-    row.append(w, sel, inw, pt);
+    row.append(inw, pt);
     box.appendChild(row);
-    sel.addEventListener('change', () => { EDITING = true; preview(); });
-    if (locked) { sel.disabled = true; inp.readOnly = true; inw.querySelector('.sign').disabled = true; }
+    if (locked) { inp.readOnly = true; inw.querySelector('.sign').disabled = true; }
   }
   const note = [];
   if (rec) note.push('入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。');
+  if (named) note.push(ph ? PH_NOTE : NAME_NOTE);
   if (isFinal(r)) {
-    note.push(bakime() ? bakimeNote(N) : '席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
+    if (!bakime()) note.push('席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
     if (jn && N > MODE) note.push('この卓は' + N + '人で' + MODE + '人麻雀を打ちます（局ごとに北家が抜ける）。');
     if (jn) note.push('順位決定戦は、順位だけを決めます（ポイントはつけません）。');
-    if (!prelimDone()) note.push('予選がまだ終わっていないので、「' + (jn ? '順位決定戦' : '決勝') + 'のこの卓」は暫定です。');
-    const fm = finalMembers();
+    if (!prelimDone()) note.push('予選がまだ終わっていないので、' + (named ? 'この顔ぶれ' : '「' + (jn ? '順位決定戦' : '決勝') + 'のこの卓」') + 'は暫定です。');
     if (fm.edge.length) note.push('【注意】' + edgeText(fm.edge, '決勝に進む人') + '報告では、座った人を選んでください。');
     if (jn && fm.jedge.length) note.push('【注意】' + edgeText(fm.jedge, '順位決定戦の卓') + '報告では、座った人を選んでください。');
   } else if (mem.length && rec) {
-    // 場決めありなら、席の並びは表と違ってよい（顔ぶれだけ比べる）
-    if (bakime() ? !rec.p.every(p => mem.includes(p)) : JSON.stringify(rec.p) !== JSON.stringify(mem.slice(0, MODE))) note.push('送られた顔ぶれ' + (bakime() ? '' : 'か席') + 'が、いまの組み合わせ表と違います（組み直しの前に送った点数かもしれません）。');
+    // 場決めありなら、席の並びは表と違ってよい（顔ぶれだけ比べる）。名前だけの欄は人を変えられないので、取り消してから入れ直す
+    if (bakime() ? !rec.p.every(p => mem.includes(p)) : JSON.stringify(rec.p) !== JSON.stringify(mem.slice(0, MODE))) note.push('送られた顔ぶれ' + (bakime() ? '' : 'か席') + 'が、いまの組み合わせ表と違います（組み直しの前に送った点数かもしれません）。' + (named ? 'いまの顔ぶれで入れ直すときは、先に取り消してください。' : ''));
   } else if (mem.length) {
-    note.push(bakime() ? bakimeNote(N) : '組み合わせ表の席で入っています（東が起家）。座った席が違うときは、選び直してください。');
-  } else if (!rec) {
-    note.push('組み合わせ表がまだありません。座った人を、東（起家）から順に選んでください。');
+    if (!bakime()) note.push('組み合わせ表の席で入っています（東が起家）。座った席が違うときは、選び直してください。');
+  } else if (!rec && !named) {
+    note.push('組み合わせ表がまだありません。' + (bakime() ? PICK_NOTE : '座った人を、東（起家）から順に選んでください。'));
   }
-  const rest = isFinal(r) ? [] : restOf(r);
-  if (rest.length) note.push('この半荘の抜け番: ' + rest.map(dn).join('・') + '（0ポイント）。');
+  const kr = isFinal(r) ? null : kataRound(r);
+  const rest = isFinal(r) ? [] : kr ? (Array.isArray(kr.rest) ? kr.rest : []).map(wk) : restOf(r).map(dn);
+  if (rest.length) note.push('この半荘の抜け番: ' + rest.join('・') + '（0ポイント）。');
   hint.textContent = note.join(' ');
   if (locked) { const b = document.createElement('b'); b.className = 'neg'; b.textContent = LOCKED_TEXT + '。 '; hint.prepend(b); }
-  $('qsend').disabled = locked; $('qclear').disabled = locked || !rec;
+  $('qsend').disabled = locked || ph; $('qclear').disabled = locked || !rec;
   box.querySelectorAll('.seat').forEach(row => {
     const inp = row.querySelector('input'), sign = row.querySelector('.sign');
     // 自動の欄を手で打つと手入力に変わる。自動の欄を押したら全選択（打てば置き換わる）
@@ -728,10 +765,10 @@ function autoFill(force) {
   target.value = CFG.start * N / 100 - units.reduce((a, b) => a + b, 0);
   target.dataset.auto = '1'; target.classList.add('auto'); delete target.dataset.neg;
 }
-// 席ごとに {p, raw, bad}。入力は百点単位（253 → 25,300点）。範囲外は bad にして raw を NaN にする
+// 席ごとに {p, raw, bad}（p は選ぶ欄、名前だけの欄は data-p。枠の番号の仮置きは空）。入力は百点単位（253 → 25,300点）。範囲外は bad にして raw を NaN にする
 function readSeats() {
   return [...document.querySelectorAll('#seats .seat')].map(row => {
-    const inp = row.querySelector('input'), p = row.querySelector('select').value, v = inp.value.trim();
+    const inp = row.querySelector('input'), sel = row.querySelector('select'), p = sel ? sel.value : (row.dataset.p || ''), v = inp.value.trim();
     if (v === '') return { p, raw: null, bad: false };
     const u = Number(v), bad = !Number.isInteger(u) || u < -2000 || u > 9999;
     return { p, raw: bad ? NaN : u * 100, bad };
@@ -751,7 +788,7 @@ function preview() {
   if (filled.length === seats.length && sum !== total) warn.push('合計が' + fmt(total) + 'ではありません。点棒を確かめてください（送信はできます）。');
   // 卓の合計を超える点棒は打ち間違い（2530 など）が多いので注意を出す。トビ終了なしでありうる値なので止めはしない（送る時に確認する）
   if (filled.some(s => s.raw >= total)) warn.push(fmt(total) + '点以上の点棒があります。合っていますか（送る時にもう一度確かめます）。');
-  if (new Set(filled.map(s => s.raw)).size < filled.length) warn.push(jn ? '同じ点棒の人がいます。順位決定戦では、予選の順位が上の人が上位です。' : '同じ点棒の人がいます。順位点を分けています（起家に近い方が多く）。');
+  if (new Set(filled.map(s => s.raw)).size < filled.length) warn.push(jn ? '同じ点棒の人がいます。順位決定戦では、予選の順位が上の人が上位です。' : '同じ点棒の人がいます。順位点を分けています' + (bakime() ? '。' : '（起家に近い方が多く）。'));
   $('qwarn').textContent = warn.join(' ');
 }
 qround.addEventListener('change', () => { QROUND_TOUCHED = true; fillTables(); });
@@ -768,6 +805,7 @@ $('qsend').addEventListener('click', async () => {
   const r = qround.value, t = qtable.value;
   if (!r || !t) { say('qmsg', '半荘と卓を選んでください', false); return; }
   if (isLocked(r)) { say('qmsg', LOCKED_TEXT, false); return; }
+  if (phShown()) { say('qmsg', '組み合わせが決まってから送れます', false); return; }
   autoFill(true); preview();
   const seats = readSeats(), N = seats.length, TOTAL = CFG.start * N;
   if (seats.some(s => !s.p)) { say('qmsg', '全員のプレイヤーを選んでください', false); return; }
@@ -812,10 +850,11 @@ $('qclear').addEventListener('click', async () => {
     EDITING = false; render(j.data); say('qmsg', '取り消しました', true);
   } finally { BTNS().forEach(b => { b.disabled = false; }); fillSeatsButtons(); }
 });
-// ボタンの使える・使えないを、いまの半荘と卓に合わせ直す（送信・取り消しの後）
+// ボタンの使える・使えないを、いまの半荘と卓に合わせ直す（送信・取り消しの後）。枠の番号の仮置きは送れない
+const phShown = () => !!$('seats').querySelector('.nm.ph');
 function fillSeatsButtons() {
   const r = qround.value, t = qtable.value;
-  $('qsend').disabled = isLocked(r); $('qclear').disabled = isLocked(r) || !recOf(r, t);
+  $('qsend').disabled = isLocked(r) || phShown(); $('qclear').disabled = isLocked(r) || !recOf(r, t);
 }
 
 // ---- 表示 ----
@@ -920,9 +959,10 @@ function renderResults() {
       const rec = recs[k], res = tableRes(r, k, rec.raw, rec.p);
       const cap = document.createElement('div'); cap.className = 'small'; cap.textContent = tableLabel(r, k) + '（' + rec.ts + '）'; box.appendChild(cap);
       const tw = document.createElement('div'); tw.className = 'tw'; tw.style.marginBottom = '8px';
-      const tbl = document.createElement('table'); tbl.innerHTML = '<thead><tr><th class="l">席</th><th class="l">プレイヤー</th><th>点棒</th><th>順位</th><th>pt</th></tr></thead>';
+      // 場決めの会は、送った並びが席ではないので「席」の列を出さない
+      const tbl = document.createElement('table'); tbl.innerHTML = '<thead><tr>' + (bakime() ? '' : '<th class="l">席</th>') + '<th class="l">プレイヤー</th><th>点棒</th><th>順位</th><th>pt</th></tr></thead>';
       const tb = document.createElement('tbody');
-      rec.p.forEach((p, i) => { const tr = document.createElement('tr'); cell(tr, WINDS[i] || '', 'l'); cell(tr, dn(p), 'l'); cell(tr, fmt(rec.raw[i]), rec.raw[i] < 0 ? 'neg' : ''); cell(tr, res[i] ? res[i].rank + '位' : ''); cell(tr, res[i] && res[i].pts !== null ? fpt(res[i].pts) : ''); tb.appendChild(tr); });
+      rec.p.forEach((p, i) => { const tr = document.createElement('tr'); if (!bakime()) cell(tr, WINDS[i] || '', 'l'); cell(tr, dn(p), 'l'); cell(tr, fmt(rec.raw[i]), rec.raw[i] < 0 ? 'neg' : ''); cell(tr, res[i] ? res[i].rank + '位' : ''); cell(tr, res[i] && res[i].pts !== null ? fpt(res[i].pts) : ''); tb.appendChild(tr); });
       tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
     });
   });
@@ -945,7 +985,13 @@ async function load() {
   let k = null; const notes = [];
   try { k = await getJson('../' + CONF + 'kumiawase.json'); } catch (e) { k = null; }
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので使っていません。'); k = null; }
-  applyCfg(c, k);
+  // くじの会で組み合わせ表がまだ空（抽せんの前）なら、型（kata.json）を読んで、報告の欄を枠の番号で仮置きする
+  let kt = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') && !(k && Object.keys(k.rounds).length)) {
+    try { kt = await getJson('../' + CONF + 'kata.json'); } catch (e) { kt = null; }
+    if (kt && (kt.kai !== c.kai || kt.date !== c.kuji || !kt.rounds || typeof kt.rounds !== 'object')) kt = null;
+  }
+  applyCfg(c, k, kt);
   $('main').hidden = false;
   if (!API) notes.push('点数の受け口（API）がまだ設定されていません。送信はできません。');
   setup(notes.join(' '));
