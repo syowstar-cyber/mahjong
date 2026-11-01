@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>三麻Halu杯 点数表</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99;--kita:#9a4d00;--kita-bg:#fdf0e3}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.8;-webkit-text-size-adjust:100%}
+a{color:var(--accent);text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 84px}
+header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:10px}
+header h1{font-size:1.35rem;margin:0;line-height:1.4}
+header .sub{color:var(--muted);font-size:.9rem}
+.lead{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.98rem}
+h2{font-size:1.15rem;margin:34px 0 12px;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;position:sticky;top:0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+h3{font-size:1.08rem;margin:24px 0 8px;border-left:5px solid var(--accent);padding-left:10px}
+p{margin:8px 0}
+.tw{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;background:var(--card);font-size:.98rem}
+th,td{border-bottom:1px solid var(--line);padding:10px 10px;text-align:left;vertical-align:middle;line-height:1.55}
+td + td, th + th, th + td{border-left:1px solid var(--line)}
+tr:nth-child(even) td{background:var(--card2)}
+th{background:#ececE8;white-space:nowrap;font-weight:700}
+ul{padding-left:1.5em;margin:8px 0}
+li{margin:5px 0}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:14px 0}
+nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.95rem;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;text-decoration:none}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
+.halu{display:inline-block;color:#fff;background:var(--halu);font-size:.78rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
+.note{font-size:.92rem;color:var(--muted)}
+.ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
+.src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
+/* このページだけの部品。北家の分の半分は --kita の色で示す */
+.k{color:var(--kita);font-weight:700}
+table.how th,table.how td{text-align:center;white-space:nowrap}
+table.how td:first-child{text-align:left}
+table.how td.gone{color:var(--kita);background:var(--kita-bg)!important;white-space:normal;text-align:left;font-size:.92rem}
+table.how tr.sum td{font-weight:700;background:var(--soft)!important}
+table.sc th,table.sc td{text-align:center;white-space:nowrap;padding:7px 5px;line-height:1.35}
+table.sc th small{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+table.sc td b{display:block;font-size:1.05rem}
+table.sc td small{display:block;font-size:.76rem;color:var(--muted);margin-top:2px}
+table.sc td small i{font-style:normal;color:var(--kita);font-weight:700}
+table.sc td.na{color:var(--muted)}
+table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 三麻Halu杯 点数表</h1>
+    <div class="sub">草案（2026-11-01）。3人麻雀・ツモ損なしの点数です。</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">組み合わせ</a><a href="../../score/">点数</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数表</a></nav>
+  <p class="lead">3人麻雀には北家がいません。<span class="halu">Halu杯</span> はツモ損なしなので、いない北家の分を親と子で半分ずつ払います。表の<span class="k">北</span>の字が、足した半分の点です。</p>
+  <nav class="toc" id="toc"></nav>
+  <main id="content">
+
+<h2 id="t1">1. ツモの払い方</h2>
+<p>4人麻雀なら北家が払う分を、残りの2人が半分ずつ足して払います。ロンの点数は、4人麻雀と同じです。</p>
+<h3>子の満貫ツモ（合計8,000点）</h3>
+<div class="tw"><table class="how">
+<thead><tr><th>払う人</th><th>4人麻雀なら</th><th>北の半分</th><th>払う点</th></tr></thead>
+<tbody>
+<tr><td>親</td><td>4,000</td><td class="k">＋1,000</td><td><b>5,000</b></td></tr>
+<tr><td>子</td><td>2,000</td><td class="k">＋1,000</td><td><b>3,000</b></td></tr>
+<tr><td>北家</td><td>2,000</td><td class="gone" colspan="2">いないので、親と子が1,000ずつ払う</td></tr>
+<tr class="sum"><td>合計</td><td>8,000</td><td></td><td>8,000</td></tr>
+</tbody></table></div>
+<p class="note">4人麻雀と同じく、親は子の2人分を払います。そこへ、北家の分の半分を親と子それぞれに足します。</p>
+<h3>親の満貫ツモ（合計12,000点）</h3>
+<div class="tw"><table class="how">
+<thead><tr><th>払う人</th><th>4人麻雀なら</th><th>北の半分</th><th>払う点</th></tr></thead>
+<tbody>
+<tr><td>南家</td><td>4,000</td><td class="k">＋2,000</td><td><b>6,000</b></td></tr>
+<tr><td>西家</td><td>4,000</td><td class="k">＋2,000</td><td><b>6,000</b></td></tr>
+<tr><td>北家</td><td>4,000</td><td class="gone" colspan="2">いないので、子2人が2,000ずつ払う</td></tr>
+<tr class="sum"><td>合計</td><td>12,000</td><td></td><td>12,000</td></tr>
+</tbody></table></div>
+<h3>決まり</h3>
+<ul>
+<li>足した点に100点未満の端数が出たら、100点に切り上げます。</li>
+<li>本場の分は折半しません。ロンは1本300点、ツモは1人100点を足します。</li>
+<li>翻は、ドラも入れたふつうの数です。符の数え方は<a href="rule.html#s10">ルールの10章</a>です。</li>
+</ul>
+<h3>表の見方</h3>
+<div class="ex">大きい数字が払う点です。小さい字は「4人麻雀の点＋<span class="k">北の半分</span>」です。<br>例: 子の30符1翻のツモで、子が払う点 → 300＋<span class="k">北150</span>＝450 → 切り上げて <b>500</b></div>
+
+<h2 id="t2">2. 満貫から上</h2>
+<h3>子のアガリ</h3>
+<div class="tw"><table class="sc"><thead><tr><th></th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>満貫<small>5翻</small></th><td><b>8,000</b></td><td><b>3,000</b><small>2,000＋<i>北1,000</i></small></td><td><b>5,000</b><small>4,000＋<i>北1,000</i></small></td></tr>
+<tr><th>跳満<small>6〜7翻</small></th><td><b>12,000</b></td><td><b>4,500</b><small>3,000＋<i>北1,500</i></small></td><td><b>7,500</b><small>6,000＋<i>北1,500</i></small></td></tr>
+<tr><th>倍満<small>8〜10翻</small></th><td><b>16,000</b></td><td><b>6,000</b><small>4,000＋<i>北2,000</i></small></td><td><b>10,000</b><small>8,000＋<i>北2,000</i></small></td></tr>
+<tr><th>三倍満<small>11翻〜</small></th><td><b>24,000</b></td><td><b>9,000</b><small>6,000＋<i>北3,000</i></small></td><td><b>15,000</b><small>12,000＋<i>北3,000</i></small></td></tr>
+<tr><th>役満</th><td><b>32,000</b></td><td><b>12,000</b><small>8,000＋<i>北4,000</i></small></td><td><b>20,000</b><small>16,000＋<i>北4,000</i></small></td></tr>
+</tbody></table></div>
+<h3>親のアガリ</h3>
+<div class="tw"><table class="sc"><thead><tr><th></th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
+<tr><th>満貫<small>5翻</small></th><td><b>12,000</b></td><td><b>6,000</b><small>4,000＋<i>北2,000</i></small></td></tr>
+<tr><th>跳満<small>6〜7翻</small></th><td><b>18,000</b></td><td><b>9,000</b><small>6,000＋<i>北3,000</i></small></td></tr>
+<tr><th>倍満<small>8〜10翻</small></th><td><b>24,000</b></td><td><b>12,000</b><small>8,000＋<i>北4,000</i></small></td></tr>
+<tr><th>三倍満<small>11翻〜</small></th><td><b>36,000</b></td><td><b>18,000</b><small>12,000＋<i>北6,000</i></small></td></tr>
+<tr><th>役満</th><td><b>48,000</b></td><td><b>24,000</b><small>16,000＋<i>北8,000</i></small></td></tr>
+</tbody></table></div>
+<ul>
+<li>4翻30符から上と、3翻60符から上も満貫です（切り上げ満貫）。</li>
+<li>役満の役以外は、翻を重ねても三倍満までです。ダブル役満は2倍です。</li>
+</ul>
+
+<h2 id="t3">3. 子のアガリ（満貫まで）</h2>
+<h3>1翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>30符</th><td><b>1,000</b></td><td><b>500</b><small>300＋<i>北150</i></small></td><td><b>700</b><small>500＋<i>北150</i></small></td></tr>
+<tr><th>40符</th><td><b>1,300</b></td><td><b>600</b><small>400＋<i>北200</i></small></td><td><b>900</b><small>700＋<i>北200</i></small></td></tr>
+<tr><th>50符</th><td><b>1,600</b></td><td><b>600</b><small>400＋<i>北200</i></small></td><td><b>1,000</b><small>800＋<i>北200</i></small></td></tr>
+<tr><th>60符</th><td><b>2,000</b></td><td><b>800</b><small>500＋<i>北250</i></small></td><td><b>1,300</b><small>1,000＋<i>北250</i></small></td></tr>
+<tr><th>70符</th><td><b>2,300</b></td><td><b>900</b><small>600＋<i>北300</i></small></td><td><b>1,500</b><small>1,200＋<i>北300</i></small></td></tr>
+<tr><th>80符</th><td><b>2,600</b></td><td><b>1,100</b><small>700＋<i>北350</i></small></td><td><b>1,700</b><small>1,300＋<i>北350</i></small></td></tr>
+<tr><th>90符</th><td><b>2,900</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>1,900</b><small>1,500＋<i>北400</i></small></td></tr>
+<tr><th>100符</th><td><b>3,200</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>2,000</b><small>1,600＋<i>北400</i></small></td></tr>
+</tbody></table></div>
+<h3>2翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>600</b><small>400＋<i>北200</i></small></td><td><b>900</b><small>700＋<i>北200</i></small></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>1,600</b></td><td class="na">―</td><td class="na">―</td></tr>
+<tr><th>30符</th><td><b>2,000</b></td><td><b>800</b><small>500＋<i>北250</i></small></td><td><b>1,300</b><small>1,000＋<i>北250</i></small></td></tr>
+<tr><th>40符</th><td><b>2,600</b></td><td><b>1,100</b><small>700＋<i>北350</i></small></td><td><b>1,700</b><small>1,300＋<i>北350</i></small></td></tr>
+<tr><th>50符</th><td><b>3,200</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>2,000</b><small>1,600＋<i>北400</i></small></td></tr>
+<tr><th>60符</th><td><b>3,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td><td><b>2,500</b><small>2,000＋<i>北500</i></small></td></tr>
+<tr><th>70符</th><td><b>4,500</b></td><td><b>1,800</b><small>1,200＋<i>北600</i></small></td><td><b>2,900</b><small>2,300＋<i>北600</i></small></td></tr>
+<tr><th>80符</th><td><b>5,200</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td><td><b>3,300</b><small>2,600＋<i>北650</i></small></td></tr>
+<tr><th>90符</th><td><b>5,800</b></td><td><b>2,300</b><small>1,500＋<i>北750</i></small></td><td><b>3,700</b><small>2,900＋<i>北750</i></small></td></tr>
+<tr><th>100符</th><td><b>6,400</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td><td><b>4,000</b><small>3,200＋<i>北800</i></small></td></tr>
+<tr><th>110符</th><td><b>7,100</b></td><td><b>2,700</b><small>1,800＋<i>北900</i></small></td><td><b>4,500</b><small>3,600＋<i>北900</i></small></td></tr>
+</tbody></table></div>
+<h3>3翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,100</b><small>700＋<i>北350</i></small></td><td><b>1,700</b><small>1,300＋<i>北350</i></small></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>3,200</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td><td><b>2,000</b><small>1,600＋<i>北400</i></small></td></tr>
+<tr><th>30符</th><td><b>3,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td><td><b>2,500</b><small>2,000＋<i>北500</i></small></td></tr>
+<tr><th>40符</th><td><b>5,200</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td><td><b>3,300</b><small>2,600＋<i>北650</i></small></td></tr>
+<tr><th>50符</th><td><b>6,400</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td><td><b>4,000</b><small>3,200＋<i>北800</i></small></td></tr>
+<tr><th>60符〜</th><td class="man" colspan="3">満貫</td></tr>
+</tbody></table></div>
+<h3>4翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td><td><b>3,300</b><small>2,600＋<i>北650</i></small></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>6,400</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td><td><b>4,000</b><small>3,200＋<i>北800</i></small></td></tr>
+<tr><th>30符〜</th><td class="man" colspan="3">満貫</td></tr>
+</tbody></table></div>
+
+<h2 id="t4">4. 親のアガリ（満貫まで）</h2>
+<h3>1翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
+<tr><th>30符</th><td><b>1,500</b></td><td><b>800</b><small>500＋<i>北250</i></small></td></tr>
+<tr><th>40符</th><td><b>2,000</b></td><td><b>1,100</b><small>700＋<i>北350</i></small></td></tr>
+<tr><th>50符</th><td><b>2,400</b></td><td><b>1,200</b><small>800＋<i>北400</i></small></td></tr>
+<tr><th>60符</th><td><b>2,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td></tr>
+<tr><th>70符</th><td><b>3,400</b></td><td><b>1,800</b><small>1,200＋<i>北600</i></small></td></tr>
+<tr><th>80符</th><td><b>3,900</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td></tr>
+<tr><th>90符</th><td><b>4,400</b></td><td><b>2,300</b><small>1,500＋<i>北750</i></small></td></tr>
+<tr><th>100符</th><td><b>4,800</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td></tr>
+</tbody></table></div>
+<h3>2翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,100</b><small>700＋<i>北350</i></small></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>2,400</b></td><td class="na">―</td></tr>
+<tr><th>30符</th><td><b>2,900</b></td><td><b>1,500</b><small>1,000＋<i>北500</i></small></td></tr>
+<tr><th>40符</th><td><b>3,900</b></td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td></tr>
+<tr><th>50符</th><td><b>4,800</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td></tr>
+<tr><th>60符</th><td><b>5,800</b></td><td><b>3,000</b><small>2,000＋<i>北1,000</i></small></td></tr>
+<tr><th>70符</th><td><b>6,800</b></td><td><b>3,500</b><small>2,300＋<i>北1,150</i></small></td></tr>
+<tr><th>80符</th><td><b>7,700</b></td><td><b>3,900</b><small>2,600＋<i>北1,300</i></small></td></tr>
+<tr><th>90符</th><td><b>8,700</b></td><td><b>4,400</b><small>2,900＋<i>北1,450</i></small></td></tr>
+<tr><th>100符</th><td><b>9,600</b></td><td><b>4,800</b><small>3,200＋<i>北1,600</i></small></td></tr>
+<tr><th>110符</th><td><b>10,600</b></td><td><b>5,400</b><small>3,600＋<i>北1,800</i></small></td></tr>
+</tbody></table></div>
+<h3>3翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>2,000</b><small>1,300＋<i>北650</i></small></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>4,800</b></td><td><b>2,400</b><small>1,600＋<i>北800</i></small></td></tr>
+<tr><th>30符</th><td><b>5,800</b></td><td><b>3,000</b><small>2,000＋<i>北1,000</i></small></td></tr>
+<tr><th>40符</th><td><b>7,700</b></td><td><b>3,900</b><small>2,600＋<i>北1,300</i></small></td></tr>
+<tr><th>50符</th><td><b>9,600</b></td><td><b>4,800</b><small>3,200＋<i>北1,600</i></small></td></tr>
+<tr><th>60符〜</th><td class="man" colspan="2">満貫</td></tr>
+</tbody></table></div>
+<h3>4翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>3,900</b><small>2,600＋<i>北1,300</i></small></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>9,600</b></td><td><b>4,800</b><small>3,200＋<i>北1,600</i></small></td></tr>
+<tr><th>30符〜</th><td class="man" colspan="2">満貫</td></tr>
+</tbody></table></div>
+
+<h2 id="t5">5. 本場と申告</h2>
+<ul>
+<li>本場1本につき、ロンは300点を足します。ツモは2人が100点ずつ足します。</li>
+<li>子のツモは「子の払い・親の払い」の順に言います。</li>
+<li>親のツモは「〇〇オール」と言います。</li>
+</ul>
+<div class="ex">例（子の30符3翻ツモ）: 「1,500・2,500」。1本場なら「1,600・2,600」<br>例（親の30符3翻ツモ）: 「3,000オール」。1本場なら「3,100オール」</div>
+
+<p class="src">ツモの払い方は、北家の分を親と子で折半する形です。細かい解釈で迷ったときは、運営が判断します。</p>
+
+  </main>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">組み合わせ</a><a href="../../score/">点数</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数表</a></nav>
+  <a class="top" href="#" title="上へ">↑</a>
+</div>
+<script>
+// 普段の回（Halu杯・3麻）の点数表。点数は表に書き込み済み（ツモ損なし＝北家の分を折半）で、題名と色だけ同じフォルダの taikai.json から読む
+const $ = id => document.getElementById(id);
+document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
+fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
+  if (!c) return;
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
+  if (c.title) { document.title = c.title + ' 点数表'; $('ttl').textContent = '🀄 ' + c.title + ' 点数表'; }
+}).catch(() => {});
+</script>
+</body>
+</html>

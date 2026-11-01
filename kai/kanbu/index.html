@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>幹部用</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ok-bg:#e6f3ea;--ng:#b00020}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
+button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.98rem;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{background:#ececE8;font-weight:700;white-space:nowrap}
+td:first-child{white-space:nowrap;width:5.5em}
+tr:nth-child(even) td{background:var(--card2)}
+tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 4px}
+.small{color:var(--muted);font-size:.9rem}
+.hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+.big{font-size:1.25rem;font-weight:700;margin:2px 0 8px}
+.att{display:flex;align-items:center;gap:14px;padding:12px 6px;border-bottom:1px solid var(--line);font-size:1.12rem;cursor:pointer}
+.att:last-child{border-bottom:0}
+.att input{width:28px;height:28px;flex:none;accent-color:var(--ok)}
+.att.here{background:var(--ok-bg);color:var(--ok);font-weight:700}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 幹部用</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>組み合わせ</a><a href="../score/" data-g>点数</a><a class="rule" href="#" hidden>ルール</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <h2>時間割</h2>
+  <div class="tw"><table id="sched"></table></div>
+  <p class="small" id="schednote"></p>
+
+  <h2>出席確認</h2>
+  <div class="card">
+    <div class="big" id="count"></div>
+    <div id="attend"></div>
+  </div>
+  <div class="tools">
+    <button class="ghost" type="button" id="reload">名前を読み直す</button>
+    <button class="ghost" type="button" id="clear">チェックを全部外す</button>
+  </div>
+  <p class="small">チェックはこの端末だけに残ります。ほかの人の端末とは共有しません。</p>
+  <h3>まだ来ていない人</h3>
+  <p id="notyet"></p>
+  <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を伝えます。push してから1〜2分でページに出ます。</p>
+
+  <h2>この回の設定</h2>
+  <div class="tw"><table id="cfg"></table></div>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>組み合わせ</a><a href="../score/" data-g>点数</a><a class="rule" href="#" hidden>ルール</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+</div>
+
+<script>
+// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から時間割（schedule）と設定を出し、受け口からは名前（名簿）を読むだけ（何も送らない）。
+// 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない
+const $ = id => document.getElementById(id);
+const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
+const T_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+// 会（g）。URL の ?g=（付けなければ halu）。設定は kai/g/<会>/ に置く
+const G = new URLSearchParams(location.search).get('g') || 'halu';
+const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
+const CONF = '../g/' + G + '/';
+document.querySelectorAll('.pnav a[data-g]').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+let CFG = null, ROSTER = {}, HERE = new Set();
+const fmt = n => Number(n).toLocaleString('ja-JP');
+const dnf = p => p + (ROSTER[p] ? ' ' + ROSTER[p] : '');
+const mins = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function applyTheme(c) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(c.color || '')) return;
+  document.documentElement.style.setProperty('--accent', c.color);
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', c.color);
+}
+function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+
+// ---- 時間割（taikai.json の schedule＝[["10:45","集合・受付"], …]）。開催日の当日は、いまの行に色をつける ----
+function renderSched() {
+  const t = $('sched'); t.innerHTML = '';
+  const s = Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
+  if (!s.length) { $('schednote').textContent = '時間割は、まだ大会設定にありません。'; return; }
+  const isToday = CFG.date === today();
+  let cur = -1;
+  if (isToday) { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); s.forEach((r, i) => { if (mins(r[0]) <= now) cur = i; }); }
+  t.innerHTML = '<thead><tr><th>時刻</th><th>内容</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  s.forEach((r, i) => {
+    const tr = document.createElement('tr'); if (i === cur) tr.className = 'now';
+    [r[0], r[1] + (i === cur ? '（いま）' : '')].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
+}
+
+// ---- 出席確認（P1〜P人数。チェックは端末の中に回ごとに置く） ----
+const key = () => 'halukai:attend:' + CFG.kai;
+function loadHere() {
+  try { const a = JSON.parse(localStorage.getItem(key()) || '[]'); HERE = new Set(Array.isArray(a) ? a.filter(p => /^P\d{1,2}$/.test(p)) : []); }
+  catch (e) { HERE = new Set(); }
+}
+function saveHere() { try { localStorage.setItem(key(), JSON.stringify([...HERE])); } catch (e) {} }
+const people = () => Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1));
+function summary() {
+  const ps = people(), rest = ps.filter(p => !HERE.has(p));
+  $('count').textContent = '来た人 ' + (ps.length - rest.length) + ' / ' + ps.length + '人';
+  $('notyet').textContent = rest.length ? rest.map(dnf).join('・') : '全員そろいました。';
+}
+function renderAttend() {
+  const box = $('attend'); box.innerHTML = '';
+  people().forEach(p => {
+    const lab = document.createElement('label'); lab.className = 'att' + (HERE.has(p) ? ' here' : '');
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = HERE.has(p);
+    cb.addEventListener('change', () => { if (cb.checked) HERE.add(p); else HERE.delete(p); lab.classList.toggle('here', cb.checked); saveHere(); summary(); });
+    const sp = document.createElement('span'); sp.textContent = dnf(p);
+    lab.appendChild(cb); lab.appendChild(sp); box.appendChild(lab);
+  });
+  summary();
+}
+
+// ---- この回の設定 ----
+function renderCfg() {
+  const c = CFG, n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
+  const rows = [
+    ['開催日', c.date || '―'],
+    ['種類', c.mode + '麻'],
+    ['人数', c.players + '人'],
+    ['予選', c.prelim + '半荘'],
+    ['決勝', n ? '予選の上位' + n + '人・' + c.final.hanchan + '半荘' : 'なし'],
+    ['持ち点', Number.isInteger(c.start) && Number.isInteger(c.return) ? fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し' : '―'],
+    ['回の名前', c.kai],
+  ];
+  const t = $('cfg'); t.innerHTML = '';
+  const tb = document.createElement('tbody');
+  rows.forEach(r => { const tr = document.createElement('tr'); r.forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tb.appendChild(tr); });
+  t.appendChild(tb);
+}
+
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+async function load() {
+  if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
+  let c;
+  try { c = await getJson(CONF + 'taikai.json'); }
+  catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。少し待ってから開き直してください。'); return; }
+  if (!c || !KAI_RE.test(String(c.kai || '')) || !Number.isInteger(c.players) || c.players < 3 || c.players > 99) { setup('大会設定（taikai.json）の書き方が違います。'); $('main').hidden = true; return; }
+  CFG = c;
+  applyTheme(c);
+  document.title = (c.title || '') + ' 幹部用';
+  $('ttl').textContent = '🀄 ' + (c.title || '') + ' 幹部用';
+  $('sub').textContent = [c.date, c.mode + '麻', c.players + '人'].filter(Boolean).join('・');
+  // ルールのページ（taikai.json の rule。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+  const rule = /^[a-z0-9-]{1,30}\.html$/.test(c.rule || '') ? CONF + c.rule : '';
+  document.querySelectorAll('.pnav a.rule').forEach(a => { a.hidden = !rule; if (rule) a.setAttribute('href', rule); });
+  const notes = [];
+  const api = String(c.api || '').trim();
+  if (api) {
+    try { const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai)); if (j.ok && j.data && j.data.kai === c.kai) ROSTER = j.data.roster || {}; }
+    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); }
+  }
+  setup(notes.join(' '));
+  loadHere();
+  $('main').hidden = false;
+  renderSched(); renderAttend(); renderCfg();
+}
+$('reload').addEventListener('click', load);
+$('clear').addEventListener('click', () => {
+  if (!CFG || !confirm('出席のチェックを全部外しますか？')) return;
+  HERE.clear(); saveHere(); renderAttend();
+});
+load();
+// 当日は、いまの行の色を1分ごとに動かす
+setInterval(() => { if (CFG) renderSched(); }, 60000);
+</script>
+<a class="top" href="#" title="上へ">↑</a>
+</body>
+</html>

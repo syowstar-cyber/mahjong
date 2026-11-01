@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>三麻Halu杯 ルール</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99;--halu-bg:#e8f0fa;--san:#1d6b4f;--san-bg:#e7f4ee;--ok:#146c2e;--ng:#b00020}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.8;-webkit-text-size-adjust:100%}
+a{color:var(--accent);text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 84px}
+header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:10px}
+header h1{font-size:1.35rem;margin:0;line-height:1.4}
+header .sub{color:var(--muted);font-size:.9rem}
+.lead{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.98rem}
+h2{font-size:1.15rem;margin:34px 0 12px;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;position:sticky;top:0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+h3{font-size:1.08rem;margin:24px 0 8px;border-left:5px solid var(--accent);padding-left:10px}
+p{margin:8px 0}
+strong{color:var(--accent);font-weight:700}
+.tw{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;background:var(--card);font-size:.98rem}
+th,td{border-bottom:1px solid var(--line);padding:10px 10px;text-align:left;vertical-align:top;line-height:1.55}
+td + td, th + th, th + td{border-left:1px solid var(--line)}
+td:first-child,th:first-child{white-space:nowrap}
+tr:nth-child(even) td{background:var(--card2)}
+th{background:#ececE8;white-space:nowrap;font-weight:700}
+ul,ol{padding-left:1.5em;margin:8px 0}
+li{margin:5px 0}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:14px 0}
+nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.95rem;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;text-decoration:none}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+/* このページだけの部品 */
+.halu,.san{display:inline-block;color:#fff;font-size:.78rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
+.halu{background:var(--halu)}
+.san{background:var(--san)}
+.hbox,.sbox{border:2px solid;border-radius:10px;padding:10px 12px;margin:12px 0}
+.hbox{background:var(--halu-bg);border-color:var(--halu)}
+.sbox{background:var(--san-bg);border-color:var(--san)}
+.hbox h3{border-left-color:var(--halu);margin-top:12px}
+.sbox h3{border-left-color:var(--san);margin-top:12px}
+.hbox h3:first-child,.sbox h3:first-child{margin-top:4px}
+.yes{color:var(--ok);font-weight:700}
+.no{color:var(--ng);font-weight:700}
+.note{font-size:.92rem;color:var(--muted)}
+.ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
+@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
+td.c{text-align:center;white-space:nowrap}
+table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-width:5em}
+.src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 三麻Halu杯 ルール</h1>
+    <div class="sub">草案（2026-11-01）。3人麻雀のルールです。</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">組み合わせ</a><a href="../../score/">点数</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数表</a></nav>
+  <p class="lead">一般的な3人麻雀のやり方と、一般的な競技ルールを合わせたルールです。<span class="san">3麻</span> の印は3人麻雀だけの決まり、<span class="halu">Halu杯</span> の印は本大会だけの決まりです。まず「1. 早見表」を見てください。</p>
+  <nav class="toc" id="toc"></nav>
+  <main id="content">
+
+<h2 id="s1">1. 早見表</h2>
+<p>よく聞かれる「ありなし」の一覧です。</p>
+<div class="tw"><table>
+<thead><tr><th>項目</th><th>本大会</th></tr></thead>
+<tbody>
+<tr><td>人数と牌</td><td><span class="san">3麻</span> 3人で打つ。2萬〜8萬を抜いた108枚</td></tr>
+<tr><td>持ち点</td><td id="q-start">回ごとに決めます（点数ページの「ポイントの計算」）</td></tr>
+<tr><td>進め方</td><td id="q-flow">予選の上位が決勝に進みます（半荘数は組み合わせページ）</td></tr>
+<tr><td>北</td><td><span class="halu">Halu杯</span> 抜きドラ<span class="no">なし</span>　ふつうの字牌として使う（役牌ではない）</td></tr>
+<tr><td>チー</td><td><span class="san">3麻</span> <span class="no">なし</span>　ポンとカンはできる</td></tr>
+<tr><td>ツモ損</td><td><span class="halu">Halu杯</span> <span class="no">なし</span>　いない北家の分を、残りの2人で折半して払う（<a href="tensu.html">点数表</a>）</td></tr>
+<tr><td>赤ドラ</td><td><span class="yes">あり</span>　5筒・5索が1枚ずつ</td></tr>
+<tr><td>喰いタン</td><td><span class="yes">あり</span>　鳴いても断么九（タンヤオ）がつく</td></tr>
+<tr><td>後付け</td><td><span class="yes">あり</span>　アガった時に役が1つあればよい</td></tr>
+<tr><td class="yk">一発（イッパツ）・裏ドラ</td><td><span class="yes">あり</span></td></tr>
+<tr><td>槓ドラ・槓裏</td><td><span class="yes">あり</span>　槓ドラはカンした時点ですぐめくる</td></tr>
+<tr><td>途中流局</td><td><span class="no">なし</span>　九種九牌・四開槓でも続ける</td></tr>
+<tr><td class="yk">流し満貫（ナガシマンガン）</td><td><span class="no">なし</span></td></tr>
+<tr><td class="yk">人和（レンホー）</td><td><span class="no">なし</span></td></tr>
+<tr><td>ダブロン</td><td><span class="no">なし</span>　頭ハネ（放銃者の下家が優先）</td></tr>
+<tr><td>トビ終了</td><td><span class="no">なし</span>　マイナスでも最後まで打つ</td></tr>
+<tr><td>数え役満</td><td><span class="no">なし</span>　役を重ねても三倍満まで</td></tr>
+<tr><td>ダブル役満</td><td>違う役満が2つ重なった時だけ<br><span class="note">四暗刻単騎・国士13面待ちなどは役満1つ</span></td></tr>
+<tr><td>切り上げ満貫</td><td><span class="yes">あり</span>　30符4翻・60符3翻は満貫</td></tr>
+<tr><td>食い替え</td><td><span class="no">禁止</span>　するとアガリ放棄</td></tr>
+<tr><td>連荘</td><td>親のアガリか聴牌で連荘<br><span class="note">南3局の親もアガリやめ・テンパイやめはできない</span></td></tr>
+<tr><td>西入（延長）</td><td><span class="no">なし</span>　南3局で終わり</td></tr>
+<tr><td>ノーテン罰符</td><td>場に3,000点</td></tr>
+<tr><td>本場</td><td>1本につき300点（ツモは1人100点）</td></tr>
+<tr><td>チョンボ</td><td><span class="halu">Halu杯</span> 局は続ける（チョンボした人はアガリ放棄）。流局したら満貫払い（子8,000点・親12,000点）。誰かがアガれば罰なし</td></tr>
+<tr><td>場決め</td><td><span class="halu">Halu杯</span> <span class="yes">あり</span>　半荘ごとに牌を引いて席を決める。起家はサイコロで決める（予選・決勝とも）</td></tr>
+<tr><td>時間制限</td><td><span class="halu">Halu杯</span> 予選40分・決勝なし</td></tr>
+</tbody></table></div>
+
+<h2 id="s2">2. 3人麻雀の決まり</h2>
+<div class="sbox">
+<h3>牌と席</h3>
+<ul>
+<li>2萬〜8萬は使いません。萬子は1萬と9萬だけです。</li>
+<li>筒子・索子・字牌は、4人麻雀と同じです。</li>
+<li>席は東家・南家・西家の3人です。北家はいません。</li>
+<li>東場・南場とも3局ずつです（東1〜東3局・南1〜南3局）。</li>
+<li>ドラ表示牌が1萬ならドラは9萬、9萬ならドラは1萬です。</li>
+</ul>
+
+<h3>チーはなし</h3>
+<ul>
+<li>チーはできません。ポンとカンはできます。</li>
+<li>鳴いた牌は、取った相手が座っている方向（左・向かい・右）に向けて置きます（6章）。</li>
+</ul>
+
+<h3>北はふつうの字牌（抜きドラなし）</h3>
+<ul>
+<li><span class="halu">Halu杯</span> 北は抜きドラにしません。ほかの字牌と同じように使います。</li>
+<li>北は役牌になりません（場風は東か南、自風は東・南・西です）。</li>
+<li>ドラ表示牌が西のときは、北がドラです。</li>
+</ul>
+
+<h3>ツモ損なし（北家の分を折半）</h3>
+<ul>
+<li><span class="halu">Halu杯</span> ツモアガリでも、ロンより少なくなりません。</li>
+<li>4人麻雀なら北家が払う分を、残りの2人が半分ずつ足して払います。100点未満は切り上げます。</li>
+<li>1人が払う点は、<a href="tensu.html">点数表のページ</a>にあります。ロンの点数は、4人麻雀と同じです。</li>
+<li>本場の分だけは折半しません（ロン300点、ツモは1人100点）。</li>
+</ul>
+<div class="ex">例: 子の満貫ツモ → 親が5,000点・子が3,000点（合計8,000点）<br>例: 親の満貫ツモ → 子2人が6,000点ずつ（合計12,000点）</div>
+
+<h3>ノーテン罰符（場に3,000点）</h3>
+<div class="tw"><table>
+<thead><tr><th>聴牌の人数</th><th>払う・もらう</th></tr></thead>
+<tbody>
+<tr><td>1人</td><td>ノーテン2人が1,500点ずつ払い、聴牌者が3,000点もらう</td></tr>
+<tr><td>2人</td><td>ノーテン1人が3,000点払い、聴牌者が1,500点ずつもらう</td></tr>
+<tr><td>0人・3人</td><td>やり取りなし</td></tr>
+</tbody></table></div>
+
+<h3>3人麻雀でできない役</h3>
+<ul>
+<li>三色同順はできません（萬子の順子が作れないため）。</li>
+<li>一気通貫・清一色・九蓮宝燈は、筒子か索子だけです。</li>
+<li>三色同刻は、1か9の刻子だけです。</li>
+<li>断么九は、筒子・索子の2〜8だけで作ります。</li>
+<li>国士無双・小四喜・大四喜には北が要ります。</li>
+</ul>
+
+<h3>頭ハネ</h3>
+<p>1つの牌に2人がロンしたら、放銃者の下家だけがアガれます。</p>
+</div>
+
+<h2 id="s3">3. Halu杯だけの決まり</h2>
+<div class="hbox">
+<h3>チョンボは流局したら満貫払い</h3>
+<p>チョンボがあっても、その局は最後まで続けます。チョンボした人は、その局の終わりまでアガリ放棄です（14章）。山を壊すなどして続けられなくなったら、その場で流局にします。</p>
+<div class="tw"><table>
+<thead><tr><th>局の終わり方</th><th>扱い</th></tr></thead>
+<tbody>
+<tr><td>誰かがアガった</td><td>ふつうのアガリと同じです。チョンボの罰（満貫払い）はありません</td></tr>
+<tr><td>流局した</td><td>チョンボした人が満貫払いをします（下の表）。聴牌・ノーテンの点棒のやり取りはしません</td></tr>
+</tbody></table></div>
+<p>満貫払いは、満貫ツモと同じ払い方です。</p>
+<div class="tw"><table>
+<thead><tr><th>チョンボした人</th><th>払い方</th><th>合計</th></tr></thead>
+<tbody>
+<tr><td>子</td><td>親に5,000点、子に3,000点</td><td>8,000点</td></tr>
+<tr><td>親</td><td>子2人に6,000点ずつ</td><td>12,000点</td></tr>
+</tbody></table></div>
+<ul>
+<li>流局した後の親は、ふつうの流局と同じです（親が聴牌なら連荘）。親がチョンボした時は、親が移ります。</li>
+<li>聴牌は宣言しますが、点棒のやり取りはしません。半荘が続くときは、本場を1本積みます。</li>
+<li>リーチ棒はふつうと同じです。アガった人がもらい、流局なら供託として場に残ります。</li>
+</ul>
+
+<h3>場決めあり・起家はサイコロ</h3>
+<ul>
+<li>予選も決勝も、半荘ごとに牌を引いて席を決めます。</li>
+<li>使う牌は、3人卓が東・南・西と白、4人卓が東・南・西・北と白です。</li>
+<li>白を引いた人の席が東です。白を引いた人と、東を引いた人が両方いるときの扱いは確認中です。</li>
+<li>席が決まったら、東の席の人がサイコロを2個振って起家を決めます。</li>
+<li>3人卓では、出た目を自分から反時計回りに数えます。1・4・7・10は自分、2・5・8・11は下家、3・6・9・12は上家が起家です。</li>
+<li>組み合わせ表は、同じ卓で打つ人を示すだけです。表の並び順は、席ではありません。</li>
+</ul>
+
+<h3>時間制限</h3>
+<ul>
+<li>予選は40分です。決勝は時間制限なしです。</li>
+<li>規定時間が来た局で終わります。その局は最後まで打ちます。</li>
+<li>終わった時の持ち点で順位を決めます。</li>
+<li>場に残ったリーチ棒は、終わった時のトップが取ります。</li>
+</ul>
+
+<h3>予選と決勝</h3>
+<ul>
+<li>予選は、組み合わせ表のとおりに打ちます。抜け番の半荘は0ポイントです。</li>
+<li id="q-final">予選の合計ポイントの上位が、決勝に進みます。</li>
+<li>決勝の順位は、決勝のポイントの合計で決めます。予選のポイントは足しません。</li>
+<li>決勝の合計が同点なら、予選の順位が上の人が上位です。</li>
+<li>決勝に出なかった人の順位は、予選の順位のとおりです。</li>
+<li>予選の合計が同点で、決勝に進む人が決まらないときは、運営が決めます。</li>
+</ul>
+
+<h3>点数の報告</h3>
+<ul>
+<li>半荘が終わったら、卓の代表が <a href="../../score/">点数ページ</a> に3人の点棒を入れます。</li>
+<li>点数ページでは、起家を「東」、その下家を「南」、残りの人を「西」にして入れます。</li>
+<li>マイナスの点棒も、そのまま入れてください。</li>
+<li>チョンボの満貫払いは、流局した時に点棒で払います。払った後の点棒を入れます。</li>
+<li>ポイントは自動で計算されます。計算のしかたは「12. 順位点とポイント」です。</li>
+</ul>
+</div>
+
+<h2 id="s4">4. 1局の流れ</h2>
+<h3>親と局の進み方</h3>
+<ul>
+<li>半荘は東場と南場の2周です。どちらも3局ずつです。</li>
+<li>親は起家から順に、下家（次の番の人）へ移ります。</li>
+<li>1局は、アガリか流局で終わります（<span class="halu">Halu杯</span> チョンボがあっても局は続ける。3章）。</li>
+<li>洗牌（牌をかき混ぜること）はしません。局が終わったら、すぐ牌を卓の中へ流します。</li>
+</ul>
+
+<h3>流局と聴牌</h3>
+<ul>
+<li>最後の牌までアガリがなければ流局です。途中で流局することはありません。</li>
+<li>聴牌の宣言は、東家・南家・西家の順です。手牌を開けて見せます。</li>
+<li>役がなくても、形が聴牌なら聴牌と認めます（形式聴牌）。</li>
+<li>聴牌していても「ノーテン」と言って伏せてかまいません。</li>
+<li>自分の手牌と鳴いた牌だけでアガリ牌を4枚使っている待ちは、聴牌と認めません。</li>
+<li>ノーテン罰符は、2章の表のとおりです（場に3,000点）。</li>
+</ul>
+
+<h3>連荘と本場</h3>
+<ul>
+<li>親がアガるか、親が聴牌で流局すると連荘です。</li>
+<li>南3局の親（ラス親）も、アガリやめ・テンパイやめはできません。</li>
+<li>流局して親が移る時は、本場を1本積みます。</li>
+<li>本場1本につき、ロンは300点を足します。ツモは1人100点ずつ足します。</li>
+<li>子がアガると、本場は0本に戻ります。</li>
+<li>本場は卓の表示だけで数えます。百点棒は出しません。</li>
+</ul>
+
+<h3>海底と河底</h3>
+<ul>
+<li>海底牌（最後にツモる牌）を引いた人は、カンとリーチができません。</li>
+<li>海底牌を引いてアガらなければ、1枚捨てます。これが河底牌です。</li>
+<li>河底牌は、ポン・カンできません。ロンはできます。</li>
+</ul>
+
+<h2 id="s5">5. リーチ</h2>
+<ul>
+<li>門前（鳴いていない）なら、リーチをかけられます。</li>
+<li>「リーチ」と言って、捨て牌を横に向け、千点棒を1本出します。</li>
+<li>リーチの宣言牌でロンされなければ、リーチ成立です。</li>
+<li>フリテンでもリーチできます。ツモ番が残っていなくてもリーチできます。</li>
+<li>宣言牌がポン・カンされたら、次の捨て牌を横に向けます。</li>
+<li>リーチ後にアガリ牌を見逃してもかまいません。その後はフリテンになり、ツモでしかアガれません。</li>
+<li>リーチ後の暗槓は、手の形（面子の組み合わせ）が変わらない時だけできます。</li>
+</ul>
+<h3>取り消しとリーチ棒</h3>
+<ul>
+<li>「リーチ」と言っても、牌を捨てる前なら取り消せます。ただし、その局はアガリ放棄です。</li>
+<li>牌を捨てた後は取り消せません。</li>
+<li>リーチ棒は、その後にアガった人が取ります。</li>
+<li>最後の局が流局で終わったら、場のリーチ棒はトップが取ります。</li>
+<li>聴牌していないリーチ（ノーテンリーチ）はチョンボです。</li>
+</ul>
+
+<h2 id="s6">6. 鳴き（ポン・カン）</h2>
+<h3>どれが優先か</h3>
+<p>同時に声がかかったら、<b>ロン → ポン・カン</b> の順に優先します。</p>
+<ul>
+<li>通らなかった鳴きは、罰則になりません。</li>
+</ul>
+
+<h3>ポン</h3>
+<ul>
+<li>誰の捨て牌でもポンできます。</li>
+<li>取った牌を横に向けて置きます。向きで、取った相手が座っている方向を示します。</li>
+</ul>
+<div class="tw"><table>
+<thead><tr><th>取った相手の席</th><th>ポン</th><th>大明槓</th></tr></thead>
+<tbody>
+<tr><td>左</td><td>左端を横に</td><td>左端を横に</td></tr>
+<tr><td>向かい</td><td>真ん中を横に</td><td>左から2番目を横に</td></tr>
+<tr><td>右</td><td>右端を横に</td><td>右端を横に</td></tr>
+</tbody></table></div>
+
+<h3>食い替えは禁止</h3>
+<p>ポンした直後に、ポンした牌と同じ牌を捨てることです。するとアガリ放棄になります。</p>
+<div class="ex">例: 手に5筒が3枚あり、5筒をポンして、残りの5筒を捨てる → 食い替え</div>
+
+<h3>カン</h3>
+<div class="tw"><table>
+<thead><tr><th>種類</th><th>やり方</th></tr></thead>
+<tbody>
+<tr><td class="yk">暗槓（アンカン）</td><td>ツモの後、手の中の4枚を見せる。両端（または内側2枚）を伏せて右に出す</td></tr>
+<tr><td class="yk">加槓（カカン）</td><td>ツモの後、ポンした3枚に4枚目を重ねる</td></tr>
+<tr><td class="yk">大明槓（ダイミンカン）</td><td>人の捨て牌で、手の中の3枚と合わせて4枚にする</td></tr>
+</tbody></table></div>
+<ul>
+<li>カンをしたら、王牌の最後から嶺上牌を1枚ツモります。</li>
+<li>槓ドラは、カンした時点ですぐにめくります（暗槓も明槓も同じ）。</li>
+<li>1局のカンは、全員合わせて4回までです。</li>
+<li>加槓の牌でロンされたら（搶槓）、そのカンはなかったことになり、槓ドラもめくりません。</li>
+<li>暗槓の牌では、どんな手でも搶槓できません（国士無双でも不可）。</li>
+</ul>
+
+<h3>鳴いた牌の置き場所</h3>
+<ul>
+<li>鳴いた牌は自分の右側に置きます。複数あれば、手前から奥へ鳴いた順に並べます。暗槓も同じ場所です。</li>
+</ul>
+
+<h2 id="s7">7. アガリとフリテン</h2>
+<h3>アガリの形</h3>
+<ul>
+<li>4面子＋1雀頭、七対子、国士無双の3つです。</li>
+<li>役が1つ以上ないとアガれません（一翻縛り）。</li>
+<li>ツモなら「ツモ」、ロンなら「ロン」と言って手牌を開けます。</li>
+<li>ツモの時は、まずアガリ牌を見せてから手牌を開けます。</li>
+<li>嶺上牌でのアガリは、すべてツモアガリです。</li>
+<li>アガリの確認が終わるまで、手牌・捨て牌・山を崩さないでください。</li>
+</ul>
+
+<h3>頭ハネ（ダブロンなし）</h3>
+<p>1つの牌に2人がロンしたら、放銃者の下家だけがアガれます。</p>
+
+<h3>フリテン</h3>
+<p>フリテンの時は、ツモでしかアガれません。</p>
+<div class="tw"><table>
+<thead><tr><th>種類</th><th>どんな時</th><th>いつ解ける</th></tr></thead>
+<tbody>
+<tr><td>捨て牌</td><td>自分の捨て牌にアガリ牌がある</td><td>待ちが変わるまで</td></tr>
+<tr><td>同巡内</td><td>アガリ牌が出たのにロンしなかった</td><td>自分がツモって捨てた時</td></tr>
+<tr><td>リーチ後</td><td>リーチ後にアガリ牌を見逃した</td><td>その局の終わりまで解けない</td></tr>
+</tbody></table></div>
+
+<h3>役の重なり</h3>
+<ul>
+<li>一緒に成り立つ役は、すべて重ねて数えます。</li>
+<li>嶺上開花と海底摸月は重なりません。</li>
+</ul>
+
+<h2 id="s8">8. ドラ</h2>
+<div class="tw"><table>
+<thead><tr><th>種類</th><th>決め方</th></tr></thead>
+<tbody>
+<tr><td>表ドラ</td><td>ドラ表示牌の次の牌。萬子は 1萬→9萬→1萬。字牌は 東→南→西→北→東、白→発→中→白 の順</td></tr>
+<tr><td>槓ドラ</td><td>カンのたびに、表示牌を1枚ずつ増やす</td></tr>
+<tr><td>裏ドラ</td><td>リーチした人のアガリだけ。表示牌の下の牌で見る。槓ドラの下も見る</td></tr>
+<tr><td>赤ドラ</td><td>赤い5筒・5索が1枚ずつ</td></tr>
+</tbody></table></div>
+<ul>
+<li>ドラは1枚につき1翻です。</li>
+<li>ドラは役ではありません。ドラだけではアガれません。</li>
+</ul>
+
+<h2 id="s9">9. 役の一覧</h2>
+<p><b>門前</b>＝鳴くとつかない役。<b>喰い下がり</b>＝鳴くと1翻下がる役です。3人麻雀でできない役は2章です。</p>
+<h3>1翻</h3>
+<div class="tw"><table>
+<thead><tr><th>役</th><th>条件</th></tr></thead>
+<tbody>
+<tr><td class="yk">立直（リーチ）</td><td>門前。上の5章</td></tr>
+<tr><td class="yk">一発（イッパツ）</td><td>門前。リーチから1巡以内にアガる</td></tr>
+<tr><td class="yk">門前清自摸和（メンゼンツモ）</td><td>門前でツモアガリ</td></tr>
+<tr><td class="yk">平和（ピンフ）</td><td>門前。4面子すべて順子・雀頭が役牌でない・両面待ち</td></tr>
+<tr><td class="yk">断么九（タンヤオ）</td><td>筒子・索子の2〜8だけで作る。鳴いてもよい</td></tr>
+<tr><td class="yk">一盃口（イーペーコー）</td><td>門前。同じ順子を2組</td></tr>
+<tr><td class="yk">役牌（ヤクハイ）</td><td>三元牌・場風・自風の刻子（1つにつき1翻）。北は役牌でない</td></tr>
+<tr><td class="yk">海底摸月（ハイテイモーユエ）</td><td>最後の牌でツモアガリ</td></tr>
+<tr><td class="yk">河底撈魚（ホウテイラオユイ）</td><td>最後の捨て牌でロン</td></tr>
+<tr><td class="yk">嶺上開花（リンシャンカイホウ）</td><td>カンの後の嶺上牌でツモアガリ</td></tr>
+<tr><td class="yk">搶槓（チャンカン）</td><td>人の加槓の牌でロン</td></tr>
+</tbody></table></div>
+<ul class="note">
+<li>平和のツモは、ツモの符をつけず20符です。門前清自摸和とも重なります。</li>
+<li>一発の権利がある時に搶槓でアガると、一発と搶槓が重なります。槓ドラはのりません。</li>
+</ul>
+
+<h3>2翻</h3>
+<div class="tw"><table>
+<thead><tr><th>役</th><th>条件</th></tr></thead>
+<tbody>
+<tr><td class="yk">ダブル立直（ダブルリーチ）</td><td>門前。最初の捨て牌でリーチ（それまでに鳴きがない）</td></tr>
+<tr><td class="yk">七対子（チートイツ）</td><td>門前。7種類の対子。25符で計算</td></tr>
+<tr><td class="yk">一気通貫（イッキツウカン）</td><td>筒子か索子で123・456・789。喰い下がり1翻</td></tr>
+<tr><td class="yk">全帯么九（チャンタ）</td><td>全部の面子と雀頭に1・9・字牌が入る。喰い下がり1翻</td></tr>
+<tr><td class="yk">対々和（トイトイホー）</td><td>4面子すべて刻子</td></tr>
+<tr><td class="yk">三暗刻（サンアンコー）</td><td>暗刻が3つ</td></tr>
+<tr><td class="yk">三色同刻（サンショクドウコー）</td><td>萬・筒・索で同じ数の刻子（1か9だけ）</td></tr>
+<tr><td class="yk">三槓子（サンカンツ）</td><td>カンが3つ</td></tr>
+<tr><td class="yk">小三元（ショウサンゲン）</td><td>三元牌の2つが刻子、1つが雀頭</td></tr>
+<tr><td class="yk">混老頭（ホンロウトウ）</td><td>1・9・字牌だけで作る</td></tr>
+<tr><td class="yk">連風牌（ダブトン・ダブナン）</td><td>場風と自風が同じ牌の刻子（東場の東家の東・南場の南家の南）</td></tr>
+</tbody></table></div>
+
+<h3>3翻・6翻</h3>
+<div class="tw"><table>
+<thead><tr><th>役</th><th>翻</th><th>条件</th></tr></thead>
+<tbody>
+<tr><td class="yk">二盃口（リャンペーコー）</td><td class="c">3</td><td>門前。一盃口を2組</td></tr>
+<tr><td class="yk">混一色（ホンイツ）</td><td class="c">3</td><td>1色の数牌＋字牌だけ。喰い下がり2翻</td></tr>
+<tr><td class="yk">純全帯么九（ジュンチャン）</td><td class="c">3</td><td>全部の面子と雀頭に1・9が入る（字牌なし）。喰い下がり2翻</td></tr>
+<tr><td class="yk">清一色（チンイツ）</td><td class="c">6</td><td>筒子か索子の1色の数牌だけ。喰い下がり5翻</td></tr>
+</tbody></table></div>
+
+<h3>役満</h3>
+<div class="tw"><table>
+<thead><tr><th>役</th><th>条件</th></tr></thead>
+<tbody>
+<tr><td class="yk">天和（テンホー）</td><td>親の配牌でアガリ</td></tr>
+<tr><td class="yk">地和（チーホー）</td><td>子の最初のツモでアガリ（それまでに鳴きがない）</td></tr>
+<tr><td class="yk">国士無双（コクシムソウ）</td><td>門前。1・9・字牌13種＋どれか1枚（北も要る）</td></tr>
+<tr><td class="yk">四暗刻（スーアンコー）</td><td>門前。暗刻が4つ</td></tr>
+<tr><td class="yk">大三元（ダイサンゲン）</td><td>三元牌3つとも刻子</td></tr>
+<tr><td class="yk">小四喜（ショウスーシー）</td><td>風牌の3つが刻子、1つが雀頭（北も要る）</td></tr>
+<tr><td class="yk">大四喜（ダイスーシー）</td><td>風牌4つとも刻子（北も要る）</td></tr>
+<tr><td class="yk">字一色（ツーイーソー）</td><td>字牌だけ</td></tr>
+<tr><td class="yk">緑一色（リューイーソー）</td><td>2・3・4・6・8索と発だけ。発がなくてもよい</td></tr>
+<tr><td class="yk">清老頭（チンロウトウ）</td><td>1・9の数牌だけ</td></tr>
+<tr><td class="yk">四槓子（スーカンツ）</td><td>カンが4つ</td></tr>
+<tr><td class="yk">九蓮宝燈（チューレンポウトウ）</td><td>門前。筒子か索子で1112345678999＋同じ色の1枚</td></tr>
+</tbody></table></div>
+<ul>
+<li>違う役満が重なれば、ダブル役満・トリプル役満です。</li>
+<li>待ちの形で倍になる役満はありません。四暗刻単騎・国士13面待ち・純正九蓮も役満1つです。</li>
+<li>人和と流し満貫はありません。</li>
+</ul>
+
+<h2 id="s10">10. 符の数え方</h2>
+<p>符は、アガリ点を決める数字の1つです。次の合計を、10符単位に切り上げます。</p>
+<div class="tw"><table>
+<thead><tr><th>もと</th><th>符</th></tr></thead>
+<tbody>
+<tr><td>基本（副底）</td><td>20符</td></tr>
+<tr><td>門前でロン</td><td>+10符</td></tr>
+<tr><td>ツモ</td><td>+2符（平和ツモだけはつけない）</td></tr>
+<tr><td>辺張・嵌張・単騎待ち</td><td>+2符</td></tr>
+<tr><td>役牌の雀頭</td><td>+2符（連風牌の雀頭も2符）</td></tr>
+</tbody></table></div>
+<p>刻子と槓子の符です。</p>
+<div class="tw"><table>
+<thead><tr><th></th><th>2〜8の数牌</th><th>1・9・字牌</th></tr></thead>
+<tbody>
+<tr><td class="yk">明刻（ミンコ）</td><td class="c">2符</td><td class="c">4符</td></tr>
+<tr><td class="yk">暗刻（アンコ）</td><td class="c">4符</td><td class="c">8符</td></tr>
+<tr><td class="yk">明槓（ミンカン）</td><td class="c">8符</td><td class="c">16符</td></tr>
+<tr><td class="yk">暗槓（アンカン）</td><td class="c">16符</td><td class="c">32符</td></tr>
+</tbody></table></div>
+<ul>
+<li>鳴いた手で、符がつかない形のロンは30符にします。</li>
+<li>七対子は、いつも25符です。</li>
+<li>平和ツモは、いつも20符です。</li>
+</ul>
+
+<h2 id="s11">11. 点数表</h2>
+<p>点数は、<a href="tensu.html">点数表のページ</a>にまとめました。ツモで北家の分の半分がいくら足されるかも、そこに書いてあります。</p>
+<ul>
+<li><span class="halu">Halu杯</span> ツモ損なしです。いない北家の分を、親と子で半分ずつ払います（2章）。</li>
+<li><b>切り上げ満貫あり</b>。30符4翻と60符3翻は満貫です（子8,000点、親12,000点）。</li>
+<li>役満の役以外は、どれだけ翻を重ねても三倍満までです（数え役満なし）。</li>
+<li>ダブル役満は2倍、トリプル役満は3倍です。</li>
+<li>本場は、ロンなら1本につき300点を足します。ツモは1人100点ずつ足します。</li>
+</ul>
+
+<h3>点数の払い方と申告</h3>
+<ul>
+<li>ロンは放銃した人が1人で全部払います。ツモは2人がそれぞれ払います。</li>
+<li>点数はアガった人が言います。点数は、いちばん高くなる数え方で数えます。</li>
+<li>ツモの時は、子の払い → 親の払いの順に言います。本場があれば足した点も言います。</li>
+<li>点棒のやり取りは、次の局が始まる前に済ませます。</li>
+<li>渡し間違いは、その半荘の中なら直します。半荘が終わった後は直しません。</li>
+</ul>
+<div class="ex">例（1本場の子のツモ）: 「1,500・2,500 は 1,600・2,600」</div>
+
+<h2 id="s12">12. 順位点とポイント</h2>
+<ul>
+<li>半荘が終わった時の持ち点で順位を決めます。</li>
+<li id="q-calc">持ち点・返し・順位点は、回ごとに決めます。点数ページの「ポイントの計算」に、その回の数字が出ます。</li>
+<li>1,000点が1ポイントです。100点は0.1ポイントで、丸めません。</li>
+</ul>
+<div id="q-uma"></div>
+<p>点数ページに3人の点棒を入れると、自動で計算されます。</p>
+<h3>同点のとき</h3>
+<ul>
+<li>半荘の最後が同点なら、順位点を分けます。</li>
+<li>割り切れない分は、起家に近い人が多く取ります。</li>
+<li>流局で終わった時に場のリーチ棒があれば、トップが取ります。トップが同点なら、同点の人で分けます。</li>
+<li>予選の合計と、決勝の同点は3章です。</li>
+</ul>
+
+<h2 id="s13">13. 包（パオ）</h2>
+<p>役満を確定させる牌を鳴かせた人が、責任を負う決まりです。</p>
+<div class="tw"><table>
+<thead><tr><th>役満</th><th>パオになる時</th></tr></thead>
+<tbody>
+<tr><td class="yk">大三元（ダイサンゲン）</td><td>三元牌を2種類鳴いている（暗槓含む）人に、3種類目をポン・大明槓させた</td></tr>
+<tr><td class="yk">大四喜（ダイスーシー）</td><td>風牌を3種類鳴いている（暗槓含む）人に、4種類目をポン・大明槓させた</td></tr>
+<tr><td class="yk">四槓子（スーカンツ）</td><td>カンが3つある人に、4つ目を大明槓させた</td></tr>
+</tbody></table></div>
+<ul>
+<li>その人がツモったら、鳴かせた人が全部払います。</li>
+<li>鳴かせた人とは別の人が放銃したら、鳴かせた人と放銃した人が半分ずつ払います。</li>
+<li>本場の分は、鳴かせた人が払います。</li>
+<li>ダブル役満以上の時は、パオの役満1つ分と本場を鳴かせた人が払い、残りはふつうに払います。</li>
+</ul>
+
+<h2 id="s14">14. 反則と罰則</h2>
+<h3>アガリ放棄</h3>
+<p>その局の終わりまでアガれず、ポン・カン・リーチもできなくなります。牌はツモって捨て続けます。</p>
+<div class="tw"><table>
+<thead><tr><th>反則</th><th>どんな時</th></tr></thead>
+<tbody>
+<tr><td>多牌・少牌</td><td>手牌が多い・少ない（カンの分を除いて14枚以上・12枚以下）</td></tr>
+<tr><td>先ヅモ</td><td>上家が捨てる前にツモった</td></tr>
+<tr><td>食い替え</td><td>6章</td></tr>
+<tr><td>空鳴き</td><td>「ポン」「カン」と言って鳴かなかった</td></tr>
+<tr><td>リーチの取り消し</td><td>「リーチ」と言って、捨てる前にやめた</td></tr>
+<tr><td>手を見せないアガリ宣言</td><td>「ツモ」「ロン」と言っただけで手牌を開けない</td></tr>
+<tr><td>鳴きの言い間違い</td><td>「ポン」「カン」を言い間違えた</td></tr>
+<tr><td>誤った鳴き</td><td>面子にならないのにポン・カンした（鳴きはなかったことにする）</td></tr>
+</tbody></table></div>
+<p class="note">「ツモ」と「ロン」の言い間違いは、注意のうえ言い直してかまいません。</p>
+<p class="note">アガリ放棄なのにポン・カン・リーチをしたら、チョンボです。</p>
+
+<h3>チョンボ（<span class="halu">Halu杯</span> 満貫払い）</h3>
+<ul>
+<li>アガれない手でアガリを宣言し、手牌を開けた。</li>
+<li>ノーテンリーチ。リーチ後に手の形が変わる暗槓をした。</li>
+<li>山や手牌をわざと崩して見せた。</li>
+<li>山を壊すなどして、続けられなくした。</li>
+</ul>
+<ul>
+<li>チョンボがあっても、局は最後まで続けます。チョンボした人は、その局の終わりまでアガリ放棄です。</li>
+<li>山を壊すなどして局を続けられなくなったら、その場で流局にします。</li>
+<li>誰かがアガったら、チョンボの罰はありません。</li>
+<li>流局したら、チョンボした人が満貫分の点棒を払います（3章の表）。ノーテン罰符はありません。</li>
+<li>流局した後の親と本場は、3章のとおりです。</li>
+</ul>
+
+<h3>くり返すと罰則になる行為</h3>
+<p>次の行為は、くり返さないでください。</p>
+<ul>
+<li>声を出さずに鳴いた。動作が先で、声が明らかに遅れた。</li>
+<li>わざとでなくても、牌を2枚以上見せた（山・手牌とも）。</li>
+<li>関係ない場面での強打・長考をくり返した。</li>
+<li>ツモに時間をかける動作（牌を絞る・振りかぶる）をくり返した。</li>
+<li>ツモった牌を手牌に入れる動作（小手返しなど）をくり返した。</li>
+<li>ツモが早く、ポン・カンの時にツモ牌を見てしまうことをくり返した。</li>
+<li>ため息やぼやきなど、相手を惑わす言動をくり返した。</li>
+</ul>
+
+<h2 id="s15">15. 打ち方の決まり</h2>
+<ul>
+<li>ポン・カン・リーチ・ロン・ツモは、必ず声に出してから動きます。</li>
+<li>ツモは、上家が牌を捨て終わってから取ります。山に触ったら、もう鳴けません。</li>
+<li>ツモって捨てるまでは片手で行います。牌を握ったままツモらないでください。</li>
+<li>ツモった牌を、手牌の中に混ぜてはいけません。</li>
+<li>捨て牌は左から右へ、6枚ずつ並べます。7枚目から下の段へ。</li>
+<li>一度河についた牌は、取り戻せません。</li>
+<li>捨て牌にむやみに触らないでください。</li>
+<li>ツモや打牌は、速すぎず遅すぎないペースで行います。</li>
+<li>強打は禁止ではありませんが、くり返すと罰則の対象になります。</li>
+</ul>
+
+<p class="src">一般的な3人麻雀のやり方と、一般的な競技ルールを合わせて、わかりやすく書いたものです。細かい解釈で迷ったときは、運営が判断します。<span class="san">3麻</span> の印は3人麻雀だけの決まり、<span class="halu">Halu杯</span> の印は本大会だけの決まりです。</p>
+
+  </main>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">組み合わせ</a><a href="../../score/">点数</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数表</a></nav>
+  <a class="top" href="#" title="上へ">↑</a>
+</div>
+<script>
+// 普段の回（Halu杯・3麻）のルール。決まりは手書きで、回ごとに変わる数字（題名・持ち点・返し・順位点・半荘数）だけを同じフォルダの taikai.json から読んで出す
+const $ = id => document.getElementById(id);
+document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
+const fmt = n => n.toLocaleString('ja-JP');
+const pt = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+function umaTable(c) {
+  const oka = (c.return - c.start) * c.mode / 1000;
+  const rows = Array.isArray(c.uma) ? [['いつも', c.uma]] : Object.keys(c.uma).sort().map(k => ['返し以上が' + k + '人', c.uma[k]]);
+  const tw = document.createElement('div'); tw.className = 'tw';
+  const t = document.createElement('table');
+  const head = ['', ...Array.from({ length: c.mode }, (_, i) => (i + 1) + '位')];
+  const tr0 = document.createElement('tr'); head.forEach(v => { const th = document.createElement('th'); th.textContent = v; tr0.appendChild(th); });
+  const thead = document.createElement('thead'); thead.appendChild(tr0); t.appendChild(thead);
+  const tb = document.createElement('tbody');
+  rows.forEach(([label, u]) => {
+    const tr = document.createElement('tr');
+    [label, ...u.map((v, i) => pt(i === 0 ? v + oka : v))].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb); tw.appendChild(t);
+  return tw;
+}
+fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
+  if (!c) return;
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
+  if (c.title) { document.title = c.title + ' ルール'; $('ttl').textContent = '🀄 ' + c.title + ' ルール'; }
+  const n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
+  if (Number.isInteger(c.prelim)) $('q-flow').textContent = '予選' + c.prelim + '半荘' + (n ? ' → 上位' + n + '人で決勝' + c.final.hanchan + '半荘' : '（決勝なし）');
+  if (n) $('q-final').textContent = '予選の合計ポイントの上位' + n + '人が、決勝に進みます。途中で帰った人は飛ばします。';
+  if (!Number.isInteger(c.start) || !Number.isInteger(c.return) || !c.uma) return;
+  $('q-start').textContent = fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し';
+  $('q-calc').textContent = 'ポイント＝（持ち点−' + fmt(c.return) + '）÷1,000＋順位点 です。1位の順位点には、オカ（' + pt((c.return - c.start) * c.mode / 1000) + '）を足してあります。';
+  const box = $('q-uma');
+  if (!Array.isArray(c.uma)) { const p = document.createElement('p'); p.textContent = '順位点は、点棒が返し（' + fmt(c.return) + '点）以上の人数で変わります。返しちょうども「以上」に数えます。'; box.appendChild(p); }
+  box.appendChild(umaTable(c));
+}).catch(() => {});
+</script>
+</body>
+</html>
