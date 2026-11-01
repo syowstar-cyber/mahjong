@@ -52,6 +52,8 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 .bd .done{color:var(--ok);font-weight:700}
 .msg{min-height:1.5em;margin-top:8px;font-weight:700}
 .msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
+#utbl th:first-child,#utbl td:first-child{width:auto}
+#utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
@@ -97,6 +99,17 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   <p id="notyet"></p>
   <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を伝えます。push してから1〜2分でページに出ます。</p>
 
+  <div id="uchibox" hidden>
+  <h2>打ち上げ</h2>
+  <div class="big" id="ucount"></div>
+  <p class="hint" id="unote" hidden></p>
+  <div class="tw" id="utw"><table id="utbl"></table></div>
+  <div class="tools">
+    <button class="ghost" type="button" id="ureload">回答を読み直す</button>
+  </div>
+  <p class="small">参加者がトップページで答えた出欠です。みんなの出欠は、このページにだけ出ます。</p>
+  </div>
+
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
   </div>
@@ -104,7 +117,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 </div>
 
 <script>
-// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から準備（junbi）・時間割（schedule）と設定を出し、受け口からは名前（名簿）と年上からの順（agerank）を読む。
+// 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から準備（junbi）・時間割（schedule）と設定を出し、受け口からは名前（名簿）・年上からの順（agerank）・打ち上げの回答（uchiage）を読む。
 // 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない。
 // 送るのは生年月日だけ（taikai.json の nenrei が true の会。予選の合計が同点のときだけ、その人たちの分を入れる）
 const $ = id => document.getElementById(id);
@@ -253,6 +266,34 @@ async function sendBirth(p, date, btn) {
   } finally { btn.disabled = false; }
 }
 
+// ---- 打ち上げ（taikai.json の uchiage が true の会）。参加者がトップページで答えた出欠を、P番号の順に出す。みんなの出欠はこのページにだけ出す（主催） ----
+const UCH_SHORT = { yes: '参加', no: '不参加' };
+// 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし）
+let UCHI = {}, UCHI_ST = 'none';
+function renderUchi() {
+  $('uchibox').hidden = CFG.uchiage !== true;
+  if (CFG.uchiage !== true) return;
+  const ok = UCHI_ST === 'ok';
+  // 名簿の人数より後の番号（当日に足した人など）の回答も落とさない
+  const ps = [...new Set([...people(), ...Object.keys(UCHI).filter(p => /^P\d{1,2}$/.test(p))])].sort((a, b) => a.slice(1) - b.slice(1));
+  const ans = p => UCHI[p] && UCH_SHORT[UCHI[p].choice] ? UCHI[p].choice : '';
+  const y = ps.filter(p => ans(p) === 'yes').length, n = ps.filter(p => ans(p) === 'no').length;
+  $('ucount').hidden = !ok; $('utw').hidden = !ok; $('unote').hidden = ok;
+  $('ucount').textContent = ok ? '参加 ' + y + '人・不参加 ' + n + '人・まだ ' + (ps.length - y - n) + '人' : '';
+  $('unote').textContent = UCHI_ST === 'net' ? '打ち上げの回答を読めませんでした（通信）。少し待ってから「回答を読み直す」を押してください。'
+    : '打ち上げの回答を読めません。受け口が未設定か、古いバージョンです（新しいバージョンでデプロイすると出ます）。';
+  const t = $('utbl'); t.innerHTML = '';
+  if (!ok) return;
+  t.innerHTML = '<thead><tr><th>名前</th><th>打ち上げ</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  ps.forEach(p => {
+    const tr = document.createElement('tr');
+    [dnf(p), ans(p) ? UCH_SHORT[ans(p)] : '―'].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+
 // ---- この回の設定 ----
 function renderCfg() {
   const c = CFG, n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
@@ -296,6 +337,7 @@ async function load() {
   const notes = [];
   API = String(c.api || '').trim();
   BIRTH_OK = false;
+  if (!API) UCHI_ST = 'none';
   if (API) {
     try {
       const j = await getJson(API + '?kai=' + encodeURIComponent(c.kai));
@@ -303,16 +345,20 @@ async function load() {
         ROSTER = j.data.roster || {};
         BIRTH_OK = !!j.data.agerank && typeof j.data.agerank === 'object';
         AGERANK = BIRTH_OK ? j.data.agerank : {};
+        // 打ち上げの回答（古い受け口は uchiage を返さない）
+        const u = j.data.uchiage;
+        UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
       }
     }
-    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); }
+    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
-  renderJunbi(); renderSched(); renderAttend(); renderCfg();
+  renderJunbi(); renderSched(); renderAttend(); renderUchi(); renderCfg();
 }
 $('reload').addEventListener('click', load);
+$('ureload').addEventListener('click', load);
 $('clear').addEventListener('click', () => {
   if (!CFG || !confirm('出席のチェックを全部外しますか？')) return;
   HERE.clear(); saveHere(); renderAttend();

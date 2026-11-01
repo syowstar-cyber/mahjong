@@ -72,8 +72,6 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .party .st{font-size:.95rem;margin-top:8px;color:var(--muted)}
 .party .st.ok{color:var(--ok);font-weight:700}
 .party .st.ng{color:var(--ng);font-weight:700}
-#utbl th:first-child,#utbl td:first-child{width:auto}
-#utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 </style>
 </head>
@@ -119,9 +117,6 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <button type="button" class="ghost" id="udel">回答を消す</button>
     <div class="st" id="ust" aria-live="polite"></div>
   </div>
-  <h3>みんなの出欠</h3>
-  <p class="small" id="ucount" style="margin:4px 0"></p>
-  <div class="tw"><table id="utbl"></table></div>
   </div>
 
   <h2>半荘ごとの組み合わせ</h2>
@@ -354,8 +349,8 @@ $('me').addEventListener('change', () => pickMe($('me').value));
 $('ume').addEventListener('change', () => pickMe($('ume').value, $('ume')));
 
 // ---- 打ち上げ（taikai.json の uchiage が true の会。第20回の参加者ページ7章を、P番号で答える形にしたもの） ----
-// 答えるのは「自分の名前」で選んだ人（この欄の名前の欄は、上の「自分の名前」と同じ ME）。受け口に P番号ごとに置き、全員の出欠を表に出す
-const UCH_LABEL = { yes: '参加する', no: '参加しない' }, UCH_SHORT = { yes: '参加', no: '不参加' };
+// 答えるのは「自分の名前」で選んだ人（この欄の名前の欄は、上の「自分の名前」と同じ ME）。受け口に P番号ごとに置く。全員の出欠は、幹部用ページにだけ出す（主催）
+const UCH_LABEL = { yes: '参加する', no: '参加しない' };
 // 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし）
 let UCHI = {}, UCHI_ST = 'none';
 const uts = ts => ts ? String(ts).slice(5, 16).replace('-', '/') : '';
@@ -363,23 +358,12 @@ function sayU(t, cls) { const m = $('ust'); m.textContent = t; m.className = 'st
 function renderUchi() {
   $('uchibox').hidden = !(CFG.uchiage === true);
   if (CFG.uchiage !== true) return;
-  const list = players(), ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
+  const ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
   document.querySelectorAll('input[name=uch]').forEach(x => { x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
   $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
   if (!ok) sayU(UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
   else if (mine) sayU('回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）', 'ok');
   else sayU(ME ? 'まだ回答がありません。' : '名前を選ぶと、答えられます。');
-  const ans = p => UCHI[p] && UCH_SHORT[UCHI[p].choice] ? UCHI[p].choice : '';
-  const y = list.filter(p => ans(p) === 'yes').length, n = list.filter(p => ans(p) === 'no').length;
-  $('ucount').textContent = ok ? '参加 ' + y + '人・不参加 ' + n + '人・まだ ' + (list.length - y - n) + '人' : '';
-  const t = $('utbl'); t.innerHTML = '<thead><tr><th>名前</th><th>打ち上げ</th></tr></thead>';
-  const tb = document.createElement('tbody');
-  list.forEach(p => {
-    const tr = document.createElement('tr');
-    [dnf(p), ans(p) ? UCH_SHORT[ans(p)] : '―'].forEach(v => { const td = document.createElement('td'); td.textContent = v; if (p === ME) td.className = 'me'; tr.appendChild(td); });
-    tb.appendChild(tr);
-  });
-  t.appendChild(tb);
 }
 async function sendUchi(choice) {
   if (!ME) { sayU('名前を選んでください', 'ng'); return; }
