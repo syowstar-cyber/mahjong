@@ -68,6 +68,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 .qrow input{flex:1 1 auto;min-width:0;padding:10px;font-size:1.05rem;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
 .qrow button{flex:0 0 auto;padding:10px 18px;font-size:1.05rem;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
 .cres .note{font-size:.9rem;line-height:1.6;margin-top:4px}
+.cres .nw{display:inline-block}
 @media (max-width:420px){.qrow{flex-wrap:wrap}.qrow input,.qrow button{flex:1 1 100%}}
 </style>
 </head>
@@ -100,7 +101,8 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
     <div class="qrow"><input id="qa" type="text" enterkeyhint="send" placeholder="例: 子のツモで30符2翻はいくら？"><button type="submit">聞く</button></div>
   </form>
   <div id="qres" class="cres" aria-live="polite" hidden></div>
-  <div class="note" style="margin-top:6px">親・子、ツモ・ロン、符と翻を読み取ります。満貫・跳満などの名前でも聞けます。役の名前から翻を数えることはしません。</div>
+  <div class="note" style="margin-top:6px">親・子、ツモ・ロン、符と翻、本場の数を読み取ります。満貫・跳満などの名前でも聞けます。役の名前から翻を数えることはしません。</div>
+  <div class="note">点数から手を探すこともできます。例: 子のロンで8,000は何翻？</div>
 </div>
 
 <h2 id="t1">1. ツモの払い方</h2>
@@ -338,6 +340,7 @@ calc();
 // ---- 点数の質問（2026-11-02）。「子のツモで30符2翻はいくら？」のような文から、親・子、ツモ・ロン、符と翻を読み取って答える ----
 // 決まった言い方を読み取るだけで、通信はしない。点数は上の basePts・handName・payOf のまま。
 // 手の範囲は早見表と同じ（20符は平和ツモだけで2翻から、25符は七対子だけで2翻から・ツモは3翻から、1翻は100符まで。kuji/index.html の handsOf と同じ考え）
+// 点数が書いてあって翻か符が足りなければ、その点になる手を探す（逆引き）。本場は、ロン1本300点・ツモ1人100点を足す
 const QLIM = [  // 手の名前と、basePts に渡す翻。長い名前から先に探し、見つけた名前は文から消す（「三倍満」の中の「倍満」を読まない）
   [/トリプル役満|トリプルやくまん|三倍役満|3倍役満/, 'y3'],
   [/ダブル役満|ダブルやくまん|[Ww]役満|二倍役満|2倍役満/, 'y2'],
@@ -347,17 +350,24 @@ const QLIM = [  // 手の名前と、basePts に渡す翻。長い名前から�
   [/跳ね?満|ハネ満|はね満|ハネマン|はねまん/, '6'],
   [/満貫|まんがん|マンガン/, '5']
 ];
+// 5翻から上の手と、名前に添える翻（逆引きで使う）
+const QBIG = [['5', '5翻'], ['6', '6・7翻'], ['8', '8〜10翻'], ['11', '11翻から'], ['y1', ''], ['y2', ''], ['y3', '']];
 const KNUM = { '〇': 0, '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
-// 漢数字を数字に（三十→30・二十五→25・百十→110・一一〇→110）
+// 漢数字を数字に（三十→30・二十五→25・百十→110・一一〇→110・八千→8000・一万二千と1万2千→12000）
 function kanjiNum(t) {
-  if (!/[十百]/.test(t)) return [...t].map(c => KNUM[c]).join('');
-  let n = 0, d = 0;
-  [...t].forEach(c => { if (c in KNUM) d = KNUM[c]; else { n += (d || 1) * (c === '百' ? 100 : 10); d = 0; } });
-  return String(n + d);
+  if (!/[十百千万]/.test(t)) return [...t].map(c => c in KNUM ? KNUM[c] : c).join('');
+  let n = 0, k = 0, d = 0;
+  t.match(/\d+|./g).forEach(c => {
+    if (c in KNUM) d = KNUM[c];
+    else if (/\d/.test(c)) d = Number(c);
+    else if (c === '万') { n += (k + d || 1) * 10000; k = 0; d = 0; }
+    else { k += (d || 1) * (c === '千' ? 1000 : c === '百' ? 100 : 10); d = 0; }
+  });
+  return String(n + k + d);
 }
 // 文を読む。読めなかった所は undefined（oya: 親か・tsumo: ツモか・fus/hans: 書いてあった符と翻・lims: 手の名前）
 function readQ(q) {
-  let s = q.normalize('NFKC').replace(/(\d),(?=\d{3})/g, '$1');
+  let s = q.normalize('NFKC').replace(/(\d),(?=\d{3}(?!\d))/g, '$1');
   const r = {};
   // 七対子は25符、平和はツモ20符・ロン30符。七対子・萬子などの「子」を子と読まないよう、先に消す
   r.chii = /[七7]対|チートイ|ちーとい/.test(s);
@@ -369,7 +379,7 @@ function readQ(q) {
   s = s.split(/数え役満|かぞえ役満/).join(' ');
   r.lims = [];
   QLIM.forEach(([re, v]) => { if (re.test(s)) { r.lims.push(v); s = s.split(re).join(' '); } });
-  s = s.replace(/[〇零一二三四五六七八九十百]+/g, kanjiNum).replace(/東家|トンチャ|おや|オヤ/g, '親').replace(/南家|西家|ナンチャ|シャーチャ/g, '子');
+  s = s.replace(/[\d〇零一二三四五六七八九十百千万]+/g, kanjiNum).replace(/東家|トンチャ|おや|オヤ/g, '親').replace(/南家|西家|ナンチャ|シャーチャ/g, '子');
   // アガった人。「親から」「子が振り込んだ」「子の払い」は払う人で、「親の」「子が」「親に振り込んだ」はアガった人。ツモ・ロンがすぐ後に続く方を先に見る。
   // 「親と子の」「親か子か」のように並べた語は、後ろの語と同じに数える
   const deal = /振り?込|放銃|差し?込|ふりこ/.test(s), near = [], far = [], pay = [];
@@ -397,37 +407,61 @@ function readQ(q) {
   r.hans = nums(/(\d+)\s*(?:翻|はん(?!ちゃん)|ハン(?!チャン)|han(?!chan))/gi);
   const m2 = !r.hans.length && s.match(/符\s*の?\s*(\d{1,2})(?![\d点本])/);
   if (m2) r.hans.push(Number(m2[1]));
-  r.honba = /本場|積み?棒/.test(s);
-  r.rev = /何(?:翻|符|ハン)|なん(?:翻|はん|ハン|ぷ|ふ)|\d{3,}\s*点/.test(s);
+  // 本場の数（「1本場」「本場2本」「積み棒1本」）。書いてなければ0、数がなければ undefined
+  const hb = s.match(/(\d+)\s*本\s*(?:場|付|づけ|積|棒)/) || s.match(/(?:本場|積み?棒)\s*[がはのを:]?\s*(\d+)\s*本/);
+  r.honba = hb ? Number(hb[1]) : /本場|積み?棒/.test(s) && !/本場\s*(?:なし|無し)/.test(s) ? undefined : 0;
+  // 点数（200から上の数で、符・翻・本場の数でないもの）。「オール」「ずつ」は親のツモの1人分、「合計」は払いの合計
+  r.pts = [...new Set([...s.matchAll(/\d+/g)].filter(m => Number(m[0]) >= 200 && !/^\s*(?:符|ふ|フ|fu|翻|はん|ハン|han|本)/i.test(s.slice(m.index + m[0].length))).map(m => Number(m[0])))];
+  r.all = /オール|ずつ/.test(s);
+  r.total = /合計|全部で|トータル/.test(s);
+  r.rev = /何(?:翻|符|ハン)|なん(?:翻|はん|ハン|ぷ|ふ)/.test(s);
   return r;
 }
+// 符が手と合わないときの理由（20符から110符まで。20符は平和ツモだけ、七対子はいつも25符、平和はツモ20符・ロン30符）
+function fuNg(r, f, tsumo) {
+  return f < 20 || f > 110 ? '符は、20符から110符までです。'
+    : f === 20 && !tsumo ? '20符は平和ツモだけです。平和のロンは30符です。'
+    : r.chii && f !== 25 ? '七対子は、いつも25符です。'
+    : r.pin && f !== (tsumo ? 20 : 30) ? (tsumo ? '平和ツモは、いつも20符です。' : '平和のロンは、いつも30符です。') : '';
+}
+// 本場を足した払い（payOf の点に、ロンは1本300点、ツモは1人100点を足す）と、その言い方
+const withHonba = (kind, b, nb) => payOf(kind, b).map(x => ({ ...x, v: x.v + (kind[1] === 't' ? 100 : 300) * nb }));
+const payText = (kind, ps) => kind === 'ot' ? fmt(ps[0].v) + 'オール' : kind === 'kt' ? fmt(ps[0].v) + '・' + fmt(ps[1].v) : fmt(ps[0].v);
 // 文への答え。点数は {head, pay, sub}、聞き返しと「その手はありません」は {text}。notes は下に小さく出す字
 function answerQ(q) {
-  const r = readQ(q), notes = [], ex = '例: 子のツモで30符2翻はいくら？';
-  if (r.oya === undefined && !r.both && r.tsumo === undefined && !r.tboth && !r.fus.length && !r.hans.length && !r.lims.length && !r.kazoe && !r.chii && !r.pin) return { text: '読み取れませんでした。', notes: [ex] };
+  const r = readQ(q), notes = [], ex = '例: 子のツモで30符2翻はいくら？', exr = '例: 子のロンで8,000は何翻？';
+  if (r.oya === undefined && !r.both && r.tsumo === undefined && !r.tboth && !r.fus.length && !r.hans.length && !r.lims.length && !r.kazoe && !r.chii && !r.pin && !r.pts.length) return { text: '読み取れませんでした。', notes: [ex, exr] };
+  // 2つの点（子・親の払い）は子のツモ、「オール」「ずつ」は親のツモ。親・子やツモ・ロンが書いてなければ、そう読む
+  const two = r.pts.length === 2;
+  if ((two || r.all) && r.oya === undefined) { r.oya = !two; r.both = false; }
+  if ((two || r.all) && r.tsumo === undefined) r.tsumo = true;
   const han = r.hans.length === 1 ? r.hans[0] : undefined, lim = r.lims.length === 1 ? r.lims[0] : r.kazoe && !r.lims.length ? '11' : '';
   // 1〜4翻は符も使う（3・4翻で「満貫」とだけあれば、符は要らない）。符が書いてなければ、七対子・平和から決める
   const useFu = han >= 1 && han <= 4 && !(lim === '5' && han >= 3 && !r.fus.length);
   const fu = r.fus.length === 1 ? r.fus[0] : r.fus.length ? undefined : r.chii ? 25 : r.pin && r.tsumo !== undefined ? (r.tsumo ? 20 : 30) : undefined;
+  if (han === 0) return { text: 'その手はありません。', notes: ['翻は、1翻からです。'] };
+  // 点数が書いてあって、翻か符が足りなければ、その点になる手を探す
+  if (r.pts.length && r.hans.length < 2 && r.lims.length < 2 && ((han === undefined && !lim) || (useFu && fu === undefined))) return answerRev(r, han);
+  // 「満貫は何翻？」には、その手の翻を答える（親・子やツモ・ロンがなくても答えられる）
+  const big = r.rev && han === undefined && QBIG.find(x => x[0] === lim && x[1]);
+  const bigNote = big ? handName(basePts(0, lim)) + 'は' + big[1] + 'です。' + (lim === '5' ? '3翻は60符から、4翻は30符から満貫です。' : '') : '';
+  const kazoeNote = '数え役満はありません。役満の役でなければ、13翻から上も三倍満です。';
+  if (bigNote && (r.oya === undefined || r.tsumo === undefined)) return { text: bigNote, notes: r.kazoe ? [kazoeNote] : [] };
   const ask = [];
   if (r.oya === undefined) ask.push(r.both ? 'アガったのは、親ですか、子ですか。' : '親ですか、子ですか。');
   if (r.tsumo === undefined) ask.push('ツモですか、ロンですか。');
   if (r.hans.length > 1 || r.lims.length > 1) ask.push('翻か手の名前を、1つにしてください。');
-  else if (han === undefined && !lim) ask.push('何翻ですか。');
-  else if (useFu && fu === undefined && !(r.pin && r.tsumo === undefined && !r.fus.length)) ask.push(r.fus.length > 1 ? '符を、1つにしてください。' : '何符ですか。');
-  if (ask.length) return { text: ask.join(''), notes: (r.rev && han === undefined ? ['点数から翻を探す答え方は、まだありません。'] : []).concat([ex]) };
-  if (han === 0) return { text: 'その手はありません。', notes: ['翻は、1翻からです。'] };
-  const kind = (r.oya ? 'o' : 'k') + (r.tsumo ? 't' : 'r');
+  else if (han === undefined && !lim) ask.push(r.rev ? '何点の手ですか。' : '何翻ですか。');
+  else if (useFu && fu === undefined && !(r.pin && r.tsumo === undefined && !r.fus.length)) ask.push(r.fus.length > 1 ? '符を、1つにしてください。' : r.rev ? '何点の手ですか。' : '何符ですか。');
+  if (r.honba === undefined) ask.push('何本場ですか。');
+  if (ask.length) return { text: ask.join(''), notes: [r.rev ? exr : ex] };
+  const kind = (r.oya ? 'o' : 'k') + (r.tsumo ? 't' : 'r'), nb = r.honba;
   let b, desc;
   if (useFu) {
     // 符は10符単位に切り上げる（七対子の25符は、そのまま）
     const f = fu === 25 ? 25 : Math.ceil(fu / 10) * 10;
     if (f !== fu) notes.push(fu + '符は、切り上げて' + f + '符です。');
-    const ng = f < 20 || f > 110 ? '符は、20符から110符までです。'
-      : f === 20 && !r.tsumo ? '20符は平和ツモだけです。平和のロンは30符です。'
-      : noHand(kind, f, String(han)) || (han === 1 && f > 100 ? '1翻は、100符までです。' : '')
-        || (r.chii && f !== 25 ? '七対子は、いつも25符です。' : '')
-        || (r.pin && f !== (r.tsumo ? 20 : 30) ? (r.tsumo ? '平和ツモは、いつも20符です。' : '平和のロンは、いつも30符です。') : '');
+    const ng = fuNg(r, f, r.tsumo) || noHand(kind, f, String(han)) || (han === 1 && f > 100 ? '1翻は、100符までです。' : '');
     if (ng) return { text: 'その手はありません。', notes: [ng] };
     b = basePts(f, String(han));
     desc = f + '符' + han + '翻' + (handName(b) ? '（' + (f * Math.pow(2, han + 2) === 1920 ? '切り上げ' : '') + handName(b) + '）' : '');
@@ -436,12 +470,91 @@ function answerQ(q) {
     else { b = lim === 'y3' ? basePts(0, 'y1') * 3 : basePts(0, lim); desc = lim === 'y3' ? 'トリプル役満' : handName(b); }
     if (r.fus.length) notes.push('満貫から上は、符を見ません。');
   }
-  if (r.kazoe || han >= 13) notes.push('数え役満はありません。役満の役でなければ、13翻から上も三倍満です。');
-  if (r.honba) notes.push('本場の分は入っていません。ロンは1本300点、ツモは1人100点を足します。');
-  const ps = payOf(kind, b), total = ps.reduce((a, x) => a + x.v * x.n, 0);
-  const pay = kind === 'ot' ? fmt(ps[0].v) + 'オール' : kind === 'kt' ? fmt(ps[0].v) + '・' + fmt(ps[1].v) : fmt(ps[0].v);
+  if (r.kazoe || han >= 13) notes.push(kazoeNote);
+  if (bigNote) notes.push(bigNote);
+  const ps = withHonba(kind, b, nb), total = ps.reduce((a, x) => a + x.v * x.n, 0);
+  if (nb) notes.push('本場なしなら' + payText(kind, payOf(kind, b)) + (r.tsumo ? '' : '点') + 'です。' + nb + '本場なので、' + (r.tsumo ? '1人' + fmt(100 * nb) + '点ずつ' : fmt(300 * nb) + '点を') + '足しました。');
+  // 点数も書いてあれば、合っているかを添える
+  if (r.pts.length && r.pts.length <= 2) {
+    const lo = Math.min(...r.pts), hi = Math.max(...r.pts), x = r.pts[0];
+    const ok = two ? kind === 'kt' && lo === ps[0].v && hi === ps[1].v
+      : kind === 'ot' ? (r.all ? x === ps[0].v : r.total ? x === total : x === ps[0].v || x === total)
+      : kind === 'kt' ? x === total : x === ps[0].v;
+    notes.push((two ? fmt(lo) + '・' + fmt(hi) : (r.total ? '合計' : '') + fmt(x) + (r.all ? 'オール' : '点')) + (ok ? 'で合っています。' : 'ではありません。'));
+  }
   const sub = kind === 'ot' ? '子2人が' + fmt(ps[0].v) + 'ずつ。合計' + fmt(total) : kind === 'kt' ? '子' + fmt(ps[0].v) + '・親' + fmt(ps[1].v) + '。合計' + fmt(total) : '';
-  return { head: (r.oya ? '親' : '子') + 'の' + (r.tsumo ? 'ツモ' : 'ロン') + ' ' + desc, pay, sub, notes };
+  return { head: (r.oya ? '親' : '子') + 'の' + (r.tsumo ? 'ツモ' : 'ロン') + ' ' + desc + (nb ? ' ' + nb + '本場' : ''), pay: payText(kind, ps), sub, notes };
+}
+// 早見表にある1〜4翻の手（20符はツモだけ、1翻は100符まで。ほかは noHand のとおり）
+function qHands(kind) {
+  const out = [];
+  [1, 2, 3, 4].forEach(h => FU.forEach(f => {
+    if (!noHand(kind, f, String(h)) && !(f === 20 && kind[1] === 'r') && !(h === 1 && f > 100)) out.push({ f, h, b: basePts(f, String(h)) });
+  }));
+  return out;
+}
+// 見つけた手の書き方。満貫より下は「符・翻」を並べ、満貫から上は名前と翻（3・4翻の満貫は、翻ごとに一番少ない符から）
+function qDesc(hit) {
+  const b = hit[0].b;
+  if (b < 2000) return { pay: hit.slice().sort((x, y) => x.h - y.h).map(x => x.f + '符' + x.h + '翻' + (x.f === 20 ? '（平和ツモ）' : x.f === 25 ? '（七対子）' : '')).join('・'), sub: '' };
+  const big = hit.find(x => x.k), more = [3, 4].map(h => {
+    const fs = hit.filter(x => x.h === h).map(x => x.f);
+    return fs.length > 1 ? h + '翻は' + Math.min(...fs) + '符から' : fs.length ? fs[0] + '符' + h + '翻' : '';
+  }).filter(Boolean).join('、');
+  return { pay: b === 24000 ? 'トリプル役満' : handName(b), sub: [big && big.range, more].filter(Boolean).join('。') };
+}
+// 点数から手を探す（逆引き）。早見表と同じ手の中から、払いが同じになる手を集める
+function answerRev(r, han) {
+  const notes = [], ask = [], pts = r.pts, two = pts.length === 2, lo = Math.min(...pts), hi = Math.max(...pts);
+  if (pts.length > 2) ask.push('点数を1つにしてください。子のツモは、子と親の2つです。');
+  if (r.oya === undefined) ask.push(r.both ? 'アガったのは、親ですか、子ですか。' : '親ですか、子ですか。');
+  if (r.tsumo === undefined) ask.push('ツモですか、ロンですか。');
+  if (r.fus.length > 1) ask.push('符を、1つにしてください。');
+  if (r.honba === undefined) ask.push('何本場ですか。');
+  if (ask.length) return { text: ask.join(''), notes: ['例: 子のロンで8,000は何翻？'] };
+  const kind = (r.oya ? 'o' : 'k') + (r.tsumo ? 't' : 'r'), nb = r.honba, who = (r.oya ? '親' : '子') + 'の' + (r.tsumo ? 'ツモ' : 'ロン');
+  if (two && kind !== 'kt') return { text: 'その払いになる手はありません。', notes: ['2人が違う点を払うのは、子のツモです。'] };
+  if (r.all && kind !== 'ot') return { text: 'その払いになる手はありません。', notes: ['オールは、親のツモです。'] };
+  // 符が書いてあれば（七対子・平和を含む）、その符の手だけを探す
+  let fu = r.fus.length ? r.fus[0] : r.chii ? 25 : r.pin ? (r.tsumo ? 20 : 30) : undefined;
+  if (fu % 10 && fu !== 25) { notes.push(fu + '符は、切り上げて' + Math.ceil(fu / 10) * 10 + '符です。'); fu = Math.ceil(fu / 10) * 10; }
+  const ng = fu !== undefined && fuNg(r, fu, r.tsumo);
+  if (ng) return { text: 'その手はありません。', notes: [ng] };
+  // 比べ方: ロンは1つの点、子のツモは子・親の2つか合計、親のツモは1人分（オール）か合計。数だけの親のツモは、合計で探してオールの読み方も添える
+  const modes = !r.tsumo ? ['ron'] : two ? ['pair'] : !r.oya ? ['total'] : r.all ? ['all'] : r.total ? ['total'] : ['total', 'all'];
+  const val = (m, b) => { const ps = withHonba(kind, b, nb); return m === 'pair' ? ps[0].v + '・' + ps[1].v : m === 'total' ? ps.reduce((a, x) => a + x.v * x.n, 0) : ps[0].v; };
+  const want = m => m === 'pair' ? lo + '・' + hi : pts[0];
+  const shown = (m, v) => m === 'pair' ? fmt(lo) + '・' + fmt(hi) : m === 'all' ? fmt(v) + 'オール' : (m === 'total' ? '合計' : '') + fmt(v) + '点';
+  const cand = qHands(kind).filter(x => (han === undefined || x.h === han) && (fu === undefined || x.f === fu));
+  const bigs = QBIG.map(([k, range]) => ({ k, range, b: k === 'y3' ? basePts(0, 'y1') * 3 : basePts(0, k) }));
+  // 翻が書いてなければ、5翻から上も探す（符が書いてあるときは、1〜4翻で見つからなければ）
+  const pool = m => han !== undefined || (fu !== undefined && cand.some(x => val(m, x.b) === want(m))) ? cand : cand.concat(bigs);
+  const hits = m => pool(m).filter(x => val(m, x.b) === want(m));
+  const m = modes.find(x => hits(x).length);
+  if (!m) {
+    // 見つからなければ、近い点を添える（2つの点は、子か親の払いが同じ手）
+    const m0 = modes[0], ps = pool(m0), nn = [];
+    if (m0 === 'pair') {
+      const pp = ps.map(x => withHonba(kind, x.b, nb).map(p => p.v));
+      const oy = [...new Set(pp.filter(p => p[0] === lo).map(p => p[1]))], ko = [...new Set(pp.filter(p => p[1] === hi).map(p => p[0]))];
+      if (oy.length) nn.push('子が' + fmt(lo) + 'の手は、親が' + oy.map(fmt).join('か') + 'です。');
+      else if (ko.length) nn.push('親が' + fmt(hi) + 'の手は、子が' + ko.map(fmt).join('か') + 'です。');
+    } else {
+      const vs = [...new Set(ps.map(x => val(m0, x.b)))].sort((a, b) => a - b);
+      const near = [vs.filter(v => v < pts[0]).pop(), vs.find(v => v > pts[0])].filter(v => v !== undefined);
+      if (near.length) nn.push('近いのは' + near.map(v => fmt(v) + (m0 === 'all' ? 'オール' : '点')).join('と') + 'です。');
+      if (kind === 'kt' && !r.total) nn.push('子のツモは「700・1,300」のように、2つの点でも聞けます。');
+    }
+    if (nb) nn.push('本場の分を足した点として探しました。');
+    return { text: who + 'で' + (two ? fmt(lo) + '・' + fmt(hi) : (r.total ? '合計' : '') + fmt(pts[0]) + (r.all ? 'オール' : '点')) + 'になる手はありません。', notes: nn };
+  }
+  const hit = hits(m), d = qDesc(hit), p0 = payOf(kind, hit[0].b);
+  if (two && pts[0] > pts[1]) notes.push('ツモは、子の払い・親の払いの順に言います。');
+  if (m === 'total') notes.push('払いは' + payText(kind, withHonba(kind, hit[0].b, nb)) + 'です。');
+  if (nb) notes.push('本場の分を引くと、' + (m === 'total' ? '合計' + fmt(p0.reduce((a, x) => a + x.v * x.n, 0)) + '点' : payText(kind, p0) + (r.tsumo ? '' : '点')) + 'です。');
+  const alt = modes.find(x => x !== m && hits(x).length);
+  if (alt) { const e = qDesc(hits(alt)); notes.push(shown(alt, pts[0]) + 'なら、' + e.pay + (e.sub ? '（' + e.sub + '）' : '') + 'です。'); }
+  return { head: who + (nb ? ' ' + nb + '本場' : '') + ' ' + shown(m, pts[0]), pay: d.pay, sub: d.sub, notes };
 }
 function showQ() {
   const q = $('qa').value.trim(), box = $('qres');
@@ -451,7 +564,10 @@ function showQ() {
   const a = answerQ(q), p = document.createElement('div');
   if (a.pay) {
     p.appendChild(document.createTextNode(a.head + ' → '));
-    const v = document.createElement('b'); v.textContent = a.pay; p.appendChild(v);
+    // 「・」で並べた答えは、1つずつの途中では折り返さない（「60符2翻」を「60」と「符2翻」に分けない）
+    const v = document.createElement('b');
+    a.pay.split('・').forEach((t, i, all) => { const s = document.createElement('span'); s.className = 'nw'; s.textContent = t + (i < all.length - 1 ? '・' : ''); v.appendChild(s); });
+    p.appendChild(v);
     if (a.sub) p.appendChild(document.createTextNode('（' + a.sub + '）'));
   } else p.textContent = a.text;
   box.appendChild(p);
