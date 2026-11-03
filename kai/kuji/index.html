@@ -659,22 +659,40 @@ function renderLive() {
     return;
   }
   fillLiveForm(ctx);
-  const done = !!recsOf(lastF())['1'], st = liveState(ctx);
-  let h = done ? '<div class="hint"><span class="big">決勝' + n + '半荘目の点数が入りました。</span><br>最終順位は<a href="' + scoreUrl('finh') + '">点数入力ページ</a>で見られます。</div>' : '';
+  // 決勝の最後の半荘の点数が入ったら、9章はその点数で出す。実況の点棒は使わず、運営の入力も閉じる（終局を送らずに点数を入れると、
+  // 実況の最後の点棒で違う優勝者が出ていた。2026-11-03 の実況の試験で見つけた）
+  const rec = recsOf(lastF())['1'];
+  if (rec) {
+    $('liveform').hidden = true; $('lfpre').hidden = false;
+    $('lfpre').textContent = '決勝' + n + '半荘目の点数が入りました。9章は、その点数で出します（ここで入れる物はありません）。';
+    box.innerHTML = doneHtml(rec, ctx, n);
+    return;
+  }
+  const st = liveState(ctx);
   if (!st) {
-    box.innerHTML = h + (done ? '' : '<p>決勝' + n + '半荘目が始まると、局ごとの点棒と、優勝に要るアガリがここに出ます。</p>')
+    box.innerHTML = '<p>決勝' + n + '半荘目が始まると、局ごとの点棒と、優勝に要るアガリがここに出ます。</p>'
       + '<h3>いまの総合（' + prevLabel() + '）</h3>' + standHtml(ctx.mem.map(p => ({ p, i: -1, raw: null, total: ctx.prev[p] })), ctx, -1);
     return;
   }
-  if (st.bad) { box.innerHTML = h + '<p class="warn">運営の入力が、決勝の人と合いません。運営の入力で、席を選び直してください。</p>'; return; }
-  const d = st.kyoku % MODE, oras = st.kyoku === ORAS, fin = st.end || done, T = totalsOf(st.raw, st.seats, ctx), S = byTotal(T, ctx.prk);
-  h += '<div class="card"><div class="big">' + (st.end ? '終局' : KYOKU[st.kyoku] + (oras ? '（オーラス）' : '') + '　' + st.honba + '本場' + (st.kyotaku ? '・供託' + st.kyotaku + '本' : '')) + '</div>'
-    + '<div class="small">' + (st.end ? '' : '親は ' + esc(dn(st.seats[d])) + '。') + '運営の入力 ' + esc(String(st.ts || '').slice(11, 16)) + '</div></div>';
-  if (st.end) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、点数入力ページの最終順位です。</p>';
+  if (st.bad) { box.innerHTML = '<p class="warn">運営の入力が、決勝の人と合いません。運営の入力で、席を選び直してください。</p>'; return; }
+  const d = st.kyoku % MODE, oras = st.kyoku === ORAS, fin = !!st.end, T = totalsOf(st.raw, st.seats, ctx), S = byTotal(T, ctx.prk);
+  let h = '<div class="card"><div class="big">' + (fin ? '終局' : KYOKU[st.kyoku] + (oras ? '（オーラス）' : '') + '　' + st.honba + '本場' + (st.kyotaku ? '・供託' + st.kyotaku + '本' : '')) + '</div>'
+    + '<div class="small">' + (fin ? '' : '親は ' + esc(dn(st.seats[d])) + '。') + '運営の入力 ' + esc(String(st.ts || '').slice(11, 16)) + '</div></div>';
+  if (fin) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、点数入力ページの最終順位です。</p>';
   h += '<h3>' + (fin ? '総合の順位' : '総合の順位（いまの点棒で終わったら）') + '</h3>' + standHtml(T, ctx, fin ? -1 : d);
   if (!fin && st.kyotaku) h += '<p class="small">供託の' + st.kyotaku + '本は、順位に入れていません。</p>';
   if (!fin) h += condHtml(st, ctx, S, d, oras);
   box.innerHTML = h;
+}
+// 決勝の最後の半荘の点数が入った後。優勝と総合の順位は、点数入力ページに入れた1卓の点数から（点数入力ページの最終順位と同じ計算）。
+// その卓の人が決勝の人と合わなければ、案内だけ
+function doneHtml(rec, ctx, n) {
+  const h = '<div class="hint"><span class="big">決勝' + n + '半荘目の点数が入りました。</span><br>最終順位は<a href="' + scoreUrl('finh') + '">点数入力ページ</a>で見られます。</div>';
+  const ok = Array.isArray(rec.p) && rec.p.length === MODE && new Set(rec.p).size === MODE && rec.p.every(p => ctx.mem.includes(p))
+    && Array.isArray(rec.raw) && calcTable(rec.raw).every(Boolean);
+  if (!ok) return h;
+  const T = totalsOf(rec.raw, rec.p, ctx), S = byTotal(T, ctx.prk);
+  return h + '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><h3>総合の順位</h3>' + standHtml(T, ctx, -1);
 }
 
 // ---- 9章: 運営の入力 ----
