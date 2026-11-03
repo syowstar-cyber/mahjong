@@ -473,8 +473,8 @@ function prelimRank() {
   return rk;
 }
 
-// 点の払い方（g/halu/tensu.html の basePts・handName・payOf と同じ。ツモ損なし・切り上げ満貫あり・数え役満なし。どちらかを直したら、もう片方も直す）
-const up100 = v => Math.ceil(v / 100) * 100, down100 = v => Math.floor(v / 100) * 100;
+// 点の払い方（g/halu/tensu.html の basePts・handName・payOf と同じ。ツモ損なし（ツモはロンの点を2人で折半）・切り上げ満貫あり・数え役満なし。どちらかを直したら、もう片方も直す）
+const up100 = v => Math.ceil(v / 100) * 100;
 function basePts(fu, han) {
   if (han === 'y1') return 8000;
   if (han === 'y2') return 16000;
@@ -487,16 +487,11 @@ function basePts(fu, han) {
   return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
 }
 const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満' })[b] || '';
-// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）
+// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）。ツモはロンの点の半分を2人が払う
 function payOf(kind, b) {
-  if (kind === 'kr') return [{ who: '放銃した人', v: up100(b * 4), n: 1 }];
-  if (kind === 'or') return [{ who: '放銃した人', v: up100(b * 6), n: 1 }];
-  if (kind === 'kt') {
-    const ko = up100(b), oya = up100(b * 2);
-    return [{ who: '子', v: ko + down100(ko / 2), n: 1 }, { who: '親', v: oya + up100(ko / 2), n: 1 }];
-  }
-  const ko = up100(b * 2);
-  return [{ who: '子', v: ko + up100(ko / 2), n: 2 }];
+  const ron = up100(b * (kind[0] === 'k' ? 4 : 6));
+  if (kind[1] === 'r') return [{ who: '放銃した人', v: ron, n: 1 }];
+  return [{ who: kind === 'kt' ? '親と子の' : '子', v: up100(ron / 2), n: 2 }];
 }
 // 早見表にある手（tensu.html の表と同じ）。20符は平和ツモだけで2翻から、25符は七対子だけで2翻から（ツモは3翻から）、1翻は100符まで。満貫から上は翻だけ（lim は目安に出す字）
 const LIMITS = [['5', '5翻'], ['6', '6翻'], ['8', '8翻'], ['11', '11翻'], ['y1', '役満'], ['y2', 'ダブル役満']];
@@ -509,14 +504,14 @@ function handsOf(tsumo) {
   LIMITS.forEach(([h, t]) => hs.push({ han: h, fu: 0, b: basePts(0, h), lim: t }));
   return hs;
 }
-// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場（ロンは1本300・ツモは1人100）と供託は、アガった人へ
+// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場（ロンは1本600・ツモは1人300）と供託は、アガった人へ
 function afterWin(st, w, how, b) {
-  const R = st.raw.slice(), d = st.kyoku % MODE, oya = w === d;
+  const R = st.raw.slice(), oya = w === st.kyoku % MODE;
   if (how === 'tsumo') {
-    const ps = payOf(oya ? 'ot' : 'kt', b);
-    R.forEach((_, i) => { if (i === w) return; const v = (oya || i !== d ? ps[0].v : ps[1].v) + 100 * st.honba; R[i] -= v; R[w] += v; });
+    const v = payOf(oya ? 'ot' : 'kt', b)[0].v + 300 * st.honba;
+    R.forEach((_, i) => { if (i === w) return; R[i] -= v; R[w] += v; });
   } else {
-    const v = payOf(oya ? 'or' : 'kr', b)[0].v + 300 * st.honba;
+    const v = payOf(oya ? 'or' : 'kr', b)[0].v + 600 * st.honba;
     R[how] -= v; R[w] += v;
   }
   R[w] += 1000 * st.kyotaku;
@@ -560,10 +555,10 @@ function handHint(hs) {
   const lim = hs.find(x => x.lim && x.ok);
   return toks.concat(lim ? [lim.lim] : []).join('・');
 }
-// 要る点（早見表の点＝本場を足す前）。子のツモは「子の払い・親の払い」、親のツモは「〇〇オール」（tensu.html の申告と同じ）
+// 要る点（早見表の点＝本場を足す前）。ツモは子のツモも親のツモも「〇〇オール」（tensu.html の申告と同じ）
 function payText(kind, b) {
   const ps = payOf(kind, b), n = handName(b);
-  return (kind === 'ot' ? fmt(ps[0].v) + 'オール' : kind === 'kt' ? fmt(ps[0].v) + '・' + fmt(ps[1].v) : fmt(ps[0].v)) + (n ? '（' + n + '）' : '');
+  return fmt(ps[0].v) + (kind[1] === 't' ? 'オール' : '') + (n ? '（' + n + '）' : '');
 }
 // 決勝の人（決勝1半荘目の1卓の顔ぶれ）・前の半荘までの決勝のポイント・予選の順位。前の半荘の点数がまだなら wait（その半荘）
 function liveCtx() {
