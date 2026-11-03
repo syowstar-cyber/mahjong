@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#7a1a1a">
 <title>三麻Halu杯 点数早見表</title>
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.8;-webkit-text-size-adjust:100%}
@@ -16,7 +16,6 @@ a{color:var(--accent);text-decoration:underline}
 header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:10px}
 header h1{font-size:1.35rem;margin:0;line-height:1.4}
 header .sub{color:var(--muted);font-size:.9rem}
-.lead{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.98rem}
 h2{font-size:1.15rem;margin:34px 0 12px;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;position:sticky;top:0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 h3{font-size:1.08rem;margin:24px 0 8px;border-left:5px solid var(--accent);padding-left:10px}
 p{margin:8px 0}
@@ -35,7 +34,6 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
-.halu{display:inline-block;color:#fff;background:var(--halu);font-size:.78rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
 .note{font-size:.92rem;color:var(--muted)}
 .ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
 .src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
@@ -76,7 +74,6 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
     <div id="cres" class="cres" aria-live="polite"></div>
     <div class="note" id="cnote" style="margin-top:6px"></div>
   </div>
-  <p class="lead"><span class="halu">Halu杯</span> はツモ損なしです。ツモは、ロンの点を残りの2人で半分ずつ払います（子のツモも親のツモも同じ）。半分に100点未満が出るときは、100点に切り上げます。</p>
   <nav class="toc" id="toc"></nav>
   <main id="content">
 
@@ -93,7 +90,6 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <h3>決まり</h3>
 <ul>
 <li>ロンの点の半分に100点未満が出るときは、100点に切り上げます。例: 子の40符1翻はロン1,300点なので、ツモは半分の650点を切り上げて、700点ずつです。</li>
-<li>本場1本につき、ロンは600点、ツモは1人300点を足します。</li>
 <li>翻は、ドラも入れたふつうの数です。符の数え方は<a href="rule.html#s10">ルールの10章</a>です。</li>
 </ul>
 <h3>表の見方</h3>

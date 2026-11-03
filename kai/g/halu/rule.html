@@ -54,6 +54,15 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 td.c{text-align:center;white-space:nowrap}
 table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-width:5em}
 .src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
+/* 章はたたむ箱に入れる（開いておくのは1章だけ）。開いた章の見出しは、画面の上に残る */
+details.ch{margin:10px 0 0}
+details.ch[open]{margin-bottom:28px}
+details.ch>summary{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+details.ch>summary::-webkit-details-marker{display:none}
+details.ch>summary::before{content:'▸';flex:0 0 auto}
+details.ch[open]>summary::before{content:'▾'}
+details.ch>summary h2{margin:0;padding:0;background:none;color:inherit;box-shadow:none;position:static;border-radius:0}
+details.ch[open]>summary{margin-bottom:12px}
 /* ルールの質問。狭い画面は、聞くボタンを入力欄の下に出す */
 .qbox{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;margin:12px 0}
 .qbox label{display:block;font-weight:700;margin:0 0 6px}
@@ -534,11 +543,8 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <h2 id="s11">11. 点数早見表</h2>
 <p>点数は、<a href="tensu.html">点数早見表のページ</a>にまとめました。ツモで2人が払う点も、そこに書いてあります。</p>
 <ul>
-<li><span class="halu">Halu杯</span> ツモ損なしです。ツモは、ロンの点を残りの2人で半分ずつ払います（2章）。</li>
-<li><b>切り上げ満貫あり</b>。30符4翻と60符3翻は満貫です（子8,000点、親12,000点）。</li>
-<li>役満の役以外は、どれだけ翻を重ねても三倍満までです（数え役満なし）。</li>
 <li>ダブル役満は2倍、トリプル役満は3倍です。</li>
-<li><span class="halu">Halu杯</span> 本場は、ロンなら1本につき600点を足します。ツモは1人300点ずつ足します。</li>
+<li>ツモ損なしは2章、切り上げ満貫と数え役満なしは1章の早見表、本場の点は4章にあります。</li>
 </ul>
 
 <h3>点数の払い方と申告</h3>
@@ -653,6 +659,23 @@ const $ = id => document.getElementById(id);
 // 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
 addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
+// 章（h2 から次の h2 の前まで）を、たたむ箱に入れる。開いておくのは1章（早見表）だけ（スマホで36画面あるため）。
+// 目次・URL の #・質問の「ルールのこの場所へ」で移るときは、その章を開いてから
+[...$('content').children].filter(el => el.tagName === 'H2').forEach(h => {
+  const d = document.createElement('details'), s = document.createElement('summary');
+  d.className = 'ch'; d.open = h.id === 's1';
+  h.before(d); s.appendChild(h); d.appendChild(s);
+  while (d.nextElementSibling && d.nextElementSibling.tagName !== 'H2' && !d.nextElementSibling.classList.contains('src')) d.appendChild(d.nextElementSibling);
+});
+function openCh(id) {
+  const el = id ? document.getElementById(id) : null;
+  const d = el && el.closest('details.ch');
+  if (d) d.open = true;
+  return el;
+}
+$('toc').addEventListener('click', e => { const a = e.target.closest('a'); if (a) openCh(decodeURIComponent(a.hash.slice(1))); });
+addEventListener('hashchange', () => { const el = openCh(decodeURIComponent(location.hash.slice(1))); if (el) el.scrollIntoView(); });
+if (location.hash) { const el = openCh(decodeURIComponent(location.hash.slice(1))); if (el) el.scrollIntoView(); }
 const fmt = n => n.toLocaleString('ja-JP');
 const pt = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
 function umaTable(c) {
@@ -873,7 +896,7 @@ function qHit(u) {
   } else if (u.el.classList.contains('ex')) body.appendChild(c);
   else body.append(...c.childNodes);
   go.type = 'button'; go.className = 'qgo'; go.textContent = 'ルールのこの場所へ';
-  go.addEventListener('click', () => { u.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); u.el.classList.add('qmark'); setTimeout(() => u.el.classList.remove('qmark'), 4000); });
+  go.addEventListener('click', () => { const ch = u.el.closest('details.ch'); if (ch) ch.open = true; u.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); u.el.classList.add('qmark'); setTimeout(() => u.el.classList.remove('qmark'), 4000); });
   d.append(sec, body, go);
   return d;
 }

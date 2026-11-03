@@ -138,15 +138,18 @@ summary{cursor:pointer;font-weight:700}
   <div class="tw">
     <table id="tbl"><thead></thead><tbody></tbody></table>
   </div>
-  <ul class="small" id="tblnote" style="padding-left:1.3em;margin:8px 0"></ul>
+  <p class="small" id="tbllead" style="margin:8px 0" hidden></p>
+  <details id="tblhow"><summary>表の見方</summary><ul class="small" id="tblnote" style="padding-left:1.3em;margin:4px 0"></ul></details>
 
   <div id="finsec" hidden>
   <h2 id="finh">決勝の卓</h2>
-  <div class="card"><div id="finmem"></div></div>
+  <details id="finfold"><summary id="finsum"></summary><div id="finmem"></div></details>
+  <div id="finalbox">
   <h2>最終順位</h2>
   <div class="card">
     <div id="final"></div>
     <div class="small" id="finalnote"></div>
+  </div>
   </div>
   </div>
 
@@ -818,6 +821,9 @@ function fillSeatsButtons() {
 }
 
 // ---- 表示 ----
+// たたむ箱の開け閉め。key が変わった時だけ決める（人が開け閉めしたものは、読み直しで戻さない）
+const FOLD = {};
+function autoOpen(id, key, open) { if (FOLD[id] === key) return; FOLD[id] = key; $(id).open = open; }
 function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; if (typeof text === 'string' && text.startsWith('−')) td.classList.add('neg'); tr.appendChild(td); return td; }
 function render(d) {
   DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, updated: null };
@@ -854,9 +860,19 @@ function render(d) {
   const notes = ['合計ポイントの順です。右の 1・2… は半荘ごとのポイントです。抜け番の半荘は0ポイントです。', nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
   if (rk.some(x => x.p === me)) notes.push('色のついた行は、トップで選んだ自分の名前です。');
   if (K) notes.push('名前が太字の' + K + '人が決勝に進みます（上から順。途中で抜けた人は飛ばします）。' + (junni() ? 'ほかの人は順位決定戦です。' : ''));
-  if (showLine) notes.push('「' + K + '位ライン」は、自分を除いた人の合計の上から' + K + '番目との差です。「あと」は上回るのに要るポイント、「圏内」は' + (K + 1) + '位との差です。赤い線より上が、いまの決勝の圏内です。次の半荘で要る点棒の目安は、トップで自分の名前を選ぶと出ます。');
+  if (showLine) notes.push('「' + K + '位ライン」は、自分を除いた人の合計の上から' + K + '番目との差です。「あと」は上回るのに要るポイント、「圏内」は' + (K + 1) + '位との差です。');
   $('tblnote').innerHTML = ''; notes.forEach(t => { const li = document.createElement('li'); li.textContent = t; $('tblnote').appendChild(li); });
-  if (FINALS.length) { renderFinalMembers(); renderFinal(); }
+  // 表の下に出したままにするのは赤い線の1行だけ。ほかは「表の見方」にたたむ
+  $('tbllead').hidden = !showLine;
+  $('tbllead').textContent = showLine ? '赤い線より上が、いまの決勝の圏内です。自分の目安（次の半荘で要る点棒）は、トップで名前を選ぶと出ます。' : '';
+  // 予選の間は、決勝の卓（暫定）をたたみ、最終順位（予選の順のまま＝集計表と同じ並び）を出さない。予選が終わったら開く
+  if (FINALS.length) {
+    const pd = prelimDone();
+    $('finsum').textContent = pd ? '予選の順位で決まりました' : '予選が終わると決まります（押すと、いまの順位での暫定）';
+    autoOpen('finfold', pd, pd);
+    $('finalbox').hidden = !(pd || FINALS.some(r => Object.keys(recsOf(r)).length));
+    renderFinalMembers(); renderFinal();
+  }
   renderResults();
   if (!ROUND_PICKED && API && d) {
     ROUND_PICKED = true;

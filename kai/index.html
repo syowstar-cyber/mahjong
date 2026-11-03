@@ -78,6 +78,11 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .party .st{font-size:.95rem;margin-top:8px;color:var(--muted)}
 .party .st.ok{color:var(--ok);font-weight:700}
 .party .st.ng{color:var(--ng);font-weight:700}
+/* たたむ箱（点数入力ページと同じ形）。打ち上げは答えた後、全部の卓は名前を選んだ後にたたむ */
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
+summary{cursor:pointer;font-weight:700}
+details[open]>summary{margin-bottom:8px}
+#usum.ok{color:var(--ok)}#usum.ng{color:var(--ng)}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 </head>
@@ -103,22 +108,19 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <label for="me">自分の名前</label>
     <select id="me"></select>
     <div id="mine" style="margin-top:10px"></div>
+    <div class="tools">
+      <button class="ghost" type="button" id="reload">最新に更新</button>
+      <span class="small" id="updated"></span>
+    </div>
   </div>
   <ul class="small" style="padding-left:1.3em;margin:8px 0 12px">
     <li id="seatnote">東が起家です。</li>
-    <li>抜け番の半荘は0ポイントです。</li>
     <li id="finnote" hidden></li>
   </ul>
 
   <div id="linebox" hidden>
   <h2 id="lineh">決勝ライン</h2>
-  <div class="card">
-    <div id="line"></div>
-    <div class="tools">
-      <button class="ghost" type="button" id="lreload">最新に更新</button>
-      <span class="small" id="lupdated"></span>
-    </div>
-  </div>
+  <div class="card"><div id="line"></div></div>
   </div>
 
   <div id="schedbox" hidden>
@@ -130,7 +132,8 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 
   <div id="uchibox" hidden>
   <h2>打ち上げ</h2>
-  <div class="card party">
+  <details class="card party" id="ufold">
+    <summary id="usum"></summary>
     <label for="ume">自分の名前</label>
     <select id="ume"></select>
     <p class="small" style="margin:4px 0 8px">上の「自分の名前」と同じです。どちらで選んでも、同じ名前になります。</p>
@@ -139,16 +142,16 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <button type="button" class="send" id="usend">この内容で回答する</button>
     <button type="button" class="ghost" id="udel">回答を消す</button>
     <div class="st" id="ust" aria-live="polite"></div>
-  </div>
+  </details>
   </div>
 
   <h2>半荘ごとの組み合わせ</h2>
   <p class="hint" id="kujibox" hidden></p>
-  <div class="tools">
-    <button class="ghost" type="button" id="reload">最新に更新</button>
-    <span class="small" id="updated"></span>
-  </div>
-  <div id="rounds"></div>
+  <p id="rnone" hidden></p>
+  <details id="rfold" hidden>
+    <summary id="rsum"></summary>
+    <div id="rounds"></div>
+  </details>
   </div>
   <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 </div>
@@ -300,16 +303,22 @@ function render() {
   });
   ME = list.includes(SAVED) ? SAVED : '';
   $('me').value = ME; $('ume').value = ME;
+  // 開催日は、日時・場所を「当日の流れ」の見出しのすぐ下へ回す（「次は」のすぐ下に自分の席を出す）。ほかの日は一番上
+  if (c.date === today() && schedRows().length) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
   renderInfo();
   renderNext();
   renderMine();
+  renderUpdated();
   renderLine();
   renderSched();
   renderUchi();
   renderKuji();
-  // 半荘ごと
+  // 半荘ごと（全部の卓）。名前を選んだ人は自分の席の表で足りるので、たたんで出す（名前を選んでいない間は開く）
   const box = $('rounds'); box.innerHTML = '';
-  if (!rs.length) { box.innerHTML = '<p><b>組み合わせはまだ決まっていません。' + (kujiDay() ? dayText(kujiDay()) + 'の夜に、くじで決まります。' : '前日に出ます。') + '</b></p>'; }
+  $('rnone').hidden = !!rs.length; $('rfold').hidden = !rs.length;
+  if (!rs.length) $('rnone').innerHTML = '<b>組み合わせはまだ決まっていません。' + (kujiDay() ? dayText(kujiDay()) + 'の夜に、くじで決まります。' : '前日に出ます。') + '</b>';
+  $('rsum').textContent = '全部の卓（予選' + rs.length + '半荘）';
+  autoOpen('rfold', ME, !ME);
   rs.forEach(k => {
     const r = KUMI.rounds[k], tabs = (r.tables || []).slice().sort((a, b) => a.no - b.no);
     const h = document.createElement('h3');
@@ -333,11 +342,18 @@ function render() {
     if ((r.out || []).length) extra.push('お休み: ' + r.out.map(dn).join('・'));
     if (extra.length) { const p = document.createElement('p'); p.className = 'small'; p.style.margin = '4px 0'; p.textContent = extra.join('　'); box.appendChild(p); }
   });
+  // 決勝の決まりは1文だけ（観戦と順位決定戦の時間は当日の流れに、決勝の卓の出る所は「次は」に出る）
   const fn = $('finnote');
   fn.hidden = !(c.final.tables > 0);
-  if (!fn.hidden) fn.textContent = '決勝は、予選の上位' + c.final.tables * c.mode + '人です（途中で抜けた人は飛ばします）。'
-    + (junni ? 'ほかの人は、決勝1半荘目の時間に順位決定戦を1半荘打ちます。決勝2半荘目は、決勝に出ない人も観戦します。決勝と順位決定戦の卓は、予選が終わると点数入力ページに出ます。' : '決勝の卓は予選が終わると点数入力ページに出ます。')
-    + (bakime() ? '' : '席は自動卓のサイコロで決めます。');
+  if (!fn.hidden) fn.textContent = '決勝は予選の上位' + c.final.tables * c.mode + '人' + (junni ? 'で、ほかの人は順位決定戦です。' : 'です。') + (bakime() ? '' : '決勝の席は自動卓のサイコロで決めます。');
+}
+// たたむ箱の開け閉め。key が変わった時だけ決める（人が開け閉めしたものは、読み直しで戻さない）
+const FOLD = {};
+function autoOpen(id, key, open) { if (FOLD[id] === key) return; FOLD[id] = key; $(id).open = open; }
+// 「最新に更新」の横の時刻。受け口の updated は名簿や生年月日を送っても進むので、点数が1つも入っていない間は出さない。開催日は自動の読み直しも書く
+function renderUpdated() {
+  const scored = !!DATA && Object.values(DATA.rounds || {}).some(r => r && Object.keys(r).length);
+  $('updated').textContent = [scored && DATA.updated ? '点数の最終更新 ' + DATA.updated : '', CFG.date === today() ? '2分ごとに読み直します' : ''].filter(Boolean).join('・');
 }
 // 自分の半荘ごとの進み具合（受け口の入力済みの卓から）。打つ半荘は自分の卓に点数が入ったら済み、抜け番・お休みの半荘はその半荘の卓がぜんぶ済んだら済み。
 // 名前を選んでいないときと、受け口が読めていない間は null（済みも次も出さない）
@@ -511,9 +527,6 @@ function renderLine() {
   box.hidden = !lineShow() || !String(CFG.api || '').trim();
   if (box.hidden) return;
   $('lineh').textContent = K + '位ライン（決勝に行ける目安）';
-  // 受け口の updated は名簿を送っても進むので、予選の点数が入るまでは出さない
-  const scored = PRELIM.some(r => Object.keys(recsOf(r)).length);
-  $('lupdated').textContent = [scored && DATA.updated ? '点数の最終更新 ' + DATA.updated : '', CFG.date === today() ? '2分ごとに読み直します' : ''].filter(Boolean).join('・');
   if (!p) { out.innerHTML = '<p class="small">上の「自分の名前」を選ぶと、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
   if (!DATA) { out.innerHTML = '<p class="small">' + (DATA_ST === 'wait' ? '点数を読み込み中…' : '点数を読めませんでした。少し待ってから「最新に更新」を押してください。') + '</p>'; return; }
   const rk = prelimStats(), x = rk.find(y => y.p === p);
@@ -531,16 +544,16 @@ function renderLine() {
   const left = PRELIM.filter(r => !x.by[r] && !isLocked(r) && !roundDone(r) && !restOf(r).includes(p)).length;
   if (!left) { out.innerHTML = h + '<p class="small">予選の半荘は、もう残っていません。</p>'; return; }
   const need = D + 1;
-  h += '<p>次の半荘で圏内に' + (D < 0 ? '残る' : '入る') + '目安（順位ごとに、この点棒以上ならOK。予選の残りは' + left + '半荘）:</p><div class="tw"><table><thead><tr><th>順位</th><th>必要ポイント</th><th>必要な点棒</th></tr></thead><tbody>';
+  // 次の半荘で要るポイントはどの順位でも同じなので、表は順位ごとの点棒だけ
+  h += '<p>次の半荘で圏内に' + (D < 0 ? '残る' : '入る') + '目安（順位ごとに、この点棒以上ならOK。予選の残りは' + left + '半荘）:</p><div class="tw"><table><thead><tr><th>順位</th><th>必要な点棒</th></tr></thead><tbody>';
   for (let r = 0; r < MODE; r++) {
     const raw = needRaw(r, need);
     const c = raw > rawCap(r) ? '届かない' : raw <= rawMin(r) ? 'どんな点数でもOK' : fmt(raw) + ' 以上';
-    h += '<tr><td>' + (r + 1) + '位</td><td>' + fpt(need) + '</td><td>' + c + '</td></tr>';
+    h += '<tr><td>' + (r + 1) + '位</td><td>' + c + '</td></tr>';
   }
   h += '</tbody></table></div><p class="small">ほかの人の結果でラインは動きます。目安として見てください。' + (Array.isArray(CFG.uma) ? '' : '順位点が浮きの人数で変わるため、少ない方の順位点で計算しています。') + '</p>';
   out.innerHTML = h;
 }
-$('lreload').addEventListener('click', load);
 // 名前を選んだら（上の欄でも打ち上げの欄でも）、この端末に覚えて出し直す。
 // 打ち上げの欄で選んだときは、上の表が伸び縮みしても、その欄が画面の同じ所に残るようにする
 function pickMe(v, keep) {
@@ -548,7 +561,8 @@ function pickMe(v, keep) {
   try { localStorage.setItem('halukai:me:' + G, SAVED); } catch (e) {}
   const y = keep ? keep.getBoundingClientRect().top : 0;
   render();
-  if (keep) window.scrollBy(0, keep.getBoundingClientRect().top - y);
+  // 打ち上げの欄で選んだときは、答えた人でも欄をたたまない（選んだ所が消えないように）
+  if (keep) { $('ufold').open = true; window.scrollBy(0, keep.getBoundingClientRect().top - y); }
 }
 $('me').addEventListener('change', () => pickMe($('me').value));
 $('ume').addEventListener('change', () => pickMe($('ume').value, $('ume')));
@@ -569,9 +583,13 @@ function renderUchi() {
   const ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
   document.querySelectorAll('input[name=uch]').forEach(x => { if (!UCHI_PICKED) x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
   $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
-  if (!ok) sayU(UCHI_ST === 'wait' ? '回答を読み込み中…' : UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
-  else if (mine) sayU('回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）', 'ok');
-  else sayU(ME ? 'まだ回答がありません。' : '名前を選ぶと、答えられます。');
+  // いまの回答は、たたむ箱の見出しの行に出す。答えた後はたたむ（押すと開いて変えられる）。下の欄は、送信中・消した・送れなかった時だけ
+  const s = $('usum');
+  s.textContent = !ok ? (UCHI_ST === 'wait' ? '回答を読み込み中…' : UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。')
+    : mine ? '回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）' : ME ? 'まだ回答がありません' : '名前を選ぶと、答えられます';
+  s.className = ok && mine ? 'ok' : UCHI_ST === 'net' ? 'ng' : '';
+  sayU('');
+  autoOpen('ufold', [UCHI_ST, ME, mine ? mine.choice + mine.ts : ''].join('|'), ok && !mine);
 }
 async function sendUchi(choice) {
   if (!ME) { sayU('名前を選んでください', 'ng'); return; }
@@ -635,7 +653,7 @@ async function load() {
   try {
     const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
     if (j.ok && j.data && j.data.kai === c.kai) {
-      ROSTER = j.data.roster || {}; DATA = j.data; DATA_ST = 'ok'; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : '';
+      ROSTER = j.data.roster || {}; DATA = j.data; DATA_ST = 'ok';
       AGERANK = (j.data.agerank && typeof j.data.agerank === 'object') ? j.data.agerank : {};
       // 打ち上げの回答（古い受け口は uchiage を返さない）
       const u = j.data.uchiage;

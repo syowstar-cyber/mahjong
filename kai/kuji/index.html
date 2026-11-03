@@ -321,8 +321,8 @@ function renderResult() {
     const outs = [...new Set(ks.filter(k => Number(k) >= from).flatMap(k => (now[k] && now[k].out) || []))].sort((a, b) => pnum(a) - pnum(b));
     h += '<p>' + (from > 1 ? (from - 1) + '半荘目までは、型と本番の番号のとおりです。' : '') + from + '半荘目からは、当日の組み直しです' + (outs.length ? '（お休み: ' + outs.map(p => esc(dn(p))).join('・') + '）' : '') + '。組み直しでも、くじで決まった枠と No. の組は変えません。</p>';
   }
-  // 対戦表（いまの組み合わせ。当日に組み直したら、組み直した後の表。トップページの「半荘ごとの組み合わせ」と同じ）
-  h += roundTables(now, dn);
+  // 対戦表（いまの組み合わせ。当日に組み直したら、組み直した後の表）。トップページの「半荘ごとの組み合わせ」と同じ表なので、たたんで出す
+  h += '<details class="card"><summary>半荘ごとの組み合わせ（予選' + Object.keys(now).length + '半荘・トップページと同じ）</summary>' + roundTables(now, dn) + '</details>';
   h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
   h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">トップページ</a>で見られます。</p>';
   box.innerHTML = h;

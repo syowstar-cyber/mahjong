@@ -51,6 +51,9 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 .bd .done{color:var(--ok);font-weight:700}
 .msg{min-height:1.5em;margin-top:8px;font-weight:700}
 .msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
+/* たたむ箱（時間割）。対戦表のページと同じ形 */
+details.card>summary{cursor:pointer;font-weight:700}
+details.card[open]>summary{margin-bottom:8px}
 #utbl th:first-child,#utbl td:first-child{width:auto}
 #utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -74,13 +77,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
     <div class="big" id="jcount"></div>
     <div id="junbi"></div>
   </div>
-  <p class="small">チェックはこの端末だけに残ります。ほかの人の端末とは共有しません。</p>
   </div>
-
-  <h2>時間割</h2>
-  <div class="tw"><table id="sched"></table></div>
-  <p class="small" id="schednote"></p>
-  <p class="hint" id="schedmemo" hidden></p>
 
   <h2>出席確認</h2>
   <div class="card">
@@ -94,7 +91,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
     <button class="ghost" type="button" id="reload">名前を読み直す</button>
     <button class="ghost" type="button" id="clear">チェックを全部外す</button>
   </div>
-  <p class="small">チェックはこの端末だけに残ります。ほかの人の端末とは共有しません。</p>
+  <p class="small">このページのチェックは、この端末だけに残ります。ほかの人の端末とは共有しません。</p>
   <h3>まだ来ていない人</h3>
   <p id="notyet"></p>
   <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を伝えます。push してから1〜2分でページに出ます。</p>
@@ -109,6 +106,14 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   </div>
   <p class="small">参加者がトップページで答えた出欠です。みんなの出欠は、このページにだけ出ます。</p>
   </div>
+
+  <h2>時間割</h2>
+  <details class="card" id="schedfold">
+    <summary id="schedsum"></summary>
+    <div class="tw"><table id="sched"></table></div>
+    <p class="small" id="schednote"></p>
+    <p class="hint" id="schedmemo" hidden></p>
+  </details>
 
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
@@ -149,10 +154,12 @@ function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 function renderSched() {
   const t = $('sched'); t.innerHTML = '';
   const s = Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
-  if (!s.length) { $('schednote').textContent = '時間割は、まだ大会設定にありません。'; return; }
+  if (!s.length) { $('schedsum').textContent = '時間割は、まだ大会設定にありません'; $('schednote').textContent = ''; return; }
   const isToday = CFG.date === today();
   let cur = -1;
   if (isToday) { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); s.forEach((r, i) => { if (mins(r[0]) <= now) cur = i; }); }
+  // 表はたたんで出す（中身はトップページの当日の流れと同じ）。見出しの行には、当日はいまの行を出す
+  $('schedsum').textContent = cur >= 0 ? 'いま ' + s[cur][0] + ' ' + s[cur][1] : '全部で' + s.length + '行（' + s[0][0] + '〜' + s[s.length - 1][0] + '）';
   t.innerHTML = '<thead><tr><th>時刻</th><th>内容</th></tr></thead>';
   const tb = document.createElement('tbody');
   s.forEach((r, i) => {
