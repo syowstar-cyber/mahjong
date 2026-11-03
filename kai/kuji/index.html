@@ -188,6 +188,25 @@ function applyTheme(c) {
   if (!t) { t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; document.head.appendChild(t); }
   t.content = c.short || c.group || c.title || '';
 }
+// ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
+function pageLinks(c) {
+  ['rule', 'tensu'].forEach(k => {
+    const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
+    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
+  });
+}
+// 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
+// 開いた瞬間に出して、大会設定を読んだら新しくする。型・組み合わせ・点数は覚えない（いつも新しく読む）
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
+function readShell() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SHELL_KEY));
+    const o = s && typeof s === 'object' ? Object.fromEntries(SHELL_F.filter(k => typeof s[k] === 'string').map(k => [k, s[k]])) : {};
+    return o.title ? o : null;
+  } catch (e) { return null; }
+}
+function setTitle(t) { document.title = t + ' 対戦表'; $('ttl').textContent = '🀄 ' + t + ' 対戦表'; }
 let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
 // 受け口から読むもの（点数・年上からの順・決勝最終実況）と、受け口の URL
 let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
@@ -778,32 +797,34 @@ async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 async function load() {
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
+  // 大会設定・くじの型・組み合わせは、同時に取りに行く（順に待つと、スマホの回線で本文が出るのが遅れる）。
+  // 型と組み合わせは、前に読んだ設定がくじの会のときだけ先に取りに行く（ほかのときは、くじの会とわかってから）
+  const pv = CFG || SH, pre = !!(pv && /^\d{4}-\d{2}-\d{2}$/.test(pv.kuji || ''));
+  const cp = getJson('../' + CONF + 'taikai.json');
+  const tp = pre ? getJson('../' + CONF + 'kata.json').catch(() => null) : null, kp = pre ? getJson('../' + CONF + 'kumiawase.json').catch(() => null) : null;
   let c;
-  try { c = await getJson('../' + CONF + 'taikai.json'); }
+  try { c = await cp; }
   catch (e) { setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
   if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || !Number.isInteger(c.players)) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
   CFG = c;
   MODE = c.mode; OKA = Number.isInteger(c.start) && Number.isInteger(c.return) ? (c.return - c.start) * c.mode / 100 : 0;
   applyTheme(c);
+  pageLinks(c);
+  saveShell(c);
   // ページの中の移動。決勝ラインは、決勝のある会だけ（点数入力ページの集計へ）
   $('jline').hidden = !(c.final && c.final.tables > 0);
   $('jline').setAttribute('href', scoreUrl('h2sum'));
-  // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
-  ['rule', 'tensu'].forEach(k => {
-    const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
-    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
-  });
-  document.title = (c.title || '') + ' 対戦表';
-  $('ttl').textContent = '🀄 ' + (c.title || '') + ' 対戦表';
+  setTitle(c.title || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '')) { $('sub').textContent = ''; setup('この会は、組み合わせをくじで決めていません。組み合わせはトップページで見られます。'); return; }
   $('sub').textContent = mdText(c.kuji) + 'のナンバーズ4の当せん番号で、組み合わせを決めるくじ';
   const notes = [];
-  let kt = null, k = null;
-  try { kt = await getJson('../' + CONF + 'kata.json'); } catch (e) { kt = null; }
+  // 前に読んだ設定でくじの会とわからなかったときは、ここで2つを同時に取りに行く
+  const tq = tp || getJson('../' + CONF + 'kata.json').catch(() => null), kq = kp || getJson('../' + CONF + 'kumiawase.json').catch(() => null);
+  let kt = await tq, k = null;
   if (kt && (kt.kai !== c.kai || !kt.rounds || typeof kt.rounds !== 'object' || !Number.isInteger(kt.players))) kt = null;
   if (kt && kt.out !== undefined && !(Array.isArray(kt.out) && kt.out.every(p => /^P[1-9]\d?$/.test(p) && pnum(p) <= kt.players))) { notes.push('型の「来られない人」の書き方が違うので、型を出していません。'); kt = null; }
   if (kt && kt.date !== c.kuji) { notes.push('型の抽せんの日（' + kt.date + '）が大会設定と違うので、型を出していません。'); kt = null; }
-  try { k = await getJson('../' + CONF + 'kumiawase.json'); } catch (e) { k = null; }
+  k = await kq;
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) k = null;
   KATA = kt; KUMI = k;
   N4 = KATA && k && k.kuji && k.kuji.date === KATA.date ? (normN4(k.kuji.n4 || '') || '') : '';
@@ -822,6 +843,9 @@ async function load() {
   }
   jumpToHash();
 }
+// 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが足りない画面を出さない）
+const SH = G_OK ? readShell() : null;
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); }
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

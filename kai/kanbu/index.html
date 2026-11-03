@@ -148,6 +148,26 @@ function applyTheme(c) {
   document.documentElement.style.setProperty('--accent', c.color);
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', c.color);
 }
+// ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す。くじは、くじで決める会（kuji）だけ
+function pageLinks(c) {
+  ['rule', 'tensu'].forEach(k => {
+    const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? CONF + c[k] : '';
+    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
+  });
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
+}
+// 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
+// 開いた瞬間に出して、大会設定を読んだら新しくする。名前（名簿）と出席は覚えない
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
+function readShell() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SHELL_KEY));
+    const o = s && typeof s === 'object' ? Object.fromEntries(SHELL_F.filter(k => typeof s[k] === 'string').map(k => [k, s[k]])) : {};
+    return o.title ? o : null;
+  } catch (e) { return null; }
+}
+function setTitle(t) { document.title = t + ' 幹部用'; $('ttl').textContent = '🀄 ' + t + ' 幹部用'; }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 
 // ---- 時間割（taikai.json の schedule＝[["10:45","集合・受付"], …]）。開催日の当日は、いまの行に色をつける ----
@@ -341,15 +361,10 @@ async function load() {
   if (!c || !KAI_RE.test(String(c.kai || '')) || !Number.isInteger(c.players) || c.players < 3 || c.players > 99) { setup('大会設定（taikai.json）の書き方が違います。'); $('main').hidden = true; return; }
   CFG = c;
   applyTheme(c);
-  document.title = (c.title || '') + ' 幹部用';
-  $('ttl').textContent = '🀄 ' + (c.title || '') + ' 幹部用';
+  pageLinks(c);
+  saveShell(c);
+  setTitle(c.title || '');
   $('sub').textContent = [c.date, c.mode + '麻', c.players + '人'].filter(Boolean).join('・');
-  // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す。くじは、くじで決める会（kuji）だけ
-  ['rule', 'tensu'].forEach(k => {
-    const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? CONF + c[k] : '';
-    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
-  });
-  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
   const notes = [];
   API = String(c.api || '').trim();
   BIRTH_OK = false;
@@ -379,6 +394,9 @@ $('clear').addEventListener('click', () => {
   if (!CFG || !confirm('出席のチェックを全部外しますか？')) return;
   HERE.clear(); saveHere(); renderAttend();
 });
+// 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが足りない画面を出さない）
+const SH = G_OK ? readShell() : null;
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);

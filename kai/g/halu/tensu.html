@@ -295,12 +295,30 @@ $('ck').addEventListener('change', () => { fillFu(); calc(); });
 ['cf', 'ch', 'cb'].forEach(id => $(id).addEventListener('change', calc));
 calc();
 
-fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
-  if (!c) return;
+// 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じで、会はこのページのフォルダ g/<会>/）。
+// 開いた瞬間に出して、大会設定を読んだら新しくする
+const G = (location.pathname.match(/\/g\/([a-z0-9-]{1,20})\/[^/]*$/) || [])[1] || '';
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
+function readShell() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SHELL_KEY));
+    const o = s && typeof s === 'object' ? Object.fromEntries(SHELL_F.filter(k => typeof s[k] === 'string').map(k => [k, s[k]])) : {};
+    return o.title ? o : null;
+  } catch (e) { return null; }
+}
+// 会の色と題名。くじのボタンは、くじで決める会（kuji）だけ
+function shell(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
   if (c.title) { document.title = c.title + ' 点数早見表'; $('ttl').textContent = '🀄 ' + c.title + ' 点数早見表'; }
-  // くじのボタンは、くじで決める会（kuji）だけ
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
+}
+const SH = G ? readShell() : null;
+if (SH) shell(SH);
+fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
+  if (!c) return;
+  shell(c);
+  if (G) saveShell(c);
 }).catch(() => {});
 </script>
 </body>

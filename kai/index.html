@@ -189,6 +189,18 @@ function pageLinks(c) {
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
+// 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーは会ごとで、ほかのページとルール・点数早見表も同じキー）。
+// 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
+function readShell() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SHELL_KEY));
+    const o = s && typeof s === 'object' ? Object.fromEntries(SHELL_F.filter(k => typeof s[k] === 'string').map(k => [k, s[k]])) : {};
+    return o.title ? o : null;
+  } catch (e) { return null; }
+}
+function setTitle(t) { document.title = t + ' トップページ'; $('ttl').textContent = '🀄 ' + t + ' トップページ'; }
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 // 決勝ラインの計算に使う（load() で大会設定から入れる。点数入力ページと同じ名前）。DATA_ST＝受け口を読めたか（wait＝はじめの読み込み中・ok・ng）
 let MODE = 4, TOTAL = 100000, OKA = 0, PRELIM = [], FINALS = [], LOCKED = [], AGERANK = {}, DATA_ST = 'wait';
@@ -282,8 +294,7 @@ function renderPlace(place, addr) {
 
 function render() {
   const c = CFG;
-  document.title = c.title + ' トップページ';
-  $('ttl').textContent = '🀄 ' + c.title + ' トップページ';
+  setTitle(c.title);
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   const rs = rounds();
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
@@ -627,14 +638,15 @@ function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 async function load() {
   LAST_LOAD = Date.now();
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
+  // 大会設定と組み合わせは、同時に取りに行く（順に待つと、スマホの回線で本文が出るのが遅れる）
+  const cp = getJson(CONF + 'taikai.json'), kp = getJson(CONF + 'kumiawase.json').catch(() => null);
   let c;
-  try { c = await getJson(CONF + 'taikai.json'); }
+  try { c = await cp; }
   catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
   const errs = checkCfg(c);
   if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('・')); $('main').hidden = true; return; }
   const notes = [];
-  let k = null;
-  try { k = await getJson(CONF + 'kumiawase.json'); } catch (e) { k = null; }
+  let k = await kp;
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
   CFG = c; KUMI = k;
   MODE = c.mode; TOTAL = c.start * MODE; OKA = (c.return - c.start) * MODE / 100;
@@ -643,6 +655,7 @@ async function load() {
   LOCKED = (c.locked || []).map(String);
   applyTheme(c);
   pageLinks(c);
+  saveShell(c);
   const api = String(c.api || '').trim();
   if (!api) UCHI_ST = 'none';
   // 受け口（名前・入力済みの卓・打ち上げ）を待たずに、設定と組み合わせ表で先に出す。はじめは、受け口が返るまで名前が番号のまま
@@ -666,6 +679,9 @@ async function load() {
   render();
 }
 $('reload').addEventListener('click', load);
+// 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが2つだけの画面を出さない）
+const SH = G_OK ? readShell() : null;
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);

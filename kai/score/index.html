@@ -195,6 +195,19 @@ function pageLinks(c) {
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
+// 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
+// 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
+function readShell() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SHELL_KEY));
+    const o = s && typeof s === 'object' ? Object.fromEntries(SHELL_F.filter(k => typeof s[k] === 'string').map(k => [k, s[k]])) : {};
+    return o.title ? o : null;
+  } catch (e) { return null; }
+}
+function setTitle(t) { document.title = t + ' 点数入力'; $('ttl').textContent = '🀄 ' + t + ' 点数入力'; }
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
 const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP');
@@ -262,14 +275,14 @@ function applyCfg(c, k, kt) {
   CFG = c; KUMI = k; KATA = kt || null;
   applyTheme(c);
   pageLinks(c);
+  saveShell(c);
   MODE = c.mode; TOTAL = c.start * MODE;
   OKA = (c.return - c.start) * MODE / 100;   // オカ（返し−持ち点）×人数。0.1ポイント単位
   API = String(c.api || '').trim();
   PRELIM = Array.from({ length: c.prelim }, (_, i) => String(i + 1));
   FINALS = c.final.tables > 0 ? Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1)) : [];
   LOCKED = (c.locked || []).map(String);
-  document.title = c.title + ' 点数入力';
-  $('ttl').textContent = '🀄 ' + c.title + ' 点数入力';
+  setTitle(c.title);
   const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, k ? k.rounds : null, KATA ? KATA.rounds : null, !!c.bakime]);
   // 入力中は作り直さない（次の読み込みでもう一度比べる）
   if (shape !== SHAPE && !EDITING) { SHAPE = shape; buildStatic(); }
@@ -958,18 +971,22 @@ let LAST_LOAD = 0;
 async function load() {
   LAST_LOAD = Date.now();
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
+  // 大会設定と組み合わせは、同時に取りに行く（順に待つと、スマホの回線で本文が出るのが遅れる）。くじの型は抽せんの前だけ使うので、
+  // 前に読んだ設定がくじの会で、抽せんの日がまだ過ぎていないときだけ一緒に取りに行く（ほかのときは、要るとわかってから）
+  const pv = CFG || SH;
+  const cp = getJson('../' + CONF + 'taikai.json'), kp = getJson('../' + CONF + 'kumiawase.json').catch(() => null);
+  const tp = pv && /^\d{4}-\d{2}-\d{2}$/.test(pv.kuji || '') && pv.kuji >= today() ? getJson('../' + CONF + 'kata.json').catch(() => null) : null;
   let c;
-  try { c = await getJson('../' + CONF + 'taikai.json'); }
+  try { c = await cp; }
   catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
   const errs = checkCfg(c);
   if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('／')); $('main').hidden = true; return; }
-  let k = null; const notes = [];
-  try { k = await getJson('../' + CONF + 'kumiawase.json'); } catch (e) { k = null; }
+  let k = await kp; const notes = [];
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので使っていません。'); k = null; }
   // くじの会で組み合わせ表がまだ空（抽せんの前）なら、型（kata.json）を読んで、報告の欄を枠の番号で仮置きする
   let kt = null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') && !(k && Object.keys(k.rounds).length)) {
-    try { kt = await getJson('../' + CONF + 'kata.json'); } catch (e) { kt = null; }
+    kt = await (tp || getJson('../' + CONF + 'kata.json').catch(() => null));
     if (kt && (kt.kai !== c.kai || kt.date !== c.kuji || !kt.rounds || typeof kt.rounds !== 'object')) kt = null;
   }
   applyCfg(c, k, kt);
@@ -995,6 +1012,9 @@ function jumpOnce() {
   if (el && !el.closest('[hidden]')) el.scrollIntoView();
 }
 $('reload').addEventListener('click', load);
+// 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが2つだけの画面を出さない）
+const SH = G_OK ? readShell() : null;
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); }
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
