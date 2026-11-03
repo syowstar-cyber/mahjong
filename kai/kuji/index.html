@@ -95,7 +95,7 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
-  <nav class="jump" aria-label="見たいところへ移動"><a href="#kekka">組み合わせ</a><a id="jline" href="../score/#h2sum" hidden>決勝ライン</a><a id="jlive" href="#live" hidden>決勝最終実況</a></nav>
+  <nav class="jump" aria-label="見たいところへ移動"><a href="#kekka">組み合わせ</a><a id="jline" href="../#lineh" hidden>決勝ライン</a><a id="jlive" href="#live" hidden>決勝最終実況</a></nav>
   <h2 id="kekka">1. 結果</h2>
   <div id="result"></div>
 
@@ -137,8 +137,9 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
   <h2 id="live">9. 決勝最終実況</h2>
   <div class="lvtools"><button type="button" class="ghost" id="lvre">最新に更新</button><span class="small" id="lvat"></span></div>
   <div id="livebox"></div>
-  <details id="livein" class="card">
+  <details id="livein" class="card" hidden>
     <summary>運営の入力（入れるのは1人だけ）</summary>
+    <p id="lfpre" class="small" hidden></p>
     <form id="liveform" autocomplete="off">
       <p class="small">局が終わるたびに、これから打つ局と、いまの点棒を入れて送ります。点棒は1人を空けると、その人の分が自動で入ります。見ている人の画面には、30秒ほどで出ます。</p>
       <div class="lvlab">席（東1局の並び。最初に1回）</div>
@@ -174,6 +175,9 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 // 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
+// 9章（決勝最終実況）の運営の入力を出すか。幹部用ページの「実況を入れる」から開いたとき（?unei=1）だけ、開いた形で出す。参加者の画面には出さない（2026-11-03 主催）
+const UNEI = new URLSearchParams(location.search).get('unei') === '1';
+if (UNEI) $('livein').open = true;
 // ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 // 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
@@ -434,11 +438,12 @@ $('calc').addEventListener('submit', ev => {
   CALC = b; renderCalc();
 });
 // ---- 9章: 決勝最終実況（決勝の最後の半荘。2026-11-02 主催） ----
-// 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く（見ている人の画面は pull で読み直す）。
+// 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く（見ている人の画面は pull で読み直す）。入れる欄は、幹部用ページから開いたとき（UNEI）だけ出す。
 // 前の半荘までの決勝のポイントといまの点棒から、総合の順位と、アガって総合1位になるのに要る手を出す。
 // 出すのは taikai.json の jikkyo が true の会で、3麻・決勝1卓・2半荘以上。局は東南3局ずつ（南3局がオーラス）・南場の流局は連荘・
 // 南3局の親はアガってトップならアガリやめ（g/halu/rule.html）・点の払い方はツモ損なし（g/halu/tensu.html）
 const KYOKU = ['東1局', '東2局', '東3局', '南1局', '南2局', '南3局'], ORAS = 5;
+// 9章を出す会か（幹部用ページの入口も同じ条件。kanbu/index.html の liveOn。どちらかを直したら、もう片方も直す）
 const liveOn = () => !!(CFG && CFG.jikkyo === true && CFG.mode === 3 && CFG.final && CFG.final.tables === 1 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan >= 2
   && Number.isInteger(CFG.start) && Number.isInteger(CFG.return) && Number.isInteger(CFG.prelim) && !!CFG.uma && typeof CFG.uma === 'object');
 const lastF = () => 'F' + CFG.final.hanchan;
@@ -645,8 +650,14 @@ function renderLive() {
   $('livesec').hidden = !on; $('jlive').hidden = !on;
   if (!on) return;
   const box = $('livebox'), ctx = liveCtx(), n = CFG.final.hanchan;
-  $('livein').hidden = !!ctx.wait;
-  if (ctx.wait) { box.innerHTML = '<div class="hint">決勝' + ctx.wait + '半荘目の点数が入ると、ここに決勝' + n + '半荘目の実況が出ます。<br>運営が局ごとに点数を入れます。当日は、30秒ごとに読み直します。</div>'; return; }
+  // 運営の入力は、幹部用ページから開いたときだけ。決勝の前の半荘の点数が入るまでは、入れられる時期の案内だけ出す
+  $('livein').hidden = !UNEI;
+  $('liveform').hidden = !!ctx.wait; $('lfpre').hidden = !ctx.wait;
+  if (ctx.wait) {
+    $('lfpre').textContent = '決勝' + ctx.wait + '半荘目の点数が入ると、ここで入れられます（席の欄に決勝の' + MODE + '人が出ます）。';
+    box.innerHTML = '<div class="hint">決勝' + ctx.wait + '半荘目の点数が入ると、ここに決勝' + n + '半荘目の実況が出ます。<br>運営が局ごとに点数を入れます。当日は、30秒ごとに読み直します。</div>';
+    return;
+  }
   fillLiveForm(ctx);
   const done = !!recsOf(lastF())['1'], st = liveState(ctx);
   let h = done ? '<div class="hint"><span class="big">決勝' + n + '半荘目の点数が入りました。</span><br>最終順位は<a href="' + scoreUrl('finh') + '">点数入力ページ</a>で見られます。</div>' : '';
@@ -795,6 +806,14 @@ function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+// 上の移動のボタン「決勝ライン」の飛び先は、トップの K位ラインの欄（2026-11-03 に目安を点数入力ページからトップへ移した）。
+// 出すのは、トップにその欄が出る会だけ（決勝と受け口があり、まだ全部の半荘が確定していない。index.html の renderLine と同じ条件）
+const topUrl = id => '../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '#' + id;
+const lineOn = c => {
+  if (!(c.final && c.final.tables > 0) || !String(c.api || '').trim()) return false;
+  const lk = (c.locked || []).map(String);
+  return !Array.from({ length: c.prelim }, (_, i) => String(i + 1)).concat(Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1))).every(r => lk.includes(r));
+};
 async function load() {
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
   // 大会設定・くじの型・組み合わせは、同時に取りに行く（順に待つと、スマホの回線で本文が出るのが遅れる）。
@@ -811,9 +830,9 @@ async function load() {
   applyTheme(c);
   pageLinks(c);
   saveShell(c);
-  // ページの中の移動。決勝ラインは、決勝のある会だけ（点数入力ページの集計へ）
-  $('jline').hidden = !(c.final && c.final.tables > 0);
-  $('jline').setAttribute('href', scoreUrl('h2sum'));
+  // ページの中の移動。決勝ラインは、トップに K位ラインの欄が出る会だけ
+  $('jline').hidden = !lineOn(c);
+  $('jline').setAttribute('href', topUrl('lineh'));
   setTitle(c.title || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '')) { $('sub').textContent = ''; setup('この会は、組み合わせをくじで決めていません。組み合わせはトップページで見られます。'); return; }
   $('sub').textContent = mdText(c.kuji) + 'のナンバーズ4の当せん番号で、組み合わせを決めるくじ';

@@ -56,6 +56,8 @@ details.card>summary{cursor:pointer;font-weight:700}
 details.card[open]>summary{margin-bottom:8px}
 #utbl th:first-child,#utbl td:first-child{width:auto}
 #utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
+/* 決勝最終実況の入口（対戦表の9章を、運営の入力つきで開く） */
+.go{display:inline-block;margin:10px 0 8px;padding:10px 16px;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-weight:700;text-decoration:none}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
@@ -114,6 +116,15 @@ details.card[open]>summary{margin-bottom:8px}
     <p class="small" id="schednote"></p>
     <p class="hint" id="schedmemo" hidden></p>
   </details>
+
+  <div id="jikkyobox" hidden>
+  <h2>決勝最終実況</h2>
+  <div class="card">
+    <p style="margin:0">決勝の最後の半荘は、運営の1人が局ごとに点棒を入れます。対戦表の9章で、見ている人に総合の順位と優勝に要るアガリが出ます。</p>
+    <a class="go" id="jikkyolink" href="../kuji/?unei=1#live">実況を入れる（対戦表の9章）</a>
+    <p class="small" id="jikkyonote" style="margin:0"></p>
+  </div>
+  </div>
 
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
@@ -330,6 +341,19 @@ function renderUchi() {
   t.appendChild(tb);
 }
 
+// ---- 決勝最終実況の入口 ----
+// 対戦表の9章の運営の入力は、ここから開いたとき（?unei=1）だけ出る。出す会は kuji/index.html の liveOn と同じ条件（どちらかを直したら、もう片方も直す）で、くじの会
+const liveOn = c => !!(c.jikkyo === true && c.mode === 3 && c.final && c.final.tables === 1 && Number.isInteger(c.final.hanchan) && c.final.hanchan >= 2
+  && Number.isInteger(c.start) && Number.isInteger(c.return) && Number.isInteger(c.prelim) && !!c.uma && typeof c.uma === 'object') && /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '');
+function renderJikkyo() {
+  const c = CFG, on = liveOn(c);
+  $('jikkyobox').hidden = !on;
+  if (!on) return;
+  $('jikkyolink').setAttribute('href', '../kuji/?' + (G !== 'halu' ? 'g=' + encodeURIComponent(G) + '&' : '') + 'unei=1#live');
+  const h = c.final.hanchan;
+  $('jikkyonote').textContent = '入れる欄は、このボタンから開いたときだけ出ます（参加者の画面には出ません）。' + (h === 2 ? '決勝1半荘目' : '決勝' + (h - 1) + '半荘目まで') + 'の点数が入ると、入れられます。入れるのは1人だけです。';
+}
+
 // ---- この回の設定 ----
 function renderCfg() {
   const c = CFG, n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
@@ -386,7 +410,7 @@ async function load() {
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
-  renderJunbi(); renderSched(); renderAttend(); renderUchi(); renderCfg();
+  renderJunbi(); renderSched(); renderAttend(); renderUchi(); renderJikkyo(); renderCfg();
 }
 $('reload').addEventListener('click', load);
 $('ureload').addEventListener('click', load);

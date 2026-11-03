@@ -1001,7 +1001,7 @@ async function load() {
   } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; }
   jumpOnce();
 }
-// URL の # の場所へ（対戦表の「決勝ライン」から来たとき）。本文は読み込みの後に出るので、ブラウザが自分では飛べない。最初の1回だけ
+// URL の # の場所へ（対戦表の9章の「点数入力ページ」から来たとき。#finh）。本文は読み込みの後に出るので、ブラウザが自分では飛べない。最初の1回だけ
 let JUMPED = false;
 function jumpOnce() {
   if (JUMPED) return;

@@ -635,6 +635,17 @@ function renderKuji() {
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+// URL の # の場所へ（対戦表の「決勝ライン」から来たとき。#lineh）。本文は読み込みの後に出るので、ブラウザが自分では飛べない。
+// 飛んだ後の画面の位置を返す（その場所がなければ null）
+let JUMPED = false;
+function jumpToHash() {
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { id = ''; }
+  const el = id ? document.getElementById(id) : null;
+  if (!el || el.closest('[hidden]')) return null;
+  el.scrollIntoView();
+  return Math.round(scrollY);
+}
 async function load() {
   LAST_LOAD = Date.now();
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
@@ -662,6 +673,9 @@ async function load() {
   setup(notes.join(' '));
   $('main').hidden = false;
   render();
+  // # の場所へは、はじめの読み込みだけ。受け口の返事で上の欄の高さが変わるので、その間に画面を動かしていなければ、返事の後にもう一度
+  const jy = JUMPED ? null : jumpToHash();
+  JUMPED = true;
   if (!api) return;
   try {
     const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
@@ -677,6 +691,7 @@ async function load() {
   catch (e) { if (!DATA) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); DATA_ST = 'ng'; } if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   setup(notes.join(' '));
   render();
+  if (jy !== null && jy === Math.round(scrollY)) jumpToHash();
 }
 $('reload').addEventListener('click', load);
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが2つだけの画面を出さない）
