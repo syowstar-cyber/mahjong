@@ -55,6 +55,20 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 td.c{text-align:center;white-space:nowrap}
 table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-width:5em}
 .src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
+/* ルールの質問。狭い画面は、聞くボタンを入力欄の下に出す */
+.qbox{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;margin:12px 0}
+.qbox label{display:block;font-weight:700;margin:0 0 6px}
+.qrow{display:flex;gap:8px}
+.qrow input{flex:1 1 auto;min-width:0;padding:10px;font-size:1.05rem;font-family:inherit;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);-webkit-appearance:none;appearance:none}
+.qrow button{flex:0 0 auto;padding:10px 18px;font-size:1.05rem;font-family:inherit;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.qbox .note{margin-top:6px;line-height:1.6}
+.qex button{margin:6px 6px 0 0;padding:6px 12px;font-size:.9rem;font-family:inherit;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.qhit{border-left:4px solid var(--accent);background:var(--soft);border-radius:0 8px 8px 0;padding:8px 10px;margin:10px 0 0}
+.qhit .qsec{font-size:.85rem;color:var(--muted);line-height:1.5;margin-bottom:2px}
+.qhit .tw{margin:6px 0}
+.qgo{margin-top:6px;padding:4px 12px;font-size:.88rem;font-family:inherit;color:var(--accent);background:var(--card);border:1px solid var(--accent);border-radius:999px;cursor:pointer}
+.qmark,tr.qmark td{background:#fff1b8 !important}
+@media (max-width:420px){.qrow{flex-wrap:wrap}.qrow input,.qrow button{flex:1 1 100%}}
 </style>
 </head>
 <body>
@@ -64,6 +78,15 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
     <div class="sub">草案（2026-11-01）。3人麻雀のルールです。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <section class="qbox" aria-label="ルールの質問">
+    <form id="qf" autocomplete="off" role="search">
+      <label for="qa">ルールの質問</label>
+      <div class="qrow"><input id="qa" type="search" enterkeyhint="search" placeholder="例: 北は抜きドラ？"><button type="submit">聞く</button></div>
+    </form>
+    <div class="note">聞いた言葉が入っている決まりを、このページの中から探して出します。</div>
+    <div class="qex" id="qex"><button type="button">北は抜きドラ？</button><button type="button">ツモ損はある？</button><button type="button">ダブロンは？</button><button type="button">親が流れるのは？</button><button type="button">チョンボしたら？</button><button type="button">時間切れは？</button></div>
+    <div id="qres" aria-live="polite" hidden></div>
+  </section>
   <p class="lead">一般的な3人麻雀のやり方と、一般的な競技ルールを合わせたルールです。<span class="san">3麻</span> の印は3人麻雀だけの決まり、<span class="halu">Halu杯</span> の印は本大会だけの決まりです。まず「1. 早見表」を見てください。</p>
   <nav class="toc" id="toc"></nav>
   <main id="content">
@@ -673,6 +696,205 @@ fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.j
   if (!Array.isArray(c.uma)) { const p = document.createElement('p'); p.textContent = '順位点は、点棒が返し（' + fmt(c.return) + '点）以上の人数で変わります。返しちょうども「以上」に数えます。'; box.appendChild(p); }
   box.appendChild(umaTable(c));
 }).catch(() => {});
+
+// ルールの質問。答えを別に持たず、このページの決まりの文から、聞かれた言葉が多く入る所を出す（決まりを直せば、答えも変わる）
+// 「ノーテン罰符」の符は、点数の符と取り違えないように別の字にしておく（探すときだけ）
+const nf = s => s.normalize('NFKC').replace(/喰/g, '食').replace(/万/g, '萬').replace(/發/g, '発').replace(/罰符/g, '罰ふ').replace(/(\d),(?=\d{3})/g, '$1').replace(/\s+/g, '');
+const hira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const kata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+// 同じことの言い方。[ページの言葉, 質問の言い方]。どちらも正規表現で、質問の言い方はひらがなで書かれても合う
+const QW = [
+  ['北(?!家)|抜きドラ', '北(?!家)|ペー|抜きドラ|ヌキドラ'],
+  ['北家|東家|南家|西家', '北家|東家|南家|西家|ペーチャ|トンチャ|ナンチャ|シャーチャ'],
+  ['ツモ損|折半|北家の分', 'ツモ損|ツモゾン|折半|北家の分|北家の点|ツモの払い'],
+  ['チー(?!トイ|ホ)', 'チー(?!トイ|ホ)|吃'],
+  ['ポン', 'ポン|碰'],
+  ['カン|槓', 'カン(?!チャン)|槓'],
+  ['暗槓', '暗槓|アンカン'],
+  ['加槓', '加槓|カカン'],
+  ['明槓', '明槓|ミンカン'],
+  ['赤', '赤|アカ'],
+  ['食いタン|鳴いても断么九', '食いタン|クイタン|鳴きタン|ナキタン'],
+  ['断么九|タンヤオ', '断么九|断幺九|タンヤオ'],
+  ['後付け', '後付け|後づけ|アトヅケ|片アガリ|カタアガリ'],
+  ['一発', '一発|イッパツ'],
+  ['裏ドラ|槓裏', '裏|ウラ'],
+  ['槓ドラ', '槓ドラ|カンドラ'],
+  ['ドラ表示牌', 'ドラ表示|表示牌'],
+  ['ドラ', 'ドラ'],
+  ['途中流局|途中で流局|九種九牌|四開槓', '途中流局|途中で流局|九種|キュウシュ|四開槓|スーカイカン|四槓散了|四家立直|四風連打|三家和'],
+  ['流局', '流局|リュウキョク'],
+  ['流し満貫', '流し満貫|ナガシ|流し'],
+  ['人和', '人和|レンホー|レンホウ'],
+  ['ダブロン|2人がロン|2人ともアガ', 'ダブロン|ダブルロン|ダブル・ロン|頭ハネ|アタマハネ|2人ロン|二人ロン|2人がロン|二人がロン|同時にロン|トリロン'],
+  ['トビ|マイナス', 'トビ|トブ|トンダ|飛び|飛ん|飛ぶ|箱下|ハコ|マイナス|ドボン|点棒がな'],
+  ['数え役満|三倍満まで', '数え|カゾエ|13翻|十三翻'],
+  ['ダブル役満|トリプル役満|役満1つ', 'ダブル(?!立直|リーチ|ロン|・ロン)|W役満|トリプル(?!ロン)|四暗刻単騎|単騎|13面|十三面|純正|2倍|二倍'],
+  ['切り上げ満貫|30符4翻|60符3翻', '切り上げ|キリアゲ|30符4翻|60符3翻|7700|11600'],
+  ['満貫', '満貫|マンガン'],
+  ['役満', '役満|ヤクマン'],
+  ['食い替え', '食い替え|食いかえ|食い変え|食い換え|クイカエ|現物|スジ'],
+  ['連荘|親が流れ|親が移|親は移', '連荘|レンチャン|親が流れ|親流れ|親は流れ|親が移|親は移|親が続|親番|親が変わ|親は変わ|親が残|親は(?:$|\\?|どう|流|続|変|移)|親が(?:ノーテン|聴牌|テンパイ)'],
+  ['西入|延長|南3局で終わり', '西入|シャーニュウ|延長|サドンデス|北入|西場'],
+  ['終わ|終了', '終わ|終了|オワリ|オワル'],
+  ['ノーテン罰符|罰符', '罰符|テンパイ料|聴牌料|ノーテン料'],
+  ['聴牌|テンパイ|ノーテン', '聴牌|テンパイ|ノーテン|形式|形テン|ケイテン|空テン|カラテン'],
+  ['本場|積み', '本場|積み棒|積棒|ツミボウ|場ゾロ|百点棒|300点'],
+  ['チョンボ|満貫払い|錯和', 'チョンボ|錯和|誤ロン|誤ツモ|誤アガリ|ノーテンリーチ'],
+  ['反則|罰則|アガリ放棄', '反則|罰則|ペナルティ|アガリ放棄|罰'],
+  ['場決め|席を決め|起家|サイコロ', '場決め|席決め|席順|座る|座席|席は|起家|チーチャ|出親|親決め|最初の親|サイコロ|白を引|牌を引'],
+  ['時間制限|40分|規定時間', '時間|何分|40分|タイム'],
+  ['同点|年齢', '同点|同じ点|並んだ|年齢|年上'],
+  ['軽食', '軽食|食事|ご飯|ゴハン|昼|ランチ|弁当|食べ'],
+  ['持ち点|点持ち', '持ち点|点持ち|原点|スタート|最初の点'],
+  ['順位点|オカ|返し', '順位点|ウマ|オカ|返し'],
+  ['ポイント', 'ポイント|pt'],
+  ['リーチ|立直', 'リーチ|立直|宣言牌'],
+  ['リーチ棒|供託', 'リーチ棒|リー棒|供託|キョウタク|千点棒'],
+  ['フリテン', 'フリテン|振聴|見逃'],
+  ['海底|河底', '海底|ハイテイ|河底|ホウテイ|最後の牌|最後のツモ'],
+  ['嶺上', '嶺上|リンシャン'],
+  ['搶槓', '搶槓|槍槓|チャンカン'],
+  ['包|パオ|責任', '包|パオ|責任'],
+  ['多牌|少牌', '多牌|少牌|ターハイ|ショウハイ|牌が多|牌が少'],
+  ['先ヅモ', '先ヅモ|先ツモ|サキヅモ'],
+  ['空鳴き|言い間違', '空鳴き|言い間違|言いまちが'],
+  ['声', '声|発声'],
+  ['アガリやめ|テンパイやめ|南3局', 'アガリやめ|アガリ止め|アガリヤメ|テンパイやめ|テンパイ止め|聴牌やめ|オーラス|ラス親|南3局|南三局'],
+  ['役が1つ|一翻縛り|役がなくて', '役なし|役無し|役がな|役が無|縛り|シバリ'],
+  ['平和', '平和|ピンフ'],
+  ['七対子', '七対|チートイ'],
+  ['三色', '三色|サンショク'],
+  ['国士', '国士|コクシ'],
+  ['一気通貫', '一気通貫|イッツー|一通'],
+  ['清一色|混一色', '清一色|チンイツ|混一色|ホンイツ|染め'],
+  ['天和|地和', '天和|テンホー|地和|チーホー'],
+  ['符', '符'],
+  ['萬|108枚', '萬|マンズ|108|牌の数|何枚|枚数'],
+  ['点数入力|報告|点棒を入れ', '報告|点数入力|入力|記録'],
+  ['4人卓|4人で', '4人|四人'],
+  ['順位決定戦', '順位決定戦|順位戦|決定戦'],
+  ['予選', '予選'],
+  ['決勝', '決勝|勝ち上が'],
+  ['進み|進む|進め', '進め|進む|進み|勝ち上が|上がれ|残れ'],
+  ['数え方|計算', '計算|数え方|数える'],
+  ['洗牌', '洗牌|シーパイ|混ぜ'],
+  ['くり返', 'マナー|強打|長考|小手返し|ため息|ぼやき'],
+  ['捨て牌', '捨て牌|河(?!底)|6枚'],
+  ['並べ|並び|置き|置く|向け', '並べ|並び|置き方|置く|置き場|向き|向け'],
+  ['申告|言い|言っ|言う', '言い方|言う|申告|コール'],
+  ['間違', '間違|マチガ'],
+  ['渡|やり取り', '渡す|渡し|やり取り|ヤリトリ'],
+  ['払', '払'],
+  ['前に|までに|済ませ|すぐ', 'いつ(?!も)|タイミング|時期'],
+  ['[0-9]+回', '何回|回数'],
+  ['帰', '帰|早退'],
+  ['抜け', '抜け|ヌケ'],
+  ['点数早見表|[0-9]{3,}点', '点数(?:は|を?教|が知|の表)|何点|いくら|早見表'],
+  ['[0-9]+翻', '何翻|翻数|何ハン'],
+  ['[0-9]+符', '何符'],
+  ['鳴|門前', '鳴|ナキ|フーロ|副露|門前|メンゼン']
+].map(([k, v]) => ({ k: new RegExp(nf(k)), v: new RegExp(hira(nf(v)), 'i') }));
+const QSTOP = new Set(['何', '時', '事', '方', '場合', '大会', '本大会', '今回', '普通', '一般', '可能', '本当', '大丈夫', '確認', '質問', '誰', '今', '意味', '教', '良', '杯']);
+// ひらがなの言葉の終わりに付く「は」「って」「ですか」など
+const QEND = /(?:って|とは|では|には|ですか|ますか|でしょうか|ある|あり|ない|なし|する|した|して|できる|でき|は|が|を|に|で|の|も|と|や|か|へ)+$/;
+// 決まりの1つずつ（表の行・箇条書き・段落・例）。見出しは章と小見出し、item は表の1列目。表の行の文には、列の見出しも入れる（早見表の「項目・本大会」は除く）
+function qUnits() {
+  const out = []; let h2 = null, h3 = '';
+  $('content').querySelectorAll('h2, h3, tbody tr, li, p, .ex').forEach(el => {
+    if (el.tagName === 'H2') { h2 = el; h3 = ''; return; }
+    if (el.tagName === 'H3') { h3 = el.textContent; return; }
+    if (!h2 || el.classList.contains('src')) return;
+    const tr = el.tagName === 'TR', th = tr && h2.id !== 's1' && el.closest('table').tHead;
+    const text = tr ? (th ? nf(th.textContent) + '|' : '') + [...el.cells].map(c => nf(c.textContent)).join('|') : nf(el.textContent);
+    if (text) out.push({ el, tr, sec: h2.textContent + (h3 ? ' ＞ ' + h3 : ''), hayami: tr && h2.id === 's1', item: tr ? nf(el.cells[0].textContent) : '', head: nf(h2.textContent.replace(/^\d+\.\s*/, '') + '|' + h3), text });
+  });
+  return out;
+}
+// 聞かれた言葉（言い方のまとまりと、漢字・カタカナ・数字・送りがなつきの言葉）が多く入る順に並べる。見出しや表の1列目に入っていれば重くする
+// 質問の中で重なる言葉（「言い間違え」の「言い間違」「間違」など）は1つの事柄とし、見出しと表の1列目の重みは事柄ごとに1回だけ足す
+// n は合った言葉の数（軽い言葉を除く）。早見表の行は、項目の名前に言葉が合えば（about）少し重く、合わなければ少し軽くする
+function qFind(q) {
+  const q1 = nf(q), qh = hira(q1), units = qUnits(), all = units.map(u => u.text).join('\n'), terms = [], used = [];
+  QW.forEach(g => { const m = qh.match(g.v); if (m) { terms.push({ re: g.k, w: 3, a: m.index, b: m.index + m[0].length }); used.push(g.v); } });
+  // まとまりの言い方とまるごと同じ言葉は、その字のままの行を少し重くするだけ
+  const add = (s, w, a) => {
+    const same = used.some(v => { const m = hira(s).match(v); return m && m[0].length === s.length; });
+    if (!QSTOP.has(s) && !terms.some(t => t.s === s)) terms.push({ s, w: same ? Math.min(1, w) : w, a, b: a + s.length });
+  };
+  // まとまりの言い方を中に含む、もっと長い言葉（「形式聴牌」「三色同刻」「スーカンツ」）は、まとまりと同じだけ重くする
+  const sup = (a, b) => terms.some(t => t.re && a <= t.a && t.b <= b && b - a > t.b - t.a);
+  for (const m of q1.matchAll(/[\p{sc=Han}々]+|[\p{sc=Katakana}ー]{2,}|\d+/gu)) {
+    const t = m[0];
+    if (all.includes(t) || t.length < 3 || !/^\p{sc=Han}+$/u.test(t)) add(t, sup(m.index, m.index + t.length) ? 3 : t.length > 1 ? 1.5 : 0.5, m.index);
+    else for (let i = 0; i + 2 <= t.length; i++) if (all.includes(t.slice(i, i + 2))) add(t.slice(i, i + 2), 1.5, m.index + i);
+  }
+  // 漢字に続く送りがな（1〜2字）。ページにある形だけ足す（「見せた」「帰った」。「を」「は」などで始まるものは除く）
+  for (const m of q1.matchAll(/(\p{sc=Han}+)(\p{sc=Hiragana}{1,2})/gu)) {
+    if (/^[をはがにでのともやへかねよ]/.test(m[2])) continue;
+    const k = [m[1] + m[2], m[1] + m[2][0]].find(k => all.includes(k));
+    if (k) add(k, 1.5, m.index);
+  }
+  for (const m of q1.matchAll(/[\p{sc=Hiragana}ー]{3,}/gu)) { const k = kata(m[0].replace(QEND, '')); if (k.length > 1 && all.includes(k)) add(k, sup(m.index, m.index + k.length) ? 3 : 1.5, m.index); }
+  // 質問の中で重なる言葉を、1つの事柄にまとめる
+  const cs = [];
+  terms.sort((x, y) => x.a - y.a).forEach(t => { const c = cs[cs.length - 1]; if (c && t.a < c.b) { c.ts.push(t); c.b = Math.max(c.b, t.b); } else cs.push({ b: t.b, ts: [t] }); });
+  const has = (t, s) => t.re ? t.re.test(s) : s.includes(t.s);
+  return units.map(u => {
+    let s = 0, n = 0;
+    cs.forEach(c => {
+      let top = 0;
+      c.ts.forEach(t => {
+        const a = has(t, u.text), b = has(t, u.head), i = a && u.item && has(t, u.item);
+        if (!a && !b) return;
+        s += a ? t.w : t.w * 0.6;
+        if (a) top = Math.max(top, (b ? Math.min(3, t.w) : 0) + (i ? Math.min(u.hayami ? 3 : 1.5, t.w) : 0));
+        if (t.w >= 1.5) n++;
+      });
+      s += top;
+    });
+    const about = u.hayami && terms.some(t => t.w >= 1.5 && has(t, u.item));
+    return { u, n, about, s: n ? s + 1.5 * (n - 1) + (about ? 1 : u.hayami ? -0.5 : 0) : 0 };
+  }).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+}
+const qNote = t => { const d = document.createElement('div'); d.className = 'note'; d.textContent = t; return d; };
+// 見つかった決まりを、章の名前と「この場所へ」のボタンを付けて出す（ページの文を写すので、印や色もそのまま）
+function qHit(u) {
+  const d = document.createElement('div'), sec = document.createElement('div'), body = document.createElement('div'), go = document.createElement('button');
+  d.className = 'qhit'; sec.className = 'qsec'; sec.textContent = u.sec;
+  const c = u.el.cloneNode(true);
+  c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  if (u.hayami) { const b = document.createElement('b'); b.textContent = u.el.cells[0].textContent; body.append(b, '　', ...c.cells[1].childNodes); }
+  else if (u.tr) {
+    const t = document.createElement('table'), tb = document.createElement('tbody'), th = u.el.closest('table').tHead;
+    if (th) t.appendChild(th.cloneNode(true));
+    tb.appendChild(c); t.appendChild(tb); body.className = 'tw'; body.appendChild(t);
+  } else if (u.el.classList.contains('ex')) body.appendChild(c);
+  else body.append(...c.childNodes);
+  go.type = 'button'; go.className = 'qgo'; go.textContent = 'ルールのこの場所へ';
+  go.addEventListener('click', () => { u.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); u.el.classList.add('qmark'); setTimeout(() => u.el.classList.remove('qmark'), 4000); });
+  d.append(sec, body, go);
+  return d;
+}
+// 点の高い順に4つまで（同じ小見出しからは2つまで）。項目の名前に言葉が合い、いちばんの行と同じだけ言葉が合って点も近い早見表の行は、先に出す
+function qShow() {
+  const q = $('qa').value.trim(), box = $('qres');
+  box.replaceChildren(); box.hidden = !q;
+  if (!q) return;
+  const r = qFind(q), best = r.length ? r[0].s : 0, picks = [], per = {};
+  const top = r.find(x => x.about && x.n >= r[0].n && x.s >= Math.max(3, best * 0.7));
+  if (top) { picks.push(top); per[top.u.sec] = 1; }
+  for (const x of r) {
+    if (picks.length >= 4 || x.s < Math.max(1.5, best * 0.4)) break;
+    if (x !== top && (per[x.u.sec] = (per[x.u.sec] || 0) + 1) <= 2) picks.push(x);
+  }
+  if (!picks.length) box.appendChild(qNote('このページの中に、答えになる所が見つかりませんでした。言葉を変えて聞くか、運営に聞いてください。'));
+  picks.forEach(x => box.appendChild(qHit(x.u)));
+  if (/点数|何点|いくら|符|翻|満貫|跳|はね満|はねまん|倍満|ばいまん|役満|まんがん/.test(hira(nf(q)))) { const d = qNote('点数は、'), a = document.createElement('a'); a.href = 'tensu.html'; a.textContent = '点数早見表のページ'; d.append(a, picks.length ? 'にもあります。' : 'にあります。'); box.appendChild(d); }
+}
+$('qf').addEventListener('submit', e => { e.preventDefault(); qShow(); if (matchMedia('(pointer: coarse)').matches) $('qa').blur(); });
+$('qa').addEventListener('input', () => { if (!$('qa').value) $('qres').hidden = true; });
+$('qex').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { $('qa').value = b.textContent; qShow(); } });
 </script>
 </body>
 </html>
