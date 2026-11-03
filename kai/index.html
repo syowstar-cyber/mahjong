@@ -56,6 +56,8 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .next .lab{font-size:.95rem;font-weight:700;color:var(--muted)}
 .next .big{font-size:1.45rem;font-weight:700;color:var(--accent);line-height:1.45}
 #mine tr.past td{color:var(--muted)}
+/* 決勝ライン（自分の名前の目安）。段落の間を詰める */
+#line p{margin:8px 0}#line>p:first-child{margin-top:0}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
@@ -108,6 +110,17 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <li id="finnote" hidden></li>
   </ul>
 
+  <div id="linebox" hidden>
+  <h2 id="lineh">決勝ライン</h2>
+  <div class="card">
+    <div id="line"></div>
+    <div class="tools">
+      <button class="ghost" type="button" id="lreload">最新に更新</button>
+      <span class="small" id="lupdated"></span>
+    </div>
+  </div>
+  </div>
+
   <div id="schedbox" hidden>
   <h2>当日の流れ</h2>
   <div class="tw" id="schedtw"><table id="sched"></table></div>
@@ -141,8 +154,8 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 </div>
 
 <script>
-// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・当日の流れ・打ち上げ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
-// 受け口からは名前（名簿）・入力済みの卓・打ち上げの回答を読む。送るのは打ち上げの回答だけ。当日に組み直して push したら、開き直すか「最新に更新」で出る
+// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・決勝ライン・当日の流れ・打ち上げ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
+// 受け口からは名前（名簿）・入力済みの卓と点数・打ち上げの回答を読む。送るのは打ち上げの回答だけ。当日に組み直して push したら、開き直すか「最新に更新」で出る（開催日は2分ごとに読み直す）
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
@@ -174,6 +187,8 @@ function pageLinks(c) {
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
+// 決勝ラインの計算に使う（load() で大会設定から入れる。点数入力ページと同じ名前）。DATA_ST＝受け口を読めたか（wait＝はじめの読み込み中・ok・ng）
+let MODE = 4, TOTAL = 100000, OKA = 0, PRELIM = [], FINALS = [], LOCKED = [], AGERANK = {}, DATA_ST = 'wait';
 const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
@@ -288,6 +303,7 @@ function render() {
   renderInfo();
   renderNext();
   renderMine();
+  renderLine();
   renderSched();
   renderUchi();
   renderKuji();
@@ -377,10 +393,158 @@ function renderMine() {
   tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
   if (pg) { const p = document.createElement('p'); p.className = 'small'; p.style.margin = '6px 0 0'; p.textContent = '色のついた行が次の半荘です。✓ は点数が入った卓です。'; box.appendChild(p); }
 }
+
+// ---- 決勝ライン（決勝のある会。第20回の6位ラインと同じ考え方。決勝に進む人数を K として K位ライン） ----
+// 自分の名前の、ラインまでの差と、次の半荘で要る点棒の目安（2026-11-03 に点数入力ページから移した。主催）。
+// 計算は score/index.html の umaFor・calcTable・prelimStats・borderFor・lineTie・needRaw と同じ（どちらかを直したら、もう片方も直す）
+const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP');
+// ポイントは 0.1 単位の整数で持ち、表示で小数1桁にする（浮動小数の誤差を出さない）
+const fpt = n => (n === null || n === undefined) ? '' : (n > 0 ? '+' : n < 0 ? '−' : '') + (Math.abs(n) / 10).toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isLocked = r => LOCKED.includes(String(r));
+const recsOf = r => (DATA && DATA.rounds && DATA.rounds[r]) || {};
+const kumiRound = r => (KUMI && KUMI.rounds && KUMI.rounds[r]) || null;
+const restOf = r => { const k = kumiRound(r); return (k && Array.isArray(k.rest)) ? k.rest : []; };
+// その半荘の卓がぜんぶ入ったか（卓の数は組み合わせ表。表がない間は人数割り）
+const roundDone = r => { const k = kumiRound(r), n = k && Array.isArray(k.tables) && k.tables.length ? k.tables.length : Math.floor(CFG.players / MODE); return n > 0 && Object.keys(recsOf(r)).length >= n; };
+// 年齢の上下（nenrei の会）。受け口の agerank＝生年月日を入れた人どうしの年上からの順（1 が最年長・同じ日は同じ数）
+const nenrei = () => !!(CFG && CFG.nenrei === true);
+const age = p => (nenrei() && Number.isInteger(AGERANK[p])) ? AGERANK[p] : null;
+// 返し以上の人数で順位点が変わるとき（uma が表）は、その人数の行を使う。表にない人数は "1" の行
+function umaFor(raws) {
+  const u = CFG.uma;
+  if (Array.isArray(u)) return u;
+  const n = raws.filter(v => v >= CFG.return).length;
+  return u[String(n)] || u['1'];
+}
+// 1卓の点棒 → 順位とポイント（0.1単位の整数）。全員そろっていなければ null。同点は順位点（オカ込み）を分け、割り切れない分は起家に近い方
+function calcTable(raws) {
+  if (!Array.isArray(raws) || raws.length !== MODE || raws.some(v => v === null || v === undefined || Number.isNaN(v))) return (raws || []).map(() => null);
+  const bonus = umaFor(raws).map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
+  const order = raws.map((raw, i) => ({ i, raw })).sort((a, b) => b.raw - a.raw || a.i - b.i);
+  const res = raws.map(() => null);
+  for (let k = 0; k < MODE;) {
+    let j = k; while (j + 1 < MODE && order[j + 1].raw === order[k].raw) j++;
+    const n = j - k + 1, sum = bonus.slice(k, j + 1).reduce((a, b) => a + b, 0);
+    const base = Math.floor(sum / n), rem = sum - base * n;
+    for (let m = k; m <= j; m++) {
+      const o = order[m];
+      res[o.i] = { raw: o.raw, rank: k + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+    }
+    k = j + 1;
+  }
+  return res;
+}
+// 予選の順位。合計ポイントの大きい順。抜け番の半荘は0ポイント。合計が同じかたまりは、全員の生年月日が入っていれば年上から（nenrei の会）
+function prelimStats() {
+  const st = {};
+  const add = p => st[p] || (st[p] = { p, by: {}, total: 0, n: 0 });
+  players().forEach(add);
+  PRELIM.forEach(r => Object.entries(recsOf(r)).forEach(([t, rec]) => {
+    const res = calcTable(rec.raw);
+    (rec.p || []).forEach((p, i) => { const x = add(p); if (res[i]) { x.by[r] = { pts: res[i].pts, table: t }; x.total += res[i].pts; x.n++; } });
+  }));
+  const list = Object.values(st).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  for (let i = 0; i < list.length;) {
+    let j = i; while (j + 1 < list.length && list[j + 1].total === list[i].total) j++;
+    const g = list.slice(i, j + 1), byAge = g.length > 1 && g.every(x => age(x.p) !== null);
+    if (byAge) g.sort((a, b) => age(a.p) - age(b.p) || pnum(a.p) - pnum(b.p));
+    g.forEach((x, m) => { x.byAge = byAge; list[i + m] = x; });
+    i = j + 1;
+  }
+  list.forEach((x, i) => { const y = list[i - 1]; x.rank = y && y.total === x.total && (!x.byAge || age(y.p) === age(x.p)) ? y.rank : i + 1; });
+  list.forEach(x => { x.tie = x.n > 0 && list.some(y => y !== x && y.n > 0 && y.rank === x.rank); });
+  list.forEach(x => { x.byAge = x.byAge && x.n > 0 && !x.tie; });
+  return list;
+}
+const lineK = () => FINALS.length ? CFG.final.tables * MODE : 0;
+// 全部の半荘が確定したら出さない（点数入力ページの集計表の列と赤い線と同じ）
+const lineShow = () => lineK() > 0 && !PRELIM.concat(FINALS).every(isLocked);
+// 途中で抜けた人（予選の最後の半荘の組み合わせ表で「お休み」）。決勝には進まない
+const goneList = () => { const k = kumiRound(PRELIM[PRELIM.length - 1]); return (k && Array.isArray(k.out)) ? k.out : []; };
+// 自分を除いた人の合計の、上から K 番目（途中で抜けた人と、まだ打っていない人は数えない）。K人に満たなければ null
+function borderFor(rk, p) {
+  const gone = goneList(), K = lineK();
+  const others = rk.filter(x => x.p !== p && x.n > 0 && !gone.includes(x.p)).map(x => x.total).sort((a, b) => b - a);
+  return others.length < K ? null : others[K - 1];
+}
+// ラインと同じ合計のとき: まだ決まらない同点のかたまりが、K位と K+1位の境目をまたぐかで分ける（点数入力ページと同じ）
+function lineTie(rk, x) {
+  const gone = goneList(), ok = rk.filter(y => y.n > 0 && !gone.includes(y.p)), i = ok.indexOf(x), K = lineK();
+  if (i < 0) return '';
+  let lo = i, hi = i;
+  while (lo > 0 && ok[lo - 1].rank === x.rank) lo--;
+  while (hi + 1 < ok.length && ok[hi + 1].rank === x.rank) hi++;
+  if (lo > K - 1) return '';
+  if (hi <= K - 1) return x.byAge || x.tie ? '圏内（年齢）' : '';
+  return !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（集計係が決める）' : '同点（年齢で決まる）';
+}
+// 逆算で使う点棒の上限と下限（受け口と同じ）。r 位（0 始まり）で取れる点棒の上限は、卓の合計から、上の人が自分と同じ・下の人が下限のとき
+const RAW_TOP = 999900, RAW_LOW = -200000;
+const rawCap = r => Math.min(RAW_TOP, Math.floor((TOTAL - (MODE - 1 - r) * RAW_LOW) / (r + 1) / 100) * 100);
+// r 位の点棒の下限。1位は卓の合計の人数割り（全員同じ点）より下にならない。2位から下は受け口の下限
+const rawMin = r => r === 0 ? Math.ceil(TOTAL / MODE / 100) * 100 : RAW_LOW;
+// r 位の順位点（オカ込み・0.1単位）。返し以上の人数で変わる会（3麻）は、いちばん少ない場合で見る（目安を甘くしない）。
+// 自分が返し以上なら、返し以上は r+1 人以上。返し未満なら r 人以下。卓の合計で上限がある。その形になれないときは null
+function bonusLow(r, up) {
+  const cap = Math.floor(TOTAL / CFG.return), lo = up ? r + 1 : 0, hi = up ? Math.min(MODE, cap) : Math.min(r, cap);
+  let b = null;
+  for (let n = lo; n <= hi; n++) {
+    if (n === 0 && TOTAL >= MODE * CFG.return) continue;   // 全員が返し未満にはなれない
+    const u = Array.isArray(CFG.uma) ? CFG.uma : (CFG.uma[String(n)] || CFG.uma['1']);
+    const v = Math.round(u[r] * 10) + (r === 0 ? OKA : 0);
+    if (b === null || v < b) b = v;
+  }
+  return b;
+}
+// 次の半荘を r 位で終えて need（0.1単位）を取るのに要る点棒（この点棒以上ならOK）。取れないときは Infinity
+function needRaw(r, need) {
+  const R = CFG.return, bU = bonusLow(r, true), bD = bonusLow(r, false);
+  const rU = bU === null ? Infinity : Math.max(R, R + (need - bU) * 100);   // 返し以上で足りる一番小さい点棒
+  const rD = bD === null ? Infinity : R + (need - bD) * 100;                // 返し未満で足りる一番小さい点棒
+  // 返し未満で足りても、返しちょうどで足りないとき（3麻で2人浮きになると順位点が下がる）は、返し以上の側の値を出す
+  return rD < R && (rU === R || rU === Infinity) ? rD : rU;
+}
+// 自分の名前（ME）の、いまの予選の順位・K位ラインまでの差・次の半荘の順位ごとに要る点棒の目安。読み直すたびに出し直す
+function renderLine() {
+  const box = $('linebox'), out = $('line'), K = lineK(), p = ME;
+  box.hidden = !lineShow() || !String(CFG.api || '').trim();
+  if (box.hidden) return;
+  $('lineh').textContent = K + '位ライン（決勝に行ける目安）';
+  // 受け口の updated は名簿を送っても進むので、予選の点数が入るまでは出さない
+  const scored = PRELIM.some(r => Object.keys(recsOf(r)).length);
+  $('lupdated').textContent = [scored && DATA.updated ? '点数の最終更新 ' + DATA.updated : '', CFG.date === today() ? '2分ごとに読み直します' : ''].filter(Boolean).join('・');
+  if (!p) { out.innerHTML = '<p class="small">上の「自分の名前」を選ぶと、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
+  if (!DATA) { out.innerHTML = '<p class="small">' + (DATA_ST === 'wait' ? '点数を読み込み中…' : '点数を読めませんでした。少し待ってから「最新に更新」を押してください。') + '</p>'; return; }
+  const rk = prelimStats(), x = rk.find(y => y.p === p);
+  if (!x || !rk.some(y => y.n > 0)) { out.innerHTML = '<p class="small">予選の点数が入ると、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
+  let h = x.n ? '<p>' + esc(dn(p)) + ' の現在: 予選 ' + x.rank + '位' + (x.tie ? '（同点）' : x.byAge ? '（年齢）' : '') + '・合計 <b>' + fpt(x.total) + '</b>（' + x.n + '半荘）</p>' : '<p>' + esc(dn(p)) + ' はまだポイントがありません。</p>';
+  if (goneList().includes(p)) { out.innerHTML = h + '<p class="small">途中で抜けたため、決勝には進みません。</p>'; return; }
+  const B = borderFor(rk, p);
+  if (B === null) { out.innerHTML = h + '<p class="small">' + K + '位ラインは、ほかの' + K + '人以上のポイントがそろってから出ます。</p>'; return; }
+  const D = B - x.total, t = D === 0 && x.n ? lineTie(rk, x) : '';
+  h += '<p>' + K + '位ライン（自分を除いた' + K + '番目の合計）: <b>' + fpt(B) + '</b></p>';
+  if (D < 0) h += '<p>いまは<b>圏内</b>。' + (K + 1) + '位との差は ' + fpt(-D) + ' です。</p>';
+  else if (t) h += '<p>' + K + '位ラインと同じ合計です。' + (t === '圏内（年齢）' ? 'いまは<b>圏内</b>です（年齢が上のため）。' : t === '同点（集計係が決める）' ? (nenrei() ? '生年月日も同じなので、' : '') + '集計係が決めます。' : '同点は年齢が上の方が上位なので、生年月日で決まります。') + '</p>';
+  else h += '<p>圏内に入るには <b>あと ' + fpt(D + 1) + '</b> 必要です（同点は' + (nenrei() ? '年齢順の' : '集計係が決める') + 'ため、上回る数字）。</p>';
+  // 予選の残り（まだ点数がなく、抜け番でもない半荘）
+  const left = PRELIM.filter(r => !x.by[r] && !isLocked(r) && !roundDone(r) && !restOf(r).includes(p)).length;
+  if (!left) { out.innerHTML = h + '<p class="small">予選の半荘は、もう残っていません。</p>'; return; }
+  const need = D + 1;
+  h += '<p>次の半荘で圏内に' + (D < 0 ? '残る' : '入る') + '目安（順位ごとに、この点棒以上ならOK。予選の残りは' + left + '半荘）:</p><div class="tw"><table><thead><tr><th>順位</th><th>必要ポイント</th><th>必要な点棒</th></tr></thead><tbody>';
+  for (let r = 0; r < MODE; r++) {
+    const raw = needRaw(r, need);
+    const c = raw > rawCap(r) ? '届かない' : raw <= rawMin(r) ? 'どんな点数でもOK' : fmt(raw) + ' 以上';
+    h += '<tr><td>' + (r + 1) + '位</td><td>' + fpt(need) + '</td><td>' + c + '</td></tr>';
+  }
+  h += '</tbody></table></div><p class="small">ほかの人の結果でラインは動きます。目安として見てください。' + (Array.isArray(CFG.uma) ? '' : '順位点が浮きの人数で変わるため、少ない方の順位点で計算しています。') + '</p>';
+  out.innerHTML = h;
+}
+$('lreload').addEventListener('click', load);
 // 名前を選んだら（上の欄でも打ち上げの欄でも）、この端末に覚えて出し直す。
 // 打ち上げの欄で選んだときは、上の表が伸び縮みしても、その欄が画面の同じ所に残るようにする
 function pickMe(v, keep) {
-  SAVED = v;
+  SAVED = v; UCHI_PICKED = false;
   try { localStorage.setItem('halukai:me:' + G, SAVED); } catch (e) {}
   const y = keep ? keep.getBoundingClientRect().top : 0;
   render();
@@ -394,13 +558,16 @@ $('ume').addEventListener('change', () => pickMe($('ume').value, $('ume')));
 const UCH_LABEL = { yes: '参加する', no: '参加しない' };
 // 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし・wait＝はじめの読み込み中）
 let UCHI = {}, UCHI_ST = 'wait';
+// 選んだが、まだ送っていない（開催日の自動の読み直しで、選んだ所を回答済みの内容に戻さない）。送ったときと、名前を選び直したときに戻す
+let UCHI_PICKED = false;
+document.querySelectorAll('input[name=uch]').forEach(x => x.addEventListener('change', () => { UCHI_PICKED = true; }));
 const uts = ts => ts ? String(ts).slice(5, 16).replace('-', '/') : '';
 function sayU(t, cls) { const m = $('ust'); m.textContent = t; m.className = 'st' + (cls ? ' ' + cls : ''); }
 function renderUchi() {
   $('uchibox').hidden = !(CFG.uchiage === true);
   if (CFG.uchiage !== true) return;
   const ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
-  document.querySelectorAll('input[name=uch]').forEach(x => { x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
+  document.querySelectorAll('input[name=uch]').forEach(x => { if (!UCHI_PICKED) x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
   $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
   if (!ok) sayU(UCHI_ST === 'wait' ? '回答を読み込み中…' : UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
   else if (mine) sayU('回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）', 'ok');
@@ -414,7 +581,7 @@ async function sendUchi(choice) {
   try {
     const r = await fetch(String(CFG.api || '').trim(), { method: 'POST', body: JSON.stringify({ action: 'uchiage', kai: CFG.kai, player: who, choice }) });
     const j = await r.json(); if (!j.ok) throw new Error(j.error || 'ng');
-    UCHI = (j.data && j.data.uchiage) || {};
+    UCHI = (j.data && j.data.uchiage) || {}; UCHI_PICKED = false;
     renderUchi();
     if (!choice) sayU('回答を消しました');
   } catch (e) { sayU(e.message === 'action' ? '受け口が古いため、まだ答えられません（幹部に知らせてください）' : '送れませんでした。電波のよい所でもう一度お試しください', 'ng'); }
@@ -452,6 +619,10 @@ async function load() {
   try { k = await getJson(CONF + 'kumiawase.json'); } catch (e) { k = null; }
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
   CFG = c; KUMI = k;
+  MODE = c.mode; TOTAL = c.start * MODE; OKA = (c.return - c.start) * MODE / 100;
+  PRELIM = Array.from({ length: c.prelim }, (_, i) => String(i + 1));
+  FINALS = c.final.tables > 0 ? Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1)) : [];
+  LOCKED = (c.locked || []).map(String);
   applyTheme(c);
   pageLinks(c);
   const api = String(c.api || '').trim();
@@ -464,13 +635,15 @@ async function load() {
   try {
     const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
     if (j.ok && j.data && j.data.kai === c.kai) {
-      ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : '';
+      ROSTER = j.data.roster || {}; DATA = j.data; DATA_ST = 'ok'; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : '';
+      AGERANK = (j.data.agerank && typeof j.data.agerank === 'object') ? j.data.agerank : {};
       // 打ち上げの回答（古い受け口は uchiage を返さない）
       const u = j.data.uchiage;
       UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
-    } else if (UCHI_ST === 'wait') UCHI_ST = 'none';
+    } else { if (UCHI_ST === 'wait') UCHI_ST = 'none'; if (!DATA) DATA_ST = 'ng'; }
   }
-  catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
+  // 読み直しで通信が切れたときは、前に読めた名前と点数のまま出す
+  catch (e) { if (!DATA) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); DATA_ST = 'ng'; } if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   setup(notes.join(' '));
   render();
 }
@@ -478,6 +651,8 @@ $('reload').addEventListener('click', load);
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);
+// 開催日は、画面に出ているときだけ2分ごとに読み直す（決勝ラインと「次は」を新しくする。受け口の読み取りは1日の回数に上限があるため、点数入力ページと同じ間隔で、ほかの日は読み直さない）
+setInterval(() => { if (CFG && CFG.date === today() && !document.hidden && Date.now() - LAST_LOAD >= 120000) load(); }, 15000);
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 裏から戻ったとき、2分以上たっていれば読み直す（当日の組み直しに気づけるように）
