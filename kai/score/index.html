@@ -853,7 +853,7 @@ function render(d) {
   });
   // 予選の集計表
   const rk = prelimStats(), K = FINALS.length ? CFG.final.tables * MODE : 0;
-  const finPs = K ? finalMembers().tables.flat() : [];
+  const fm = K ? finalMembers() : null, finPs = fm ? fm.tables.flat() : [];
   const showLine = lineShow(), last = showLine ? lineRow(rk) : -1;
   const tb = $('tbl').querySelector('tbody'); tb.innerHTML = '';
   const me = myName();
@@ -881,7 +881,8 @@ function render(d) {
   // 予選の間は、決勝の卓（暫定）をたたみ、最終順位（予選の順のまま＝集計表と同じ並び）を出さない。予選が終わったら開く
   if (FINALS.length) {
     const pd = prelimDone();
-    $('finsum').textContent = pd ? '予選の順位で決まりました' : '予選が終わると決まります（押すと、いまの順位での暫定）';
+    // 予選が終わっても、境目の同点が決まらない間は「決まりました」と出さない（中の【注意】と食い違うため）
+    $('finsum').textContent = !pd ? '予選が終わると決まります（押すと、いまの順位での暫定）' : fm && (fm.edge.length || fm.jedge.length) ? '予選の合計が同点で、まだ決まりません（【注意】を見てください）' : '予選の順位で決まりました';
     autoOpen('finfold', pd, pd);
     $('finalbox').hidden = !(pd || FINALS.some(r => Object.keys(recsOf(r)).length));
     renderFinalMembers(); renderFinal();

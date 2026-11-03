@@ -74,7 +74,7 @@ select,.lv3 input{width:100%;font:inherit;font-size:1.05rem;padding:9px 6px;bord
 .chk{display:flex;gap:8px;align-items:center;margin:4px 0 0}
 .chk input{width:22px;height:22px;margin:0}
 details.card>summary{cursor:pointer;font-weight:700}
-/* 2〜8章（くじの説明）。抽せんの後は、たたんで出す（結果と実況を近くに） */
+/* 2〜8章（くじの説明）。最初からたたんで出す（結果と実況を近くに。2026-11-04 主催） */
 details.more{margin:26px 0 0}
 details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background:var(--card);color:var(--accent);border:2px solid var(--accent);border-radius:8px}
 .ghost{background:none;color:var(--accent);font-size:.95rem;padding:10px 0 0;text-decoration:underline}
@@ -99,7 +99,7 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
   <h2 id="kekka">1. 結果</h2>
   <div id="result"></div>
 
-  <details class="more" id="more" open>
+  <details class="more" id="more">
   <summary>くじの説明（2〜8章: 流れ・決まり・検算・型・出席者・計算・くじ値）</summary>
   <h2>2. 決まるまでの流れ</h2>
   <div class="tw"><table id="flow"></table></div>
@@ -333,7 +333,7 @@ function lotteryHtml(seed, tag) {
 function renderResult() {
   const box = $('result'), lot = $('lottery');
   if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
-  if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは「4. 計算してみる」で、仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは、下の「くじの説明」を開くと、「4. 計算してみる」で仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   const want = roundsOf(draw(seedOf(N4))), now = (KUMI && KUMI.rounds) || {}, ks = kataKeys();
   const remade = !!KUMI && (KUMI.remade === true || KUMI.from > 1), from = remade ? Number(KUMI.from) || 1 : ks.length + 1;
   const bad = ks.filter(k => Number(k) < from && !sameRound(now[k], want[k]));
@@ -769,6 +769,8 @@ $('liveform').addEventListener('submit', async ev => {
   if (units.some(u => !Number.isInteger(u) || u < -2000 || u > 9999)) { say('lfmsg', '点棒は百点単位の整数で入れてください（25,300点なら 253）', false); return; }
   const raw = units.map(u => u * 100), want = CFG.start * MODE - 1000 * kyotaku;
   if (raw.reduce((a, b) => a + b, 0) !== want) { say('lfmsg', '点棒の合計が ' + fmt(want) + '（持ち点の合計−供託）になりません。点棒を確かめてください', false); return; }
+  // 終局のとき、供託はアガった人（アガリで終わらなければトップ）の点棒に移って0本になる。残っていれば、送る前に確かめる
+  if (end && kyotaku > 0 && !confirm('終局で、供託が' + kyotaku + '本残っています（0本になるはず）。このまま送りますか？\n供託は、アガった人の点棒に足します。アガリで終わらなかったときは、トップに足します。')) { say('lfmsg', '送るのをやめました。供託と点棒を確かめてください', false); return; }
   const btn = $('liveform').querySelector('.send');
   btn.disabled = true;
   try {
@@ -866,8 +868,6 @@ async function load() {
   KATA = kt; KUMI = k;
   N4 = KATA && k && k.kuji && k.kuji.date === KATA.date ? (normN4(k.kuji.n4 || '') || '') : '';
   if (N4 && !$('n4').value) $('n4').value = N4;
-  // 抽せんの後は、2〜8章（くじの説明）をたたむ。開けば、検算もそのまま使える
-  $('more').open = !N4;
   setup(notes.join(' '));
   $('main').hidden = false;
   renderAll();
