@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#7a1a1a">
 <title>幹部用</title>
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ok-bg:#e6f3ea;--ng:#b00020}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ok-bg:#e6f3ea;--ng:#b00020}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
@@ -21,10 +21,9 @@ h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);paddi
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
-.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
-@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
 #main[hidden]~.pnav{display:none}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
@@ -46,7 +45,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 .att.here .who{color:var(--ok);font-weight:700}
 /* 生年月日（同点のときだけ）。狭い画面では名前の下に回る */
 .bd{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:.95rem}
-.bd input{font-size:1rem;padding:6px 8px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);max-width:11.5em}
+.bd input{font-size:1rem;padding:6px 8px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);max-width:11.5em}
 .bd .ghost{padding:7px 10px}
 .bd .ghost:disabled{opacity:.5;cursor:default}
 .bd .done{color:var(--ok);font-weight:700}
@@ -55,7 +54,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 #utbl th:first-child,#utbl td:first-child{width:auto}
 #utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 </head>
 <body>
@@ -64,7 +63,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
     <h1 id="ttl">🀄 幹部用</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップページ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -87,6 +86,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   <div class="card">
     <div class="big" id="count"></div>
     <p class="small" id="bnote" hidden></p>
+    <button class="ghost" type="button" id="btoggle" aria-expanded="false" style="margin:4px 0 8px" hidden></button>
     <div id="attend"></div>
     <div id="bmsg" class="msg" aria-live="polite"></div>
   </div>
@@ -113,7 +113,7 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップページ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
 </div>
 
 <script>
@@ -128,6 +128,8 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 const CONF = '../g/' + G + '/';
 document.querySelectorAll('.pnav a[data-g]').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 let CFG = null, ROSTER = {}, HERE = new Set(), API = '';
 // 年上からの順（受け口の agerank。生年月日を入れた人どうし。1 が最年長）。BIRTH_OK は受け口が生年月日を受け付けるか（古い受け口は agerank を返さない）
 let AGERANK = {}, BIRTH_OK = false;
@@ -203,10 +205,16 @@ function summary() {
   $('count').textContent = '来た人 ' + (ps.length - rest.length) + ' / ' + ps.length + '人';
   $('notyet').textContent = rest.length ? rest.map(dnf).join('・') : '全員そろいました。';
 }
+// 生年月日の欄は、ふだんはたたむ（受付のチェックの邪魔にしない）。同点のときに「生年月日の欄を出す」で開く
+let BSHOW = false;
 function renderAttend() {
   const box = $('attend'); box.innerHTML = '';
-  const bn = $('bnote');
-  bn.hidden = !nenrei();
+  const bn = $('bnote'), can = nenrei() && !!API && BIRTH_OK, bt = $('btoggle');
+  bt.hidden = !can;
+  const n = Object.keys(AGERANK).length;
+  bt.textContent = BSHOW ? '生年月日の欄を閉じる' : '生年月日の欄を出す（同点のとき' + (n ? '・入力済み ' + n + '人' : '') + '）';
+  bt.setAttribute('aria-expanded', BSHOW ? 'true' : 'false');
+  bn.hidden = !nenrei() || (can && !BSHOW);
   bn.textContent = !API ? '受け口が未設定のため、生年月日は入れられません。'
     : !BIRTH_OK ? '受け口が古いか、つながらないため、生年月日は入れられません（受け口を新しいバージョンでデプロイすると使えます。つながらないときは「名前を読み直す」）。'
     : '生年月日は、予選の合計が同点のときだけ、その人たちの分を入れます（年齢が上の人が上位）。どのページにも出ず、入れた後は「入力済み」とだけ出ます。幹部の端末で共有されます。';
@@ -217,7 +225,7 @@ function renderAttend() {
     cb.addEventListener('change', () => { if (cb.checked) HERE.add(p); else HERE.delete(p); row.classList.toggle('here', cb.checked); saveHere(); summary(); });
     const sp = document.createElement('span'); sp.textContent = dnf(p);
     lab.appendChild(cb); lab.appendChild(sp); row.appendChild(lab);
-    if (nenrei() && API && BIRTH_OK) row.appendChild(birthCell(p));
+    if (can && BSHOW) row.appendChild(birthCell(p));
     box.appendChild(row);
   });
   summary();
@@ -244,6 +252,7 @@ function birthCell(p) {
   }
   return bd;
 }
+$('btoggle').addEventListener('click', () => { BSHOW = !BSHOW; renderAttend(); });
 function sayB(t, ok) { const m = $('bmsg'); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
 async function sendBirth(p, date, btn) {
   if (date === '' && AGERANK[p] === undefined) { sayB(dnf(p) + ' の生年月日を選んでから「入れる」を押してください', false); return; }

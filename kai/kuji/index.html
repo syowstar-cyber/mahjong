@@ -18,7 +18,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
@@ -34,13 +34,12 @@ ul,ol{padding-left:1.4em;margin:8px 0}
 li{margin:5px 0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
 label{display:block;font-weight:700;margin:0 0 4px}
-input[type=text]{width:100%;font:inherit;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+input[type=text]{width:100%;font:inherit;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .send{width:100%;margin-top:10px;padding:12px;background:var(--accent);color:var(--accent-fg)}
-.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
-@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
 #main[hidden]~.pnav{display:none}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);margin:8px 0}
@@ -69,17 +68,20 @@ td.nw,th.nw{white-space:nowrap}
 .lvtools{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}
 .lv3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end;margin:4px 0 12px}
 .lv3 label{font-size:.88rem;margin:0 0 2px;overflow-wrap:anywhere}
-select,.lv3 input{width:100%;font:inherit;font-size:1.05rem;padding:9px 6px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+select,.lv3 input{width:100%;font:inherit;font-size:1.05rem;padding:9px 6px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 .lv3 input.auto{background:var(--card2)}
 .lvlab{font-weight:700;font-size:.92rem;margin-top:6px}
 .chk{display:flex;gap:8px;align-items:center;margin:4px 0 0}
 .chk input{width:22px;height:22px;margin:0}
 details.card>summary{cursor:pointer;font-weight:700}
+/* 2〜8章（くじの説明）。抽せんの後は、たたんで出す（結果と実況を近くに） */
+details.more{margin:26px 0 0}
+details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background:var(--card);color:var(--accent);border:2px solid var(--accent);border-radius:8px}
 .ghost{background:none;color:var(--accent);font-size:.95rem;padding:10px 0 0;text-decoration:underline}
 .lvc .who{font-weight:700;font-size:1.05rem}
 .lvc ul{margin:6px 0 0}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 </head>
 <body>
@@ -88,7 +90,7 @@ details.card>summary{cursor:pointer;font-weight:700}
     <h1 id="ttl">🀄 対戦表</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a href="./" aria-current="page">対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -97,6 +99,8 @@ details.card>summary{cursor:pointer;font-weight:700}
   <h2 id="kekka">1. 結果</h2>
   <div id="result"></div>
 
+  <details class="more" id="more" open>
+  <summary>くじの説明（2〜8章: 流れ・決まり・検算・型・出席者・計算・くじ値）</summary>
   <h2>2. 決まるまでの流れ</h2>
   <div class="tw"><table id="flow"></table></div>
 
@@ -127,6 +131,7 @@ details.card>summary{cursor:pointer;font-weight:700}
 
   <h2>8. くじ値と枠</h2>
   <div id="lottery"></div>
+  </details>
 
   <div id="livesec" hidden>
   <h2 id="live">9. 決勝最終実況</h2>
@@ -154,7 +159,7 @@ details.card>summary{cursor:pointer;font-weight:700}
   </details>
   </div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a href="./" aria-current="page">対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a href="./" aria-current="page">対戦表</a></nav>
 </div>
 
 <script>
@@ -171,6 +176,8 @@ const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
 // ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
@@ -747,16 +754,21 @@ async function pull() {
   try { const j = await getJson(API + '?kai=' + encodeURIComponent(CFG.kai)); if (j.ok && j.data && j.data.kai === CFG.kai) take(j.data); } catch (e) {}
 }
 const isDay = () => !!CFG && new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10) === CFG.date;
-const pullGap = () => (!liveCtx().wait && !recsOf(lastF())['1'] && !(LIVE && LIVE.end)) ? 30000 : 120000;
+// 決勝の最後の半荘の最中（実況が動いている間）
+const liveNow = () => liveOn() && !liveCtx().wait && !recsOf(lastF())['1'] && !(LIVE && LIVE.end);
+const pullGap = () => liveNow() ? 30000 : 120000;
 setInterval(() => { if (liveOn() && API && isDay() && !document.hidden && Date.now() - PULL_AT >= pullGap()) pull(); }, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && liveOn() && API && isDay() && Date.now() - PULL_AT >= 30000) pull(); });
 $('lvre').addEventListener('click', () => { if (API) pull(); });
-// URL の # の場所へ（本文は読み込みの後に出るので、ブラウザが自分では飛べない）
+// URL の # の場所へ（本文は読み込みの後に出るので、ブラウザが自分では飛べない）。たたんだ説明の中なら、開いてから。
+// # がなく、決勝最終実況の最中なら、実況（9章）へ
 function jumpToHash() {
   let id = '';
   try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { id = ''; }
   const el = id ? document.getElementById(id) : null;
+  if (el && el.closest('details')) el.closest('details').open = true;
   if (el && !el.closest('[hidden]')) el.scrollIntoView();
+  else if (!id && liveNow()) $('live').scrollIntoView();
 }
 
 function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(); renderHow(); renderCalc(); renderLive(); }
@@ -796,6 +808,8 @@ async function load() {
   KATA = kt; KUMI = k;
   N4 = KATA && k && k.kuji && k.kuji.date === KATA.date ? (normN4(k.kuji.n4 || '') || '') : '';
   if (N4 && !$('n4').value) $('n4').value = N4;
+  // 抽せんの後は、2〜8章（くじの説明）をたたむ。開けば、検算もそのまま使える
+  $('more').open = !N4;
   setup(notes.join(' '));
   $('main').hidden = false;
   renderAll();

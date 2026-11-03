@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#7a1a1a">
 <title>三麻Halu杯 ルール</title>
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99;--halu-bg:#e8f0fa;--san:#1d6b4f;--san-bg:#e7f4ee;--ok:#146c2e;--ng:#b00020}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99;--halu-bg:#e8f0fa;--san:#1d6b4f;--san-bg:#e7f4ee;--ok:#146c2e;--ng:#b00020}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.8;-webkit-text-size-adjust:100%}
@@ -32,10 +32,10 @@ ul,ol{padding-left:1.5em;margin:8px 0}
 li{margin:5px 0}
 nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:14px 0}
 nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.95rem;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;text-decoration:none}
-.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* このページだけの部品 */
 .halu,.san{display:inline-block;color:#fff;font-size:.78rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
@@ -51,7 +51,6 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 .no{color:var(--ng);font-weight:700}
 .note{font-size:.92rem;color:var(--muted)}
 .ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
-@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 td.c{text-align:center;white-space:nowrap}
 table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-width:5em}
 .src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
@@ -59,7 +58,7 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 .qbox{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;margin:12px 0}
 .qbox label{display:block;font-weight:700;margin:0 0 6px}
 .qrow{display:flex;gap:8px}
-.qrow input{flex:1 1 auto;min-width:0;padding:10px;font-size:1.05rem;font-family:inherit;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);-webkit-appearance:none;appearance:none}
+.qrow input{flex:1 1 auto;min-width:0;padding:10px;font-size:1.05rem;font-family:inherit;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);-webkit-appearance:none;appearance:none}
 .qrow button{flex:0 0 auto;padding:10px 18px;font-size:1.05rem;font-family:inherit;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
 .qbox .note{margin-top:6px;line-height:1.6}
 .qex button{margin:6px 6px 0 0;padding:6px 12px;font-size:.9rem;font-family:inherit;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;cursor:pointer}
@@ -75,9 +74,9 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <div class="wrap">
   <header>
     <h1 id="ttl">🀄 三麻Halu杯 ルール</h1>
-    <div class="sub">草案（2026-11-01）。3人麻雀のルールです。</div>
+    <div class="sub">草案（2026-11-03）。3人麻雀のルールです。</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <section class="qbox" aria-label="ルールの質問">
     <form id="qf" autocomplete="off" role="search">
       <label for="qa">ルールの質問</label>
@@ -645,12 +644,14 @@ table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-wi
 <p class="src">一般的な3人麻雀のやり方と、一般的な競技ルールを合わせて、わかりやすく書いたものです。細かい解釈で迷ったときは、運営が判断します。<span class="san">3麻</span> の印は3人麻雀だけの決まり、<span class="halu">Halu杯</span> の印は本大会だけの決まりです。</p>
 
   </main>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">点数早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html" aria-current="page">ルール</a><a href="tensu.html">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <a class="top" href="#" title="上へ">↑</a>
 </div>
 <script>
 // 普段の回（Halu杯・3麻）のルール。決まりは手書きで、回ごとに変わる数字（題名・持ち点・返し・順位点・半荘数）だけを同じフォルダの taikai.json から読んで出す
 const $ = id => document.getElementById(id);
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
 const fmt = n => n.toLocaleString('ja-JP');
 const pt = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);

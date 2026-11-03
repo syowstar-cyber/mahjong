@@ -18,7 +18,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
@@ -31,13 +31,12 @@ h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent)
 h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
 label{display:block;font-weight:700;margin:0 0 4px}
-select{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+select{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
-.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
-@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
 #main[hidden]~.pnav{display:none}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
@@ -52,6 +51,11 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 #mine.noseat th:nth-child(3),#mine.noseat td:nth-child(3){width:auto}
 #sched th:first-child,#sched td:first-child{width:4.2em;white-space:nowrap}
 tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
+/* 一番上の「次は」（名前を選んでいて、受け口が読めたときだけ）。自分の席の表では、点数が入った半荘を薄く、次の半荘に色をつける */
+.next{background:var(--soft);border:2px solid var(--accent);border-radius:12px;padding:10px 14px;margin:10px 0}
+.next .lab{font-size:.95rem;font-weight:700;color:var(--muted)}
+.next .big{font-size:1.45rem;font-weight:700;color:var(--accent);line-height:1.45}
+#mine tr.past td{color:var(--muted)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
@@ -72,7 +76,7 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .party .st{font-size:.95rem;margin-top:8px;color:var(--muted)}
 .party .st.ok{color:var(--ok);font-weight:700}
 .party .st.ng{color:var(--ng);font-weight:700}
-.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 </head>
 <body>
@@ -81,22 +85,28 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <h1 id="ttl">🀄 トップページ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
+  <div id="remade" class="hint warn" hidden></div>
+  <div class="next" id="next" hidden></div>
   <div class="card" id="info" hidden>
     <div class="info" id="whenrow"><span class="k">日時</span><span class="v" id="when"></span></div>
     <div class="info" id="whererow"><span class="k">場所</span><span class="v" id="where"></span></div>
   </div>
-  <div id="remade" class="hint warn" hidden></div>
   <h2 id="mineh">自分の席</h2>
   <div class="card">
     <label for="me">自分の名前</label>
     <select id="me"></select>
     <div id="mine" style="margin-top:10px"></div>
   </div>
+  <ul class="small" style="padding-left:1.3em;margin:8px 0 12px">
+    <li id="seatnote">東が起家です。</li>
+    <li>抜け番の半荘は0ポイントです。</li>
+    <li id="finnote" hidden></li>
+  </ul>
 
   <div id="schedbox" hidden>
   <h2>当日の流れ</h2>
@@ -126,13 +136,8 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
     <span class="small" id="updated"></span>
   </div>
   <div id="rounds"></div>
-  <ul class="small" style="padding-left:1.3em;margin:12px 0">
-    <li id="seatnote">東が起家です。</li>
-    <li>抜け番の半荘は0ポイントです。</li>
-    <li id="finnote" hidden></li>
-  </ul>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップページ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 </div>
 
 <script>
@@ -148,6 +153,8 @@ const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
 // ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
@@ -279,6 +286,7 @@ function render() {
   ME = list.includes(SAVED) ? SAVED : '';
   $('me').value = ME; $('ume').value = ME;
   renderInfo();
+  renderNext();
   renderMine();
   renderSched();
   renderUchi();
@@ -315,26 +323,59 @@ function render() {
     + (junni ? 'ほかの人は、決勝1半荘目の時間に順位決定戦を1半荘打ちます。決勝2半荘目は、決勝に出ない人も観戦します。決勝と順位決定戦の卓は、予選が終わると点数入力ページに出ます。' : '決勝の卓は予選が終わると点数入力ページに出ます。')
     + (bakime() ? '' : '席は自動卓のサイコロで決めます。');
 }
+// 自分の半荘ごとの進み具合（受け口の入力済みの卓から）。打つ半荘は自分の卓に点数が入ったら済み、抜け番・お休みの半荘はその半荘の卓がぜんぶ済んだら済み。
+// 名前を選んでいないときと、受け口が読めていない間は null（済みも次も出さない）
+function progress() {
+  if (!ME || !DATA) return null;
+  const list = rounds().map(k => {
+    const r = KUMI.rounds[k], tabs = r.tables || [], t = tabs.find(x => (x.p || []).includes(ME));
+    return { k, t, rest: !t && (r.rest || []).includes(ME), done: t ? doneOf(k, t.no) : tabs.length > 0 && tabs.every(x => doneOf(k, x.no)) };
+  });
+  return { list, next: list.findIndex(a => !a.done) };
+}
+// 一番上の「次は」。抜け番・お休みの半荘なら、その次に打つ卓も出す。予選がぜんぶ済んだら、決勝の卓の出る所を出す
+function renderNext() {
+  const box = $('next'), pg = progress();
+  box.innerHTML = ''; box.hidden = !pg || !pg.list.length;
+  if (box.hidden) return;
+  const line = (cls, t) => { const d = document.createElement('div'); d.className = cls; d.textContent = t; box.appendChild(d); };
+  const at = a => a.k + '半荘目・' + a.t.no + '卓' + (bakime() ? '' : '・' + WINDS[a.t.p.indexOf(ME)]);
+  const a = pg.list[pg.next];
+  if (!a) {
+    line('big', '予選は、ぜんぶ終わりました');
+    if (CFG.final.tables > 0) line('', (CFG.final.junni === 1 ? '決勝と順位決定戦' : '決勝') + 'の卓は、点数入力ページに出ます。');
+    return;
+  }
+  line('lab', '次は');
+  if (a.t) { line('big', at(a)); line('', '同じ卓: ' + a.t.p.filter(p => p !== ME).map(dn).join('・')); return; }
+  line('big', a.k + '半荘目は' + (a.rest ? '抜け番' : 'お休み'));
+  const b = pg.list.slice(pg.next + 1).find(x => x.t);
+  if (b) line('', 'その次は ' + at(b) + '（同じ卓: ' + b.t.p.filter(p => p !== ME).map(dn).join('・') + '）');
+}
 function renderMine() {
   const box = $('mine'); box.innerHTML = '';
   const rs = rounds();
   if (!ME) { box.innerHTML = '<p class="small">名前を選ぶと、半荘ごとの卓' + (bakime() ? '' : 'と席') + 'が出ます（この端末に覚えます）。</p>'; return; }
   if (!rs.length) { box.innerHTML = '<p class="small">組み合わせはまだ決まっていません。</p>'; return; }
+  const pg = progress();
   const tw = document.createElement('div'); tw.className = 'tw';
   const tbl = document.createElement('table'); tbl.id = 'mine';
   if (bakime()) tbl.className = 'noseat';
   tbl.innerHTML = '<thead><tr><th>半荘</th><th>卓</th>' + (bakime() ? '' : '<th>席</th>') + '<th>同じ卓の人</th></tr></thead>';
   const tb = document.createElement('tbody');
-  rs.forEach(k => {
+  rs.forEach((k, i) => {
     const r = KUMI.rounds[k], tr = document.createElement('tr');
-    const t = (r.tables || []).find(x => (x.p || []).includes(ME));
-    const cells = t ? [k + '半荘目', t.no + '卓', WINDS[t.p.indexOf(ME)], t.p.filter(p => p !== ME).map(dn).join('・')]
+    const t = (r.tables || []).find(x => (x.p || []).includes(ME)), done = !!(pg && pg.list[i].done);
+    const cells = t ? [k + '半荘目', t.no + '卓' + (done ? ' ✓' : ''), WINDS[t.p.indexOf(ME)], t.p.filter(p => p !== ME).map(dn).join('・')]
       : (r.rest || []).includes(ME) ? [k + '半荘目', '—', '—', '抜け番（0ポイント）'] : [k + '半荘目', '—', '—', 'お休み'];
     if (bakime()) cells.splice(2, 1);
+    if (done) tr.className = 'past';
+    else if (pg && i === pg.next) { tr.className = 'now'; tr.setAttribute('aria-current', 'step'); }
     cells.forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
     tb.appendChild(tr);
   });
   tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
+  if (pg) { const p = document.createElement('p'); p.className = 'small'; p.style.margin = '6px 0 0'; p.textContent = '色のついた行が次の半荘です。✓ は点数が入った卓です。'; box.appendChild(p); }
 }
 // 名前を選んだら（上の欄でも打ち上げの欄でも）、この端末に覚えて出し直す。
 // 打ち上げの欄で選んだときは、上の表が伸び縮みしても、その欄が画面の同じ所に残るようにする
@@ -351,8 +392,8 @@ $('ume').addEventListener('change', () => pickMe($('ume').value, $('ume')));
 // ---- 打ち上げ（taikai.json の uchiage が true の会。第20回の参加者ページ7章を、P番号で答える形にしたもの） ----
 // 答えるのは「自分の名前」で選んだ人（この欄の名前の欄は、上の「自分の名前」と同じ ME）。受け口に P番号ごとに置く。全員の出欠は、幹部用ページにだけ出す（主催）
 const UCH_LABEL = { yes: '参加する', no: '参加しない' };
-// 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし）
-let UCHI = {}, UCHI_ST = 'none';
+// 受け口の回答（{P3: {choice, ts}}）と、読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし・wait＝はじめの読み込み中）
+let UCHI = {}, UCHI_ST = 'wait';
 const uts = ts => ts ? String(ts).slice(5, 16).replace('-', '/') : '';
 function sayU(t, cls) { const m = $('ust'); m.textContent = t; m.className = 'st' + (cls ? ' ' + cls : ''); }
 function renderUchi() {
@@ -361,7 +402,7 @@ function renderUchi() {
   const ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
   document.querySelectorAll('input[name=uch]').forEach(x => { x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
   $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
-  if (!ok) sayU(UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
+  if (!ok) sayU(UCHI_ST === 'wait' ? '回答を読み込み中…' : UCHI_ST === 'net' ? '回答を読めませんでした（通信）。少し待ってから開き直してください。' : '打ち上げの回答は、まだ受け付けていません（準備中）。', UCHI_ST === 'net' ? 'ng' : '');
   else if (mine) sayU('回答済み: ' + UCH_LABEL[mine.choice] + '（' + uts(mine.ts) + '）', 'ok');
   else sayU(ME ? 'まだ回答がありません。' : '名前を選ぶと、答えられます。');
 }
@@ -415,20 +456,22 @@ async function load() {
   pageLinks(c);
   const api = String(c.api || '').trim();
   if (!api) UCHI_ST = 'none';
-  if (api) {
-    try {
-      const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
-      if (j.ok && j.data && j.data.kai === c.kai) {
-        ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : '';
-        // 打ち上げの回答（古い受け口は uchiage を返さない）
-        const u = j.data.uchiage;
-        UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
-      }
-    }
-    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
-  }
+  // 受け口（名前・入力済みの卓・打ち上げ）を待たずに、設定と組み合わせ表で先に出す。はじめは、受け口が返るまで名前が番号のまま
   setup(notes.join(' '));
   $('main').hidden = false;
+  render();
+  if (!api) return;
+  try {
+    const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
+    if (j.ok && j.data && j.data.kai === c.kai) {
+      ROSTER = j.data.roster || {}; DATA = j.data; $('updated').textContent = j.data.updated ? '点数の最終更新 ' + j.data.updated : '';
+      // 打ち上げの回答（古い受け口は uchiage を返さない）
+      const u = j.data.uchiage;
+      UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
+    } else if (UCHI_ST === 'wait') UCHI_ST = 'none';
+  }
+  catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
+  setup(notes.join(' '));
   render();
 }
 $('reload').addEventListener('click', load);

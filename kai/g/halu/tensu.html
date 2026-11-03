@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#7a1a1a">
 <title>三麻Halu杯 点数早見表</title>
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--halu:#1f5c99}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.8;-webkit-text-size-adjust:100%}
@@ -30,12 +30,11 @@ ul{padding-left:1.5em;margin:8px 0}
 li{margin:5px 0}
 nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:14px 0}
 nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.95rem;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;text-decoration:none}
-.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
-@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 .halu{display:inline-block;color:#fff;background:var(--halu);font-size:.78rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
 .note{font-size:.92rem;color:var(--muted)}
 .ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
@@ -48,38 +47,38 @@ table.sc th small,table.how th small{display:block;font-size:.72rem;color:var(--
 table.sc td b{display:block;font-size:1.05rem}
 table.sc td.na{color:var(--muted)}
 table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight:700}
-/* 点数の計算。狭い画面は、アガリを1行目に、符と翻を2行目に並べる */
+/* 点数の計算（ページの一番上）。アガリ・本場・翻・符の順。狭い画面は、アガリと本場を1行目に、翻と符を1行ずつ（選択肢の名前が長いため） */
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
-.calc{display:grid;grid-template-columns:1.1fr 1fr 1.3fr;gap:8px}
+.calc{display:grid;grid-template-columns:1fr .8fr 1.4fr 1.3fr;gap:8px}
 .calc label{display:block;font-weight:700;margin:0 0 4px}
-.calc select{width:100%;padding:10px 8px;font-size:1.05rem;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+.calc select{width:100%;padding:10px 8px;font-size:1.05rem;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 .calc select:disabled{opacity:.45}
 .cres{margin-top:12px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font-size:1.05rem;line-height:1.8}
 .cres b{font-size:1.3rem;color:var(--accent)}
-@media (max-width:420px){.calc{grid-template-columns:1fr 1fr}.calc .ck{grid-column:1/-1}}
+@media (max-width:420px){.calc{grid-template-columns:1fr 1fr}.calc .chn,.calc .cfu{grid-column:1/-1}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1 id="ttl">🀄 三麻Halu杯 点数早見表</h1>
-    <div class="sub">草案（2026-11-01）。3人麻雀・ツモ損なしの点数です。</div>
+    <div class="sub">草案（2026-11-03）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
+  <div class="card">
+    <div class="calc">
+      <div class="ck"><label for="ck">アガリ</label><select id="ck"><option value="kr">子のロン</option><option value="kt">子のツモ</option><option value="or">親のロン</option><option value="ot">親のツモ</option></select></div>
+      <div class="cb"><label for="cb">本場</label><select id="cb"></select></div>
+      <div class="chn"><label for="ch">翻</label><select id="ch"></select></div>
+      <div class="cfu"><label for="cf">符</label><select id="cf"></select></div>
+    </div>
+    <div id="cres" class="cres" aria-live="polite"></div>
+    <div class="note" id="cnote" style="margin-top:6px"></div>
+  </div>
   <p class="lead"><span class="halu">Halu杯</span> はツモ損なしです。ツモは、ロンの点を残りの2人で半分ずつ払います（子のツモも親のツモも同じ）。半分に100点未満が出るときは、100点に切り上げます。</p>
   <nav class="toc" id="toc"></nav>
   <main id="content">
-
-<h2 id="keisan">点数の計算</h2>
-<div class="card">
-  <div class="calc">
-    <div class="ck"><label for="ck">アガリ</label><select id="ck"><option value="kr">子のロン</option><option value="kt">子のツモ</option><option value="or">親のロン</option><option value="ot">親のツモ</option></select></div>
-    <div><label for="cf">符</label><select id="cf"></select></div>
-    <div><label for="ch">翻</label><select id="ch"></select></div>
-  </div>
-  <div id="cres" class="cres" aria-live="polite"></div>
-  <div class="note" id="cnote" style="margin-top:6px"></div>
-</div>
 
 <h2 id="t1">1. ツモの払い方</h2>
 <p>ツモは、ロンの点を残りの2人で半分ずつ払います。子のツモも親のツモも、2人は同じ点を払います。ロンの点数は、4人麻雀と同じです。</p>
@@ -217,12 +216,14 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <p class="src">ツモの払い方と本場の点は、麻雀格闘倶楽部（三人打ち）に合わせています。細かい解釈で迷ったときは、運営が判断します。</p>
 
   </main>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップページ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">点数早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <a class="top" href="#" title="上へ">↑</a>
 </div>
 <script>
 // 普段の回（Halu杯・3麻）の点数早見表。点数は表に書き込み済み（ツモ損なし＝ロンの点を2人で折半）で、題名と色とくじの有無だけ同じフォルダの taikai.json から読む
 const $ = id => document.getElementById(id);
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
 const fmt = n => n.toLocaleString('ja-JP');
 
@@ -267,31 +268,35 @@ function payOf(kind, b) {
   if (kind[1] === 'r') return [{ who: '放銃した人', v: ron, n: 1 }];
   return [{ who: kind === 'kt' ? '親と子の' : '子', v: up100(ron / 2), n: 2 }];
 }
+// 本場は、ロンは1本600点、ツモは払う2人が1本300点ずつ（payOf の点に足すだけ）
 function calc() {
-  const kind = $('ck').value, fu = Number($('cf').value), han = $('ch').value, big = !(Number(han) <= 4);
+  const kind = $('ck').value, fu = Number($('cf').value), han = $('ch').value, hb = Number($('cb').value) || 0, big = !(Number(han) <= 4);
   $('cf').disabled = big;
   const box = $('cres'); box.innerHTML = '';
   const ng = noHand(kind, fu, han);
   $('cnote').textContent = '';
   if (ng) { box.textContent = ng; return; }
-  const b = basePts(fu, han), pays = payOf(kind, b), total = pays.reduce((a, x) => a + x.v * x.n, 0);
+  const add = hb * (kind[1] === 't' ? 300 : 600);
+  const b = basePts(fu, han), pays = payOf(kind, b), total = pays.reduce((a, x) => a + (x.v + add) * x.n, 0);
   const head = document.createElement('div');
-  head.textContent = (kind[0] === 'k' ? '子' : '親') + 'の' + (kind[1] === 't' ? 'ツモ' : 'ロン') + '　' + (big ? '' : fu + '符' + han + '翻　') + (handName(b) ? handName(b) + '　' : '') + '合計 ' + fmt(total) + '点';
+  head.textContent = (kind[0] === 'k' ? '子' : '親') + 'の' + (kind[1] === 't' ? 'ツモ' : 'ロン') + '　' + (big ? '' : fu + '符' + han + '翻　') + (handName(b) ? handName(b) + '　' : '') + (hb ? hb + '本場　' : '') + '合計 ' + fmt(total) + '点';
   box.appendChild(head);
   pays.forEach(x => {
     const d = document.createElement('div');
     d.appendChild(document.createTextNode(x.who + (x.n > 1 ? x.n + '人' : '') + 'から '));
-    const v = document.createElement('b'); v.textContent = fmt(x.v) + '点'; d.appendChild(v);
+    const v = document.createElement('b'); v.textContent = fmt(x.v + add) + '点'; d.appendChild(v);
     if (x.n > 1) d.appendChild(document.createTextNode(' ずつ'));
+    if (add) d.appendChild(document.createTextNode('（本場の' + fmt(add) + '点を含む）'));
     box.appendChild(d);
   });
-  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + '本場は、ロン1本600点、ツモは1人300点を足します。' + (kind[1] === 't' ? 'ツモは、ロンの点の半分です（100点未満は切り上げ）。' : '');
+  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + (kind[1] === 't' ? 'ツモは、ロンの点の半分です（100点未満は切り上げ）。' : '') + '本場は、ロン1本600点、ツモは1人300点です。';
 }
 fillFu();
 HAN.forEach(([v, t]) => $('ch').appendChild(new Option(t, v)));
-$('cf').value = '30'; $('ch').value = '1';
+for (let i = 0; i <= 10; i++) $('cb').appendChild(new Option(i + '本場', String(i)));
+$('cf').value = '30'; $('ch').value = '1'; $('cb').value = '0';
 $('ck').addEventListener('change', () => { fillFu(); calc(); });
-['cf', 'ch'].forEach(id => $(id).addEventListener('change', calc));
+['cf', 'ch', 'cb'].forEach(id => $(id).addEventListener('change', calc));
 calc();
 
 fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {

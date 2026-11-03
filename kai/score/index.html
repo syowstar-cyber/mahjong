@@ -18,7 +18,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020}
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
@@ -31,19 +31,22 @@ h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent)
 h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
 label{display:block;font-weight:700;margin:12px 0 4px}
-select,input{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
+select,input{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 input[type=number]{text-align:right}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* 狭い画面は半荘と卓を縦に並べる（卓の欄の「（入力済み）」や順位決定戦の卓の名前が切れないように） */
+@media (max-width:560px){.row{grid-template-columns:1fr;gap:0}}
+/* 選んだ卓に点数が入っているときの帯（「入力済み」を選ぶ欄の外にも出す） */
+.qdone{margin:12px 0 0;padding:8px 12px;border-radius:8px;background:#e3f2e6;border:1px solid #9fcfa9;color:var(--ok);font-weight:700}
 button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .primary{width:100%;background:var(--accent);color:var(--accent-fg);margin-top:14px}
 .ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
 .primary:disabled,.ghost:disabled{opacity:.5;cursor:default}
 .msg{min-height:1.5em;margin-top:8px;font-weight:700}
 .msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
-.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.pnav a{flex:1 1 0;text-align:center;padding:10px 6px;white-space:nowrap;font-size:.95rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
-@media (max-width:420px){.pnav a{flex-basis:calc(50% - 4px)}}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
 #main[hidden]~.pnav{display:none}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
@@ -52,8 +55,14 @@ th,td{border-bottom:1px solid var(--line);padding:8px 8px;text-align:right;white
 th{background:#ececE8;font-weight:700;position:sticky;top:0}
 td.l,th.l{text-align:left}
 tr:nth-child(even) td{background:var(--card2)}
-tr.fin td.nm{font-weight:700;color:var(--accent)}
+tr.fin td.nm{font-weight:700}
 tr.line td{border-bottom:4px solid var(--ng)}
+/* 集計表: 横に動かしても名前の列は左に残す。自分の行（トップで選んだ名前）に色をつける */
+#tbl .nm{position:sticky;left:0;z-index:1;background:var(--card);box-shadow:inset -1px 0 0 var(--line)}
+#tbl th.nm{background:#ececE8;z-index:2}
+#tbl tr:nth-child(even) td.nm{background:var(--card2)}
+#tbl tr.me td{background:var(--soft)}
+#tbl tr.me td.nm{box-shadow:inset 4px 0 0 var(--accent),inset -1px 0 0 var(--line)}
 td.neg,.neg{color:var(--ng)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .small{color:var(--muted);font-size:.9rem}
@@ -74,13 +83,13 @@ td.neg,.neg{color:var(--ng)}
 .status span{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:.9rem}
 .status span.done{background:#e3f2e6;border-color:#9fcfa9;color:var(--ok)}
 .warn{color:var(--ng);font-weight:700}
-.win{font-weight:700;color:var(--accent)}
+.win{font-weight:700}
 details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
 summary{cursor:pointer;font-weight:700}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 /* 狭い画面は、選ぶ欄（P番号と名前）を1行目に、点棒とポイントを2行目に分ける */
 @media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:2em}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}.seat.nw{grid-template-columns:minmax(0,1fr) 6.6em;grid-template-areas:"sel sel" "in pt"}}
-.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 </head>
 <body>
@@ -89,7 +98,7 @@ summary{cursor:pointer;font-weight:700}
     <h1 id="ttl">🀄 点数入力</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -107,6 +116,7 @@ summary{cursor:pointer;font-weight:700}
         <select id="qtable"></select>
       </div>
     </div>
+    <div id="qdone" class="qdone" hidden></div>
     <div id="seats"></div>
     <div class="small" id="qhow"></div>
     <div id="qhint" class="small"></div>
@@ -116,7 +126,7 @@ summary{cursor:pointer;font-weight:700}
     <div id="qmsg" class="msg" aria-live="polite"></div>
     <div class="tools"><button class="ghost" type="button" id="qclear">この卓の点数を取り消す</button></div>
   </div>
-  <div class="hint" id="rulebox"></div>
+  <details class="hint" id="rulebox"></details>
   </div>
 
   <h2 id="h2sum">集計</h2>
@@ -154,7 +164,7 @@ summary{cursor:pointer;font-weight:700}
     <div id="results"></div>
   </details>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップページ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>点数早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
 </div>
 
 <script>
@@ -171,6 +181,8 @@ const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
 // ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
 // 会の色とホーム画面の名前（taikai.json の color・short）。色はページの --accent とブラウザの帯の色に使う
 function applyTheme(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
@@ -393,7 +405,7 @@ function finalMembers() {
 // まだ決まらない同点の知らせ（what＝決まらないもの）。nenrei の会は、同点の人全員の生年月日を入れれば決まる（同じ日なら集計係が決める）
 function edgeText(eg, what) {
   const names = eg.map(x => dn(x.p)).join('・');
-  if (nenrei() && !eg.every(x => age(x.p) !== null)) return '予選の合計が同点で、' + what + 'が決まりません（' + names + '）。年齢が上の人が上位です。この人たち全員の生年月日を、幹部用ページの出席確認で入れてください。';
+  if (nenrei() && !eg.every(x => age(x.p) !== null)) return '予選の合計が同点で、' + what + 'が決まりません（' + names + '）。年齢が上の人が上位です。この人たち全員の生年月日を、幹部用ページの出席確認の「生年月日の欄を出す」から入れてください。';
   return '予選の合計が同点で、' + what + 'が決まりません（' + names + '）。' + (nenrei() ? '生年月日も同じため、' : '') + '集計係が決めてください。';
 }
 // 順位決定戦の卓の人数。mode 人ずつに分け、余りは下の卓から1人ずつ足す（3麻だけ＝4人で3人麻雀を回す。受け口は1卓4人まで）。
@@ -570,11 +582,15 @@ $('bdplayer').addEventListener('change', () => { BD_SAVED = $('bdplayer').value;
 const umaText = u => u.map((x, i) => (i + 1) + '位 ' + fpt(Math.round(x * 10) + (i === 0 ? OKA : 0))).join('／');
 function ruleBox() {
   const c = CFG, okaNote = OKA ? '（1位はオカ ' + fpt(OKA) + ' を含む）' : '';
-  let h = '<b>ポイントの計算</b>（' + fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し）<br>① （点棒−' + fmt(c.return) + '）÷1,000。100点＝0.1ポイント（丸めない）<br>';
+  // たたんだ箱（開くと計算のしかた）。ふだんは点数の欄が先に見えるように
+  let h = '<summary>ポイントの計算（' + fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し）</summary>① （点棒−' + fmt(c.return) + '）÷1,000。100点＝0.1ポイント（丸めない）<br>';
   if (Array.isArray(c.uma)) h += '② 順位点 ' + umaText(c.uma) + ' を足す' + okaNote + '<br>';
   else {
     h += '② 順位点は、点棒が返し以上の人数で変わる' + okaNote + '<br>';
-    Object.keys(c.uma).sort().forEach(k => { h += '　返し以上が' + k + '人: ' + umaText(c.uma[k]) + '<br>'; });
+    // 順位点が同じで続く人数はまとめる（0人と1人が同じなら「0〜1人」）
+    const rows = [];
+    Object.keys(c.uma).sort().forEach(k => { const t = umaText(c.uma[k]), g = rows[rows.length - 1]; if (g && g.t === t && Number(k) === Number(g.to) + 1) g.to = k; else rows.push({ from: k, to: k, t }); });
+    rows.forEach(g => { h += '　返し以上が' + g.from + (g.to !== g.from ? '〜' + g.to : '') + '人: ' + g.t + '<br>'; });
   }
   h += '<span class="small">' + (Array.isArray(c.uma) ? '' : '返しちょうども「以上」に数えます。') + '同点は順位点を分けます（割り切れない分は起家に近い方が多く取る）。抜け番の半荘は0ポイントです。トビ終了なし。マイナスの点棒は「−」ボタンを押して、そのまま入れてください。</span>';
   $('rulebox').innerHTML = h;
@@ -589,7 +605,8 @@ function buildStatic() {
   $('entry').hidden = allLocked;
   $('sub').textContent = allLocked ? '点数はすべて確定しました。集計と順位を見られます。' : '半荘が終わったら、卓の代表が' + MODE + '人分の点棒を送ってください。ポイントは自動で計算します。';
   ruleBox();
-  $('tbl').querySelector('thead').innerHTML = '<tr><th>順位</th><th class="l">プレイヤー</th>' + PRELIM.map(r => '<th>' + r + '</th>').join('') + '<th>合計pt</th>' + (lineShow() ? '<th>' + lineK() + '位ライン</th>' : '') + '<th>半荘</th></tr>';
+  // 合計とラインを名前のすぐ右に置く（狭い画面でも横に動かさずに見える）。半荘ごとのポイントはその右
+  $('tbl').querySelector('thead').innerHTML = '<tr><th>順位</th><th class="l nm">プレイヤー</th><th>合計pt</th>' + (lineShow() ? '<th>' + lineK() + '位ライン</th>' : '') + PRELIM.map(r => '<th>' + r + '</th>').join('') + '<th>半荘</th></tr>';
   $('h2sum').textContent = FINALS.length ? '集計（予選の合計ポイント）' : '集計・順位（合計ポイント）';
   $('finsec').hidden = !FINALS.length;
   // 決勝ライン（第20回の6位ライン）。全部の半荘が確定したら、列・赤い線・欄とも出さない（第20回と同じ）
@@ -599,6 +616,19 @@ function buildStatic() {
 }
 
 // ---- 報告の欄 ----
+// 自分の名前（トップで選んで、この端末に覚えた名前）
+function myName() { try { return localStorage.getItem('halukai:me:' + G) || ''; } catch (e) { return ''; } }
+// 自分がその半荘で入っている卓。送られた点数の顔ぶれ→組み合わせ表（決勝と順位決定戦は予選の順）の順に探す。なければ ''
+function myTable(r) {
+  const me = myName();
+  if (!me || !r) return '';
+  const hit = Object.entries(recsOf(r)).find(([, rec]) => (rec.p || []).includes(me));
+  if (hit) return hit[0];
+  const t = tablesOf(r).find(x => membersOf(r, x.no).includes(me));
+  return t ? String(t.no) : '';
+}
+// 人が卓の欄で選んだ卓（{r, t}）。その半荘の間は、自動で選び直さない
+let TABLE_PICK = null;
 function fillTables() {
   const r = qround.value, keep = qtable.value;
   qtable.innerHTML = '';
@@ -606,7 +636,8 @@ function fillTables() {
   // 表にない卓に入っている点数も選べるようにする（組み直しの前に送った卓など）
   Object.keys(recsOf(r)).forEach(k => { if (!list.some(t => String(t.no) === k)) list.push({ no: Number(k), label: tableLabel(r, k) + '（表にない卓）' }); });
   list.forEach(t => qtable.appendChild(new Option(t.label + (recOf(r, t.no) ? '（入力済み）' : ''), String(t.no))));
-  let pick = keep;
+  // 選ぶ順: その半荘で人が選んだ卓 → 自分の卓 → いま選んでいる卓 → 前に選んだ卓
+  let pick = TABLE_PICK && TABLE_PICK.r === r ? TABLE_PICK.t : myTable(r) || keep;
   try { if (!pick) pick = localStorage.getItem('halukai:table:' + G) || ''; } catch (e) {}
   if ([...qtable.options].some(o => o.value === pick)) qtable.value = pick;
   fillSeats();
@@ -650,8 +681,10 @@ function fillSeats() {
   $('qsend').textContent = 'この卓の' + N + '人分を送信する';
   $('qsumlab').textContent = '合計（' + fmt(CFG.start * N) + 'になるはず）';
   $('qhow').textContent = '00は打ちません（25,300点 → 253）。マイナスは「−」ボタンで付けます（先に押しても、後で押しても同じ）。' + (N - 1) + '人入れると、残りの1人は自動で入ります。';
+  const done = $('qdone'); done.hidden = true;
   if (!r || !t) { preview(); return; }
   const rec = recOf(r, t), mem = membersOf(r, t), jn = isJunni(r, t), fm = isFinal(r) ? finalMembers() : null;
+  if (rec) { done.hidden = false; done.textContent = '✓ この卓は入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。'; }
   // 場決めの会は名前だけを出す。出す人＝送った点数があればその人、なければその卓の顔ぶれ。くじの前は型の枠の番号（ph＝仮置き。送れない）。
   // 決勝・順位決定戦の顔ぶれが同点で決まらないときだけ、選ぶ欄を出す
   let named = null, ph = false;
@@ -696,7 +729,6 @@ function fillSeats() {
     if (locked) { inp.readOnly = true; inw.querySelector('.sign').disabled = true; }
   }
   const note = [];
-  if (rec) note.push('入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。');
   if (named) note.push(ph ? PH_NOTE : NAME_NOTE);
   if (isFinal(r)) {
     if (!bakime()) note.push('席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
@@ -792,7 +824,7 @@ function preview() {
   $('qwarn').textContent = warn.join(' ');
 }
 qround.addEventListener('change', () => { QROUND_TOUCHED = true; fillTables(); });
-qtable.addEventListener('change', () => { try { localStorage.setItem('halukai:table:' + G, qtable.value); } catch (e) {} fillSeats(); });
+qtable.addEventListener('change', () => { TABLE_PICK = { r: qround.value, t: qtable.value }; try { localStorage.setItem('halukai:table:' + G, qtable.value); } catch (e) {} fillSeats(); });
 
 async function post(body) {
   const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
@@ -877,19 +909,22 @@ function render(d) {
   const finPs = K ? finalMembers().tables.flat() : [];
   const showLine = lineShow(), last = showLine ? lineRow(rk) : -1;
   const tb = $('tbl').querySelector('tbody'); tb.innerHTML = '';
+  const me = myName();
   rk.forEach((x, i) => {
     const tr = document.createElement('tr');
     if (finPs.includes(x.p)) tr.className = 'fin';
     if (i === last) tr.classList.add('line');
+    if (x.p === me) tr.classList.add('me');
     cell(tr, rankText(x));
     cell(tr, dn(x.p), 'l nm');
-    PRELIM.forEach(r => cell(tr, x.by[r] ? fpt(x.by[r].pts) : restOf(r).includes(x.p) ? '抜け' : ''));
     cell(tr, x.n ? fpt(x.total) : '');
     if (showLine) cell(tr, borderText(rk, x));
+    PRELIM.forEach(r => cell(tr, x.by[r] ? fpt(x.by[r].pts) : restOf(r).includes(x.p) ? '抜け' : ''));
     cell(tr, x.n + '/' + PRELIM.length);
     tb.appendChild(tr);
   });
-  const notes = ['合計ポイントの順です。抜け番の半荘は0ポイントです。', nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
+  const notes = ['合計ポイントの順です。右の 1・2… は半荘ごとのポイントです。抜け番の半荘は0ポイントです。', nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
+  if (rk.some(x => x.p === me)) notes.push('色のついた行は、トップで選んだ自分の名前です。');
   if (K) notes.push('名前が太字の' + K + '人が決勝に進みます（上から順。途中で抜けた人は飛ばします）。' + (junni() ? 'ほかの人は順位決定戦です。' : ''));
   if (showLine) notes.push('「' + K + '位ライン」は、自分を除いた人の合計の上から' + K + '番目との差です。「あと」は上回るのに要るポイント、「圏内」は' + (K + 1) + '位との差です。赤い線より上が、いまの決勝の圏内です。');
   $('tblnote').innerHTML = ''; notes.forEach(t => { const li = document.createElement('li'); li.textContent = t; $('tblnote').appendChild(li); });
@@ -898,7 +933,10 @@ function render(d) {
   renderResults();
   if (!ROUND_PICKED && API && d) {
     ROUND_PICKED = true;
-    const r = PRELIM.concat(FINALS).find(k => !isLocked(k) && !roundDone(k));
+    // トップで名前を選んだ人は、自分の卓にまだ点数がない最初の半荘（抜け番は飛ばす。決勝は予選が終わってから）。ほかは、全卓がそろっていない最初の半荘
+    const all = PRELIM.concat(FINALS), open = k => !isLocked(k) && !roundDone(k);
+    const mine = k => (!isFinal(k) || prelimDone()) && myTable(k) !== '' && !recOf(k, myTable(k));
+    const r = (myName() && all.find(k => open(k) && mine(k))) || all.find(open);
     if (r && !QROUND_TOUCHED && qround.value !== r) qround.value = r;
   }
   if (!EDITING) fillTables();
