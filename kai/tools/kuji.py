@@ -14,6 +14,7 @@
 import argparse, re, sys
 from datetime import datetime
 from pathlib import Path
+import io
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import kumiawase as K  # noqa: E402  同じフォルダの組み合わせの道具（検査・成績・書き出しを共通に使う）
@@ -105,4 +106,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # 面A（実行エントリの責務）: stdout/stderr を UTF-8 に固定＝cp932 コンソールでの UnicodeEncodeError 防止。
+    # pythonw で起動すると stdout/stderr は None（.buffer で即落ちる）＝None のときは包まない。
+    if sys.stdout is not None:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    if sys.stderr is not None:
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
     main()
