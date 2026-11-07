@@ -9,7 +9,7 @@
   "place": "麻雀ZOO 博多店",
   "address": "〒812-0013 福岡県福岡市博多区博多駅東2丁目4-14 5F",
   "mode": 3,
-  "players": 11,
+  "players": 12,
   "prelim": 7,
   "final": { "tables": 1, "hanchan": 2, "junni": 1 },
   "jikkyo": true,
