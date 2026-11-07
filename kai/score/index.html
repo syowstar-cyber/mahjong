@@ -325,6 +325,11 @@ function allPlayers() {
 }
 const kumiRound = r => (KUMI && KUMI.rounds && KUMI.rounds[r]) || null;
 const restOf = r => { const k = kumiRound(r); return (k && Array.isArray(k.rest)) ? k.rest : []; };
+// 抜け番が1つでもあるか（組み合わせ表、くじの前は型。どちらもまだなければ、人数が卓で割り切れないか）。ない回は抜け番の説明を出さない（2026-11-07 主催）
+function hasNuke() {
+  const rs = [KUMI && KUMI.rounds, KATA && KATA.rounds].filter(x => x && Object.keys(x).length);
+  return rs.length ? rs.some(x => Object.values(x).some(r => r && Array.isArray(r.rest) && r.rest.length)) : CFG.players % MODE !== 0;
+}
 // くじの前（組み合わせ表にその半荘がない）は、型（kata.json）の枠の番号で仮置きする。w は枠の番号
 const kataRound = r => (!kumiRound(r) && KATA && KATA.rounds && KATA.rounds[r]) || null;
 const wk = w => '枠' + w;
@@ -539,7 +544,7 @@ function ruleBox() {
     Object.keys(c.uma).sort().forEach(k => { const t = umaText(c.uma[k]), g = rows[rows.length - 1]; if (g && g.t === t && Number(k) === Number(g.to) + 1) g.to = k; else rows.push({ from: k, to: k, t }); });
     rows.forEach(g => { h += '　返し以上が' + g.from + (g.to !== g.from ? '〜' + g.to : '') + '人: ' + g.t + '<br>'; });
   }
-  h += '<span class="small">' + (Array.isArray(c.uma) ? '' : '返しちょうども「以上」に数えます。') + '同点は順位点を分けます（割り切れない分は起家に近い方が多く取る）。抜け番の半荘は0ポイントです。トビ終了なし。マイナスの点棒は「−」ボタンを押して、そのまま入れてください。</span>';
+  h += '<span class="small">' + (Array.isArray(c.uma) ? '' : '返しちょうども「以上」に数えます。') + '同点は順位点を分けます（割り切れない分は起家に近い方が多く取る）。' + (hasNuke() ? '抜け番の半荘は0ポイントです。' : '') + 'トビ終了なし。マイナスの点棒は「−」ボタンを押して、そのまま入れてください。</span>';
   $('rulebox').innerHTML = h;
 }
 function buildStatic() {
@@ -870,7 +875,7 @@ function render(d) {
     cell(tr, x.n + '/' + PRELIM.length);
     tb.appendChild(tr);
   });
-  const notes = ['合計ポイントの順です。右の 1・2… は半荘ごとのポイントです。抜け番の半荘は0ポイントです。', nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
+  const notes = ['合計ポイントの順です。右の 1・2… は半荘ごとのポイントです。' + (hasNuke() ? '抜け番の半荘は0ポイントです。' : ''), nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
   if (rk.some(x => x.p === me)) notes.push('色のついた行は、トップで選んだ自分の名前です。');
   if (K) notes.push('名前が太字の' + K + '人が決勝に進みます（上から順。途中で抜けた人は飛ばします）。' + (junni() ? 'ほかの人は順位決定戦です。' : ''));
   if (showLine) notes.push('「' + K + '位ライン」は、自分を除いた人の合計の上から' + K + '番目との差です。「あと」は上回るのに要るポイント、「圏内」は' + (K + 1) + '位との差です。');

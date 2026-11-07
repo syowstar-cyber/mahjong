@@ -319,6 +319,14 @@ function restTable(rounds, people, show) {
   return h + '</tbody></table></div>';
 }
 const peopleOf = rounds => { const s = new Set(); Object.values(rounds).forEach(r => { (r.tables || []).forEach(t => t.p.forEach(p => s.add(p))); (r.rest || []).forEach(p => s.add(p)); (r.out || []).forEach(p => s.add(p)); }); return [...s].sort((a, b) => pnum(a) - pnum(b)); };
+// 抜け番がない回は、抜け番の表・列・説明を出さない（2026-11-07 主催）。欠席などで抜け番ができると、また出る
+const restIn = rounds => Object.values(rounds || {}).some(r => (r.rest || []).length);
+const restOrOut = rounds => Object.values(rounds || {}).some(r => (r.rest || []).length || (r.out || []).length);
+// 型・いまの組み合わせに抜け番が1つでもあるか。どちらもまだなければ、人数が卓で割り切れないか
+function hasNuke() {
+  const rs = [KATA && KATA.rounds, KUMI && KUMI.rounds].filter(x => x && Object.keys(x).length);
+  return rs.length ? rs.some(restIn) : CFG.players % CFG.mode !== 0;
+}
 // 種の文字列と、くじ値の表（枠・No.・名前・くじ値の先頭12桁。全部の桁は行に指を置くか、マウスを重ねると出る）
 function lotteryHtml(seed, tag) {
   let h = '<div class="card"><div>種の文字列 ' + tag + '</div><div class="mono">' + esc(seed) + '</div></div>';
@@ -346,7 +354,7 @@ function renderResult() {
   }
   // 対戦表（いまの組み合わせ。当日に組み直したら、組み直した後の表）。トップページの「半荘ごとの組み合わせ」と同じ表なので、たたんで出す
   h += '<details class="card"><summary>半荘ごとの組み合わせ（予選' + Object.keys(now).length + '半荘・トップページと同じ）</summary>' + roundTables(now, dn) + '</details>';
-  h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
+  if (restOrOut(now)) h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
   h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">トップページ</a>で見られます。</p>';
   box.innerHTML = h;
   lot.innerHTML = lotteryHtml(seedOf(N4), '<span class="tag real">本番</span>');
@@ -355,7 +363,7 @@ function renderResult() {
 function renderFlow() {
   const kd = mdText(KATA ? KATA.date : CFG.kuji), done = '<span class="tag real">済み</span>';
   const rows = [
-    [KATA ? madeText(KATA.made) : '抽せんの前', '型（卓と抜け番の並び）と出席者一覧を、このページに出して固定する' + (KATA ? done : '')],
+    [KATA ? madeText(KATA.made) : '抽せんの前', '型（卓' + (hasNuke() ? 'と抜け番' : '') + 'の並び）と出席者一覧を、このページに出して固定する' + (KATA ? done : '')],
     [kd + ' 夕方', 'ナンバーズ4の抽せん' + (N4 ? '（当せん番号 ' + esc(N4) + '）' + done : '')],
     [kd + ' 夜', '当せん番号で計算して、組み合わせを発表する（トップページとこのページ）' + (N4 ? done : '')],
     [mdText(CFG.date), '組み合わせのとおりに打つ']
@@ -365,11 +373,11 @@ function renderFlow() {
     'くじの種は、ナンバーズ4の当せん番号です。主催を含めて、抽せんまで誰にも分かりません。',
     '計算の手順・型・出席者一覧は、抽せんの前に公開して固定します。抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時から後は、型を作り直せません。',
     '抽せんの後に、くじを引き直すことはできません。同じ番号からは、いつ誰が計算しても同じ結果です。',
-    '誰がどの半荘で抜け番になるかも、くじで決まります。',
+    hasNuke() ? '誰がどの半荘で抜け番になるかも、くじで決まります。' : '',
     '抽せんの前に来られなくなった人は、くじに入れません。型の後ろの枠に入り、どの半荘もお休みです。',
     '当日に来られない人や、増えた人が出たときは、その半荘から先を組み直します。くじで決まった枠と No. の組は変えません。'
   ];
-  $('rules').innerHTML = rules.map(t => '<li>' + esc(t) + '</li>').join('');
+  $('rules').innerHTML = rules.filter(Boolean).map(t => '<li>' + esc(t) + '</li>').join('');
 }
 // ---- 5章: 型 ----
 function renderKata() {
@@ -384,21 +392,21 @@ function renderKata() {
   const total = Object.values(rest).reduce((s, x) => s + x, 0), cnt = {};
   Object.values(rest).forEach(x => { cnt[x] = (cnt[x] || 0) + 1; });
   const maxMeet = Math.max(0, ...Object.values(meet));
-  let h = '<p>卓と抜け番は、先にこの「型」で決めてあります。くじで決めるのは、<b>誰がどの枠に入るか</b>だけです。</p><ul>';
+  let h = '<p>卓' + (total ? 'と抜け番' : '') + 'は、先にこの「型」で決めてあります。くじで決めるのは、<b>誰がどの枠に入るか</b>だけです。</p><ul>';
   const early = String(KATA.made || '') < KATA.date + ' ' + KUJI_CUT;
   h += '<li>型を作った日時: ' + esc(madeText(KATA.made)) + '（' + N + '枠・予選' + ks.length + '半荘・' + M + '麻）。'
     + (early ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前です。' : '<span class="warn">抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より後です。集計係に知らせてください。</span>') + '</li>';
   if (ko.length) h += '<li>' + ko.map(p => esc(dn(p))).join('・') + ' は、抽せんの前に来られなくなりました。くじに入らず、枠' + os.join('・枠') + '（どの半荘もお休み）です。</li>';
-  h += '<li>' + (total ? '抜け番は全部で' + total + '回です。' + Object.keys(cnt).sort((a, b) => b - a).map(x => (Number(x) ? x + '回の枠が' : '抜け番なしの枠が') + cnt[x]).join('、') + 'です。' : '抜け番はありません。') + '</li>';
+  if (total) h += '<li>抜け番は全部で' + total + '回です。' + Object.keys(cnt).sort((a, b) => b - a).map(x => (Number(x) ? x + '回の枠が' : '抜け番なしの枠が') + cnt[x]).join('、') + 'です。</li>';
   h += '<li>同じ相手と当たる回数は、最多' + maxMeet + '回です（できるだけ、ならしてあります）。</li>';
   h += '<li>' + (bakime() ? '席は、半荘ごとに牌を引いて決めます。型の並び順は、席ではありません。' : '東が起家です。風の回数も、枠ごとにできるだけそろえてあります。') + '</li></ul>';
   h += roundTables(kr, w => '枠' + w);
   // 枠別（半荘ごとの卓。抜け番は「抜」）
-  h += '<h3>枠別（半荘ごとの卓' + (bakime() ? '' : 'と風') + '）</h3><div class="tw"><table class="mtx"><thead><tr><th>枠</th>' + ks.map(k => '<th>' + k + '</th>').join('') + '<th>抜け番</th></tr></thead><tbody>';
+  h += '<h3>枠別（半荘ごとの卓' + (bakime() ? '' : 'と風') + '）</h3><div class="tw"><table class="mtx"><thead><tr><th>枠</th>' + ks.map(k => '<th>' + k + '</th>').join('') + (total ? '<th>抜け番</th>' : '') + '</tr></thead><tbody>';
   for (let w = 1; w <= N; w++) {
-    h += '<tr><td>枠' + w + '</td>' + ks.map(k => { const t = (kr[k].tables || []).find(x => x.p.includes(w)); return '<td>' + (t ? t.no + (bakime() ? '' : WINDS[t.p.indexOf(w)]) : (kr[k].rest || []).includes(w) ? '抜' : '') + '</td>'; }).join('') + '<td>' + rest[w] + '回</td></tr>';
+    h += '<tr><td>枠' + w + '</td>' + ks.map(k => { const t = (kr[k].tables || []).find(x => x.p.includes(w)); return '<td>' + (t ? t.no + (bakime() ? '' : WINDS[t.p.indexOf(w)]) : (kr[k].rest || []).includes(w) ? '抜' : '') + '</td>'; }).join('') + (total ? '<td>' + rest[w] + '回</td>' : '') + '</tr>';
   }
-  h += '</tbody></table></div><p class="small">表の上の数字は半荘、中の数字は卓の番号です' + (bakime() ? '' : '（東・南・西' + (M === 4 ? '・北' : '') + 'は席の風）') + '。「抜」は抜け番です。</p>';
+  h += '</tbody></table></div><p class="small">表の上の数字は半荘、中の数字は卓の番号です' + (bakime() ? '' : '（東・南・西' + (M === 4 ? '・北' : '') + 'は席の風）') + '。' + (total ? '「抜」は抜け番です。' : '') + '</p>';
   box.innerHTML = h;
 }
 // ---- 6章・7章 ----
@@ -417,9 +425,9 @@ function renderHow() {
     '種の文字列を作ります。<br><span class="mono">' + esc(kai + '|' + d) + '|N4=当せん番号</span><br>回の名前・抽せんの日・ナンバーズ4の当せん番号です。当せん番号は、先頭の0も残して4桁で書きます（例 <span class="mono">' + esc(ex) + '</span>）。',
     'P1〜P' + N + (ko.length ? '（' + esc(ko.join('・')) + ' を除く）' : ' ') + 'それぞれ、種の後ろに「|P番号」を付けて SHA-256 で計算します（例 <span class="mono">' + esc(ex) + '|P7</span>）。出てきた64桁の英数字が、その人のくじ値です。',
     'くじ値の小さい順に、枠1・枠2…枠' + NP + ' を割り当てます（0〜9、a〜f の順で比べます）。' + (ko.length ? esc(ko.join('・')) + ' は、その後ろの枠' + os.join('・枠') + ' です。' : ''),
-    '5章の型のとおりに、卓' + (bakime() ? '' : 'と席') + 'と抜け番が決まります。'
+    '5章の型のとおりに、卓' + (bakime() ? '' : 'と席') + (hasNuke() ? 'と抜け番' : '') + 'が決まります。'
   ].map(t => '<li>' + t + '</li>').join('');
-  $('calclead').textContent = KATA ? (N4 ? 'ナンバーズ4の当せん番号（' + N4 + '）を入れて「計算する」を押すと、1章の抜け番・8章のくじ値・トップページの組み合わせと同じになることを確かめられます。' : '好きな4桁の数字を入れて「計算する」を押すと、くじの決まり方を試せます（本番の結果ではありません）。') : '型ができると、ここで計算を試せます。';
+  $('calclead').textContent = KATA ? (N4 ? 'ナンバーズ4の当せん番号（' + N4 + '）を入れて「計算する」を押すと、' + (restOrOut((KUMI && KUMI.rounds) || {}) ? '1章の抜け番・' : '') + '8章のくじ値・トップページの組み合わせと同じになることを確かめられます。' : '好きな4桁の数字を入れて「計算する」を押すと、くじの決まり方を試せます（本番の結果ではありません）。') : '型ができると、ここで計算を試せます。';
 }
 // ---- 4章: 検算 ----
 function renderCalc() {
@@ -427,7 +435,7 @@ function renderCalc() {
   if (!CALC || !KATA) { out.innerHTML = ''; return; }
   const real = N4 && CALC === N4, seed = seedOf(CALC), rounds = roundsOf(draw(seed));
   out.innerHTML = lotteryHtml(seed, real ? '<span class="tag real">本番と同じ番号</span>' : '<span class="tag try">試し（本番の結果ではありません）</span>')
-    + '<h3>抜け番</h3>' + restTable(rounds, peopleOf(rounds), dnf) + roundTables(rounds, dn);
+    + (restOrOut(rounds) ? '<h3>抜け番</h3>' + restTable(rounds, peopleOf(rounds), dnf) : '') + roundTables(rounds, dn);
 }
 $('calc').addEventListener('submit', ev => {
   ev.preventDefault();

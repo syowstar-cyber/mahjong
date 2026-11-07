@@ -223,6 +223,8 @@ function checkCfg(c) {
   return e;
 }
 const rounds = () => (KUMI && KUMI.rounds) ? Object.keys(KUMI.rounds).filter(k => /^\d+$/.test(k)).sort((a, b) => a - b) : [];
+// 抜け番が1つでもあるか（組み合わせ表。くじの前で表が空なら、人数が卓で割り切れないか）。ない回は抜け番の言葉を出さない（2026-11-07 主催）
+const hasNuke = () => { const ks = rounds(); return ks.length ? ks.some(k => (KUMI.rounds[k].rest || []).length) : CFG.players % MODE !== 0; };
 function players() {
   const s = new Set(Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)));
   rounds().forEach(k => { const r = KUMI.rounds[k]; (r.tables || []).forEach(t => (t.p || []).forEach(p => s.add(p))); (r.rest || []).forEach(p => s.add(p)); (r.out || []).forEach(p => s.add(p)); });
@@ -627,7 +629,7 @@ function renderKuji() {
   const n4 = KUMI && KUMI.kuji && /^\d{4}$/.test(KUMI.kuji.n4 || '') ? KUMI.kuji.n4 : '';
   box.appendChild(document.createTextNode(n4
     ? '組み合わせは、' + dayText(d) + 'のナンバーズ4の当せん番号「' + n4 + '」で、くじで決めました。'
-    : '卓と抜け番の並び（型）は決めてあります。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'));
+    : '卓' + (hasNuke() ? 'と抜け番' : '') + 'の並び（型）は決めてあります。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'));
   const a = document.createElement('a'); a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : ''); a.textContent = '対戦表のページ（くじの決まり・型・検算）';
   box.appendChild(document.createElement('br')); box.appendChild(a);
 }

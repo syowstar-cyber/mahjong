@@ -246,7 +246,7 @@ details.ch[open]>summary{margin-bottom:12px}
 
 <h3>予選と決勝</h3>
 <ul>
-<li>予選は、組み合わせ表のとおりに打ちます。抜け番の半荘は0ポイントです。</li>
+<li>予選は、組み合わせ表のとおりに打ちます。<span id="q-nuke">抜け番の半荘は0ポイントです。</span></li>
 <li id="q-final">予選の合計ポイントの上位が、決勝に進みます。</li>
 <li>予選の合計が同点なら、年齢が上の人が上位です。決勝に進む人も、これで決めます。</li>
 <li>同点の人の生年月日は、運営が聞いて幹部用ページに入れます。生年月日は、どのページにも出ません。</li>
@@ -708,10 +708,19 @@ function shell(c) {
 }
 const SH = G ? readShell() : null;
 if (SH) shell(SH);
+// 抜け番が1つでもあるか（組み合わせ表と型。どちらもまだなければ、人数が卓で割り切れないか）。ない回は「抜け番の半荘は0ポイント」を消す（2026-11-07 主催）。
+// 隠すだけだと、ルールの質問が隠れた文で見つけてしまうので、消す
+async function hasNuke(c) {
+  const get = f => fetch(f + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [k, kt] = await Promise.all([get('kumiawase.json'), get('kata.json')]);
+  const rs = [k && k.kai === c.kai && k.rounds, kt && kt.kai === c.kai && kt.date === c.kuji && kt.rounds].filter(x => x && typeof x === 'object' && Object.keys(x).length);
+  return rs.length ? rs.some(x => Object.values(x).some(r => r && Array.isArray(r.rest) && r.rest.length)) : c.players % c.mode !== 0;
+}
 fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
   if (!c) return;
   shell(c);
   if (G) saveShell(c);
+  hasNuke(c).then(v => { const s = $('q-nuke'); if (!v && s) s.remove(); });
   const n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
   const junni = n > 0 && c.final.junni === 1;
   if (Number.isInteger(c.prelim)) $('q-flow').textContent = '予選' + c.prelim + '半荘' + (n ? ' → 上位' + n + '人で決勝' + c.final.hanchan + '半荘' + (junni ? '。ほかの人は順位決定戦1半荘' : '') : '（決勝なし）');
