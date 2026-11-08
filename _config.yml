@@ -1,4 +1,4 @@
-# GitHub Pages（Jekyll）の設定。公開サイトに出すのは kai/ のページと、ページが読む JSON・画像・sw.js だけ。
+# GitHub Pages（Jekyll）の設定。公開サイトに出すのは kai/ と league/ のページと、ページが読む JSON・画像・sw.js だけ。
 # 説明の MD・受け口のコード・道具は出さない（GitHub のリポでは読める）。検索エンジンよけは、各ページの noindex で行う。
 exclude:
   - README.md
@@ -6,3 +6,6 @@ exclude:
   - kai/README.md
   - kai/gas
   - kai/tools
+  - league/README.md
+  - league/gas
+  - league/tools

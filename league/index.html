@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#22305a">
+<title>Haluリーグ スコアボード</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#22305a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#eef1f7;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020;--other:#c9c9c3;--grid:#e6e6e1;--zero:#a9a9a3}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:28px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+h3{font-size:1rem;margin:0 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0}
+label{display:block;font-weight:700;margin:0 0 4px}
+select{width:100%;font-size:1.1rem;padding:10px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
+button{font-size:1rem;padding:8px 12px;border-radius:8px;font-weight:700;cursor:pointer;background:var(--card2);color:var(--fg);border:1px solid var(--line)}
+.small{color:var(--muted);font-size:.9rem}
+/* ページの切り替え（スコアボード・点数入力・調整表） */
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+/* 読み込みが終わるまでは、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
+#main[hidden]~.pnav{display:none}
+.hint{background:#faf3e3;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem;margin:10px 0}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{background:#ececE8;font-weight:700}
+td.l,th.l{text-align:left}
+tr:nth-child(even) td{background:var(--card2)}
+.neg{color:var(--ng)}
+/* ランキング（順位・名前・ポイント・差・試合数） */
+#rank td.pt{font-size:1.12rem;font-weight:700}
+#rank td.rk{font-weight:700;width:3em;text-align:center}
+#rank tr.lead td{background:#fbf6e6}
+/* スマホ幅では5列を画面に収める（名前は折り返し、pt の字を省く） */
+@media (max-width:520px){
+  #rank th,#rank td{padding:8px 5px}
+  #rank td.nm{white-space:normal;overflow-wrap:anywhere;min-width:4.5em}
+  #rank td.pt{font-size:1rem}
+  #rank .u{display:none}
+  .game td{padding:8px 6px}
+  .game td.l{white-space:normal;overflow-wrap:anywhere}
+}
+/* 自分の行（自分の名前で選んだ人） */
+tr.me td{background:var(--soft) !important}
+tr.me td.nm{box-shadow:inset 4px 0 0 var(--accent)}
+/* 成績表は横に動かしても名前の列を左に残す */
+#stats .nm{position:sticky;left:0;z-index:1;background:var(--card);box-shadow:inset -1px 0 0 var(--line)}
+#stats th.nm{background:#ececE8;z-index:2}
+#stats tr:nth-child(even) td.nm{background:var(--card2)}
+#stats tr.me td.nm{box-shadow:inset 4px 0 0 var(--accent),inset -1px 0 0 var(--line)}
+/* 個人タイトル（最高スコア・4着回避率・最多トップ） */
+.titles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.tcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tcard h3{border-bottom:2px solid var(--accent);padding-bottom:4px}
+.tcard .td{font-size:.85rem;color:var(--muted);margin:2px 0 4px}
+.tcard ol{list-style:none;margin:0;padding:0}
+.tcard li{display:grid;grid-template-columns:1.8em minmax(0,1fr) auto;gap:6px;padding:4px 0;border-bottom:1px solid var(--grid)}
+.tcard li:last-child{border-bottom:0}
+.tcard li .r{font-weight:700;text-align:center}
+.tcard li .n{overflow-wrap:anywhere}
+.tcard li .v{font-weight:700;font-variant-numeric:tabular-nums}
+.tcard li.me{background:var(--soft);border-radius:4px}
+.tcard .more{margin-top:6px;font-size:.85rem;padding:4px 8px}
+/* ポイントの推移 */
+.chart{position:relative;padding:10px 6px 6px}
+.chart:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.chart svg{display:block;overflow:visible}
+.chart text{font-size:12px;fill:var(--muted)}
+.chart .lab{fill:var(--fg);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.9rem;color:var(--muted);margin:2px 8px 6px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid var(--other);vertical-align:middle;margin-right:6px}
+.legend i.me{border-top:3px solid var(--accent)}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:6px 10px;font-size:.85rem;line-height:1.5;min-width:150px;z-index:5}
+.tip .h{color:var(--muted);margin-bottom:2px}
+.tip .row{display:grid;grid-template-columns:16px auto minmax(0,1fr);gap:6px;align-items:center}
+.tip .row i{display:block;height:0;border-top:2px solid var(--other)}
+.tip .row.me i{border-top:3px solid var(--accent)}
+.tip .row b{font-variant-numeric:tabular-nums;text-align:right}
+.tip .row span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 次の対戦カード・対局の記録 */
+.round{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:8px 0}
+.round .rh{font-weight:700}
+.round .tb{display:grid;grid-template-columns:3.2em minmax(0,1fr) auto;gap:8px;padding:3px 0;border-top:1px solid var(--grid)}
+.round .tb .who{overflow-wrap:anywhere}
+.round .tb.done{color:var(--muted)}
+.round .tb .st{font-size:.85rem;color:var(--muted)}
+.round .tb.mine .who{font-weight:700}
+.game{margin:10px 0}
+.game .gh{font-size:.9rem;color:var(--muted);margin-bottom:2px}
+.game td.r{width:2.6em;text-align:center;font-weight:700}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
+summary{cursor:pointer;font-weight:700}
+#pairs td,#pairs th{padding:6px 7px;text-align:center}
+#pairs td.l,#pairs th.l{text-align:left}
+#pairs td.full{font-weight:700}
+#pairs td.self{color:var(--line)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 Haluリーグ</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">スコアボード</a><a href="score/">点数入力</a><a href="chousei/">調整表</a><a href="rule/">ルール</a></nav>
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <div class="card">
+    <label for="me">自分の名前</label>
+    <select id="me"></select>
+    <div class="small" id="mynext"></div>
+  </div>
+
+  <h2>ランキング</h2>
+  <div class="tw"><table id="rank"><thead><tr><th>順位</th><th class="l">名前</th><th>ポイント</th><th>差</th><th>試合数</th></tr></thead><tbody></tbody></table></div>
+  <div class="tools"><button type="button" id="reload">最新に更新</button><span class="small" id="updated"></span></div>
+
+  <h2>個人タイトル</h2>
+  <div class="titles">
+    <section class="tcard"><h3>最高スコア</h3><div class="td">1半荘で持っていた点棒の最高</div><ol id="t-best"></ol></section>
+    <section class="tcard"><h3>4着回避率</h3><div class="td">4着にならなかった割合</div><ol id="t-avoid"></ol></section>
+    <section class="tcard"><h3>最多トップ</h3><div class="td">1着になった回数</div><ol id="t-top"></ol></section>
+  </div>
+  <p class="small">同じ値は同じ順位です。</p>
+
+  <h2>ポイントの推移</h2>
+  <div class="card chart" id="chartbox" tabindex="0" aria-describedby="charthow">
+    <div class="legend" id="legend"></div>
+    <div id="chart"></div>
+    <div class="tip" id="tip" hidden></div>
+  </div>
+  <p class="small" id="charthow">横は試合数（12試合でほぼ1か月）、縦は合計ポイントです。グラフを押すか、左右のキーで、その試合数のときの全員のポイントが出ます。</p>
+  <details><summary>表で見る（4試合ごとの合計ポイント）</summary><div class="tw"><table id="trend"></table></div></details>
+
+  <h2>成績表</h2>
+  <div class="tw"><table id="stats"></table></div>
+  <p class="small">平着＝平均着順。トップ率・連対率（2着以内）・ラス回避率（4着以外）は、試合数で割った値です。同点の順位は、同じ順位に数えます。</p>
+
+  <h2 id="nexth">次の対戦カード</h2>
+  <p class="small" id="nextlead"></p>
+  <p class="small" id="nexthow">対戦カードは、回戦の順に打つのが基本です。メンバーがそろわないときは、そろうカードを先に打ってかまいません。どの順で打っても、終わるとどの2人も同じ回数になります。</p>
+  <div id="next"></div>
+
+  <h2>対局の記録</h2>
+  <div id="log"></div>
+  <button type="button" id="logmore" hidden>すべて見る</button>
+
+  <details id="pairbox"><summary id="pairsum">対戦の回数</summary><p class="small" id="pairlead"></p><div class="tw"><table id="pairs"></table></div></details>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">スコアボード</a><a href="score/">点数入力</a><a href="chousei/">調整表</a><a href="rule/">ルール</a></nav>
+</div>
+
+<script>
+// Haluリーグのスコアボード。シーズンごとに変わるものは league/s/<シーズン>/ の season.json（設定）と cards.json（対戦カード）、
+// 点数と名前は受け口（season.json の api）にだけ置く。どれも読み込みのたびにキャッシュを使わず読み直す
+const $ = id => document.getElementById(id);
+const SEASON_RE = /^[0-9a-z-]{1,24}$/;
+// league/ から見た置き場。試験の写しだけが window.LG_BASE と window.LG_API で差し替える
+const BASE = window.LG_BASE !== undefined ? window.LG_BASE : './';
+let SID = new URLSearchParams(location.search).get('s') || '';
+// ページの切り替えにもシーズンを付ける（URL に ?s= があるときだけ）
+if (SEASON_RE.test(SID)) document.querySelectorAll('.pnav a').forEach(a => a.setAttribute('href', a.getAttribute('href') + '?s=' + encodeURIComponent(SID)));
+let CFG = null, CARDS = null, DATA = null, ROSTER = {}, API = '';
+let MODE = 4, OKA = 0, PER = 0;   // PER＝1人の半荘数（シーズン）
+let LIST = [], GAMES = [];
+const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
+const pnum = p => Number(String(p).slice(1));
+const fmt = n => n.toLocaleString('ja-JP');
+// ポイントは0.1単位の整数で持つ。マイナスは ▲（プロのリーグの成績表と同じ書き方）
+const ptxt = n => (n > 0 ? '+' : n < 0 ? '▲' : '') + (Math.abs(n) / 10).toFixed(1);
+const nm = p => (p && ROSTER[p]) || '';
+const dn = p => nm(p) || p || '';
+const dtxt = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); if (!m) return ''; const w = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay(); return Number(m[2]) + '/' + Number(m[3]) + '（' + WEEK[w] + '）'; };
+function setup(t) { $('setup').textContent = t; $('setup').hidden = !t; }
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
+
+// ---- 設定 ----
+function checkCfg(c) {
+  const e = [];
+  if (!c || typeof c !== 'object') return ['中身が読めません'];
+  if (!SEASON_RE.test(String(c.season || ''))) e.push('season は英小文字・数字・- で24字まで');
+  if (c.mode !== 3 && c.mode !== 4) e.push('mode は 3 か 4');
+  if (!Number.isInteger(c.players) || c.players < c.mode || c.players > 40) e.push('players は mode〜40');
+  if (!Array.isArray(c.tables) || !c.tables.length) e.push('tables は卓の番号の並び');
+  if (!Number.isInteger(c.rounds) || c.rounds < 1 || c.rounds > 99) e.push('rounds は 1〜99');
+  if (!Number.isInteger(c.start) || c.start <= 0 || c.start % 100) e.push('start は100点単位');
+  if (!Number.isInteger(c.return) || c.return < c.start || c.return % 100) e.push('return は100点単位で start 以上');
+  if (!Array.isArray(c.uma) || c.uma.length !== c.mode || Math.abs(c.uma.reduce((a, b) => a + b, 0)) > 1e-9) e.push('uma は mode 個の数で、合計0');
+  return e;
+}
+function applyCfg(c, k) {
+  CFG = c; CARDS = k;
+  MODE = c.mode;
+  OKA = (c.return - c.start) * MODE / 100;   // オカ（返し−持ち点）×人数。0.1ポイント単位
+  PER = c.rounds * c.tables.length * MODE / c.players;
+  API = String(window.LG_API || c.api || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
+    document.documentElement.style.setProperty('--accent', c.color);
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', c.color);
+  }
+  document.title = c.title + ' スコアボード';
+  $('ttl').textContent = '🀄 ' + c.title;
+}
+
+// ---- ポイントの計算（点数入力ページと同じ。どちらかを直したら、もう片方も直す） ----
+// （点棒−返し）÷1,000＋順位点。1位にはオカを足す。丸めない（100点＝0.1ポイント）。
+// 同点は、その人たちで順位点（オカ込み）を分ける。0.1で割り切れない分は、送った並び（対戦カードの並び）で前の人が多く取る
+function calcTable(raws) {
+  if (!Array.isArray(raws) || raws.length !== MODE || raws.some(v => !Number.isInteger(v))) return null;
+  const bonus = CFG.uma.map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
+  const order = raws.map((raw, i) => ({ i, raw })).sort((a, b) => b.raw - a.raw || a.i - b.i);
+  const res = raws.map(() => null);
+  for (let k = 0; k < MODE;) {
+    let j = k; while (j + 1 < MODE && order[j + 1].raw === order[k].raw) j++;
+    const n = j - k + 1, sum = bonus.slice(k, j + 1).reduce((a, b) => a + b, 0);
+    const base = Math.floor(sum / n), rem = sum - base * n;
+    for (let m = k; m <= j; m++) res[order[m].i] = { rank: k + 1, tie: n > 1, pts: (order[m].raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+    k = j + 1;
+  }
+  return res;
+}
+
+// ---- 対局と成績 ----
+const cardOf = (r, t) => ((CARDS.rounds[String(r)] || {}).tables || []).find(x => String(x.no) === String(t)) || null;
+// 受け口の点数を、対戦カードの順に拾う。並べるのは対局の日→送った時刻→回戦→卓の順
+function collectGames() {
+  const out = [], rounds = (DATA && DATA.rounds) || {};
+  Object.keys(rounds).forEach(r => Object.keys(rounds[r] || {}).forEach(t => {
+    const rec = rounds[r][t];
+    if (!rec || !Array.isArray(rec.p) || !Array.isArray(rec.raw) || rec.p.length !== MODE) return;
+    const res = calcTable(rec.raw);
+    if (!res) return;
+    const card = cardOf(r, t);
+    const odd = !card || card.p.slice().sort().join() !== rec.p.slice().sort().join();   // 顔ぶれが対戦カードと違う
+    out.push({ r: Number(r), t: Number(t), p: rec.p, raw: rec.raw, res, d: rec.d || String(rec.ts || '').slice(0, 10), ts: String(rec.ts || ''), odd });
+  }));
+  out.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0) || (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0) || a.r - b.r || a.t - b.t);
+  return out;
+}
+function everyone() { return Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)); }
+function buildStats(games) {
+  const st = {};
+  const add = p => st[p] || (st[p] = { p, n: 0, total: 0, c: [0, 0, 0, 0], best: null, series: [0] });
+  everyone().forEach(add);
+  games.forEach(g => g.p.forEach((p, i) => {
+    const x = add(p), r = g.res[i];
+    x.n++; x.total += r.pts; x.c[Math.min(r.rank, 4) - 1]++;
+    x.best = x.best === null ? g.raw[i] : Math.max(x.best, g.raw[i]);
+    x.series.push(x.total);
+  }));
+  const list = Object.values(st).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  list.forEach((x, i) => { x.rank = i && list[i - 1].total === x.total ? list[i - 1].rank : i + 1; });
+  return list;
+}
+
+// ---- 自分の名前（この端末に覚える） ----
+const ME_KEY = () => 'halulg:me:' + SID;
+function myName() { try { return localStorage.getItem(ME_KEY()) || ''; } catch (e) { return ''; } }
+function fillMe() {
+  const sel = $('me'), cur = myName();
+  sel.innerHTML = '';
+  sel.appendChild(new Option('（選ぶと、表とグラフの自分のところに色がつきます）', ''));
+  everyone().forEach(p => sel.appendChild(new Option(p + (nm(p) ? ' ' + nm(p) : ''), p)));
+  sel.value = everyone().includes(cur) ? cur : '';
+}
+$('me').addEventListener('change', () => { try { localStorage.setItem(ME_KEY(), $('me').value); } catch (e) {} render(); });
+
+// ---- 表示 ----
+function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); return td; }
+// 単位（pt など）を別の span で足す。スマホ幅では省く
+function unit(td, u) { const s = document.createElement('span'); s.className = 'u'; s.textContent = u; td.appendChild(s); return td; }
+function render() {
+  GAMES = collectGames();
+  LIST = buildStats(GAMES);
+  const me = myName(), total = CFG.rounds * CFG.tables.length;
+  $('sub').textContent = [CFG.from && CFG.to ? CFG.from.replace(/-/g, '/') + '〜' + CFG.to.replace(/-/g, '/') : '', CFG.place ? '会場 ' + CFG.place : '', '対局 ' + GAMES.length + '/' + total + '卓'].filter(Boolean).join('・');
+  $('updated').textContent = !API ? '' : DATA && DATA.updated ? '最終更新 ' + DATA.updated : 'まだ対局の記録がありません';
+  renderRank(me); renderTitles(me); renderChart(); renderStats(me); renderNext(me); renderLog(); renderPairs();
+  const x = LIST.find(y => y.p === me);
+  $('mynext').textContent = x ? dn(me) + '：' + x.rank + '位・' + ptxt(x.total) + 'pt・' + x.n + '/' + PER + '試合（残り' + (PER - x.n) + '）' : '';
+}
+function renderRank(me) {
+  const tb = $('rank').querySelector('tbody'); tb.innerHTML = '';
+  LIST.forEach((x, i) => {
+    const tr = document.createElement('tr');
+    if (x.rank === 1 && x.n) tr.classList.add('lead');
+    if (x.p === me) tr.classList.add('me');
+    cell(tr, String(x.rank), 'rk');
+    cell(tr, dn(x.p), 'l nm');
+    unit(cell(tr, ptxt(x.total), 'pt' + (x.total < 0 ? ' neg' : '')), 'pt');
+    if (i) unit(cell(tr, (Math.abs(LIST[i - 1].total - x.total) / 10).toFixed(1)), 'pt'); else cell(tr, '—');
+    cell(tr, x.n + '/' + PER);
+    tb.appendChild(tr);
+  });
+}
+// 個人タイトルの1枠。items は {p, num, den}（den が 1 なら数そのもの）。大きい順・同じ値は同じ順位
+const TOP_N = 5;
+const SHOWALL = {};
+function board(id, items, show) {
+  const ol = $(id), me = myName(); ol.innerHTML = '';
+  // 割合は分数のまま比べる（1/4 と 2/8 を同じ値にする）
+  const same = (a, b) => a.num * b.den === b.num * a.den;
+  items.sort((a, b) => b.num * a.den - a.num * b.den || pnum(a.p) - pnum(b.p));
+  items.forEach((x, i) => { x.rank = i && same(items[i - 1], x) ? items[i - 1].rank : i + 1; });
+  const lim = SHOWALL[id] ? items.length : TOP_N;
+  items.forEach((x, i) => {
+    if (i >= lim && x.p !== me) return;
+    const li = document.createElement('li'); if (x.p === me) li.className = 'me';
+    [['r', String(x.rank)], ['n', dn(x.p)], ['v', show(x)]].forEach(([c, t]) => { const s = document.createElement('span'); s.className = c; s.textContent = t; li.appendChild(s); });
+    ol.appendChild(li);
+  });
+  if (!items.length) { const li = document.createElement('li'); li.textContent = 'まだ対局がありません'; ol.appendChild(li); }
+  if (items.length > TOP_N) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'more';
+    b.textContent = SHOWALL[id] ? '上位' + TOP_N + '人だけにする' : '全員を見る';
+    b.addEventListener('click', () => { SHOWALL[id] = !SHOWALL[id]; renderTitles(myName()); });
+    ol.appendChild(b);
+  }
+}
+function renderTitles(me) {
+  const pl = LIST.filter(x => x.n);
+  board('t-best', pl.map(x => ({ p: x.p, num: x.best, den: 1 })), x => fmt(x.num) + '点');
+  board('t-avoid', pl.map(x => ({ p: x.p, num: x.n - x.c[3], den: x.n })), x => (x.num / x.den).toFixed(4));
+  board('t-top', pl.map(x => ({ p: x.p, num: x.c[0], den: 1 })), x => x.num + '回');
+}
+function renderStats(me) {
+  const t = $('stats');
+  t.innerHTML = '<thead><tr><th>順位</th><th class="l nm">名前</th><th>試合数</th><th>ポイント</th><th>平着</th><th>1位</th><th>2位</th><th>3位</th><th>4位</th><th>トップ率</th><th>連対率</th><th>ラス回避率</th><th>ベストスコア</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  const r2 = (a, b) => b ? (a / b).toFixed(2) : '—';
+  LIST.forEach(x => {
+    const tr = document.createElement('tr'); if (x.p === me) tr.classList.add('me');
+    cell(tr, String(x.rank)); cell(tr, dn(x.p), 'l nm'); cell(tr, x.n + '/' + PER);
+    cell(tr, ptxt(x.total), x.total < 0 ? 'neg' : '');
+    cell(tr, x.n ? (x.c.reduce((s, v, i) => s + v * (i + 1), 0) / x.n).toFixed(2) : '—');
+    x.c.forEach(v => cell(tr, String(v)));
+    cell(tr, r2(x.c[0], x.n)); cell(tr, r2(x.c[0] + x.c[1], x.n)); cell(tr, r2(x.n - x.c[3], x.n));
+    cell(tr, x.best === null ? '—' : fmt(x.best));
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+
+// ---- ポイントの推移（線のグラフ。自分の線だけ色、ほかは灰色。押すと全員の値） ----
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); Object.entries(attrs || {}).forEach(([k, v]) => e.setAttribute(k, v)); if (parent) parent.appendChild(e); return e; }
+let CH = null;   // いまのグラフの寸法（押したときの読み取り用）
+function renderChart() {
+  const box = $('chart'), me = myName(); box.innerHTML = ''; $('tip').hidden = true;
+  const played = LIST.filter(x => x.n);
+  const lg = $('legend'); lg.innerHTML = '';
+  const key = (cls, t) => { const s = document.createElement('span'); const i = document.createElement('i'); if (cls) i.className = cls; s.appendChild(i); s.appendChild(document.createTextNode(t)); lg.appendChild(s); };
+  const mx = played.find(x => x.p === me);
+  if (mx) { key('me', dn(me) + '（自分）'); key('', 'ほかの人'); } else key('', '全員（自分の名前を選ぶと、その線に色がつきます）');
+  if (!played.length) { box.innerHTML = '<p class="small" style="margin:8px">まだ対局がありません。</p>'; CH = null; return; }
+  const W = Math.max(300, box.clientWidth || 600), H = 250, m = { l: 52, r: mx ? 86 : 16, t: 10, b: 34 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  let lo = 0, hi = 0;
+  played.forEach(x => x.series.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); }));
+  const step = [50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000].find(s => Math.max(hi - lo, 200) / s <= 5) || 20000;
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step; if (lo === hi) hi = lo + step;
+  const X = n => m.l + pw * n / PER, Y = v => m.t + ph * (hi - v) / (hi - lo);
+  const svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, role: 'img', 'aria-label': 'ポイントの推移。横は試合数、縦は合計ポイント' }, box);
+  for (let v = lo; v <= hi; v += step) {
+    sv('line', { x1: m.l, x2: m.l + pw, y1: Y(v), y2: Y(v), stroke: v === 0 ? 'var(--zero)' : 'var(--grid)', 'stroke-width': 1 }, svg);
+    sv('text', { x: m.l - 6, y: Y(v) + 4, 'text-anchor': 'end' }, svg).textContent = v === 0 ? '0' : ptxt(v);
+  }
+  for (let n = 0; n <= PER; n += 12) sv('text', { x: X(n), y: m.t + ph + 16, 'text-anchor': 'middle' }, svg).textContent = String(n);
+  sv('text', { x: m.l + pw, y: m.t + ph + 30, 'text-anchor': 'end' }, svg).textContent = '試合数';
+  const path = (x, color, w) => sv('polyline', { points: x.series.map((v, n) => X(n) + ',' + Y(v)).join(' '), fill: 'none', stroke: color, 'stroke-width': w, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+  played.filter(x => x !== mx).forEach(x => path(x, 'var(--other)', 2));
+  const cross = sv('line', { y1: m.t, y2: m.t + ph, stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' }, svg);
+  if (mx) {
+    path(mx, 'var(--accent)', 3);
+    const n = mx.series.length - 1, v = mx.series[n];
+    sv('circle', { cx: X(n), cy: Y(v), r: 5, fill: 'var(--accent)', stroke: 'var(--card)', 'stroke-width': 2 }, svg);
+    const name = dn(me), short = name.length > 6 ? name.slice(0, 6) + '…' : name;
+    sv('text', { x: X(n) + 9, y: Y(v) - 3, class: 'lab' }, svg).textContent = short;
+    sv('text', { x: X(n) + 9, y: Y(v) + 12, class: 'lab' }, svg).textContent = ptxt(v);
+  }
+  CH = { X, Y, m, pw, ph, W, cross, maxN: Math.max(...played.map(x => x.series.length - 1)), at: null };
+}
+// 試合数 n のときの全員の値（打った人だけ）を、値の大きい順に出す
+function showTip(n) {
+  if (!CH) return;
+  n = Math.max(0, Math.min(CH.maxN, n)); CH.at = n;
+  CH.cross.setAttribute('x1', CH.X(n)); CH.cross.setAttribute('x2', CH.X(n)); CH.cross.setAttribute('visibility', 'visible');
+  const me = myName(), tip = $('tip'); tip.innerHTML = '';
+  const h = document.createElement('div'); h.className = 'h'; h.textContent = n + '試合め'; tip.appendChild(h);
+  LIST.filter(x => x.series.length > n && x.n).map(x => ({ p: x.p, v: x.series[n] })).sort((a, b) => b.v - a.v || pnum(a.p) - pnum(b.p)).forEach(x => {
+    const row = document.createElement('div'); row.className = 'row' + (x.p === me ? ' me' : '');
+    const i = document.createElement('i'), b = document.createElement('b'), s = document.createElement('span');
+    b.textContent = ptxt(x.v); s.textContent = dn(x.p);
+    row.append(i, b, s); tip.appendChild(row);
+  });
+  tip.hidden = false;
+  const bw = $('chartbox').clientWidth, tw = tip.offsetWidth, x = CH.X(n) + 6;
+  tip.style.left = (x + 14 + tw > bw ? Math.max(4, x - tw - 8) : x + 14) + 'px';
+  tip.style.top = '44px';
+}
+function hideTip() { if (!CH) return; CH.cross.setAttribute('visibility', 'hidden'); $('tip').hidden = true; CH.at = null; }
+$('chart').addEventListener('pointermove', e => {
+  if (!CH) return;
+  const r = $('chart').querySelector('svg').getBoundingClientRect(), px = (e.clientX - r.left) * CH.W / r.width;
+  if (px < CH.m.l - 10 || px > CH.m.l + CH.pw + 10) { hideTip(); return; }
+  showTip(Math.round((px - CH.m.l) / CH.pw * PER));
+});
+$('chart').addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hideTip(); });
+$('chartbox').addEventListener('keydown', e => {
+  if (!CH || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  e.preventDefault();
+  showTip(CH.at === null ? CH.maxN : CH.at + (e.key === 'ArrowLeft' ? -1 : 1));
+});
+$('chartbox').addEventListener('blur', hideTip);
+let RESIZE = 0;
+addEventListener('resize', () => { clearTimeout(RESIZE); RESIZE = setTimeout(() => { if (CFG) renderChart(); }, 150); });
+// 表で見る（グラフと同じ値。4試合ごとの合計）
+function renderTrend() {
+  const t = $('trend'), cols = []; for (let n = 4; n <= PER; n += 4) cols.push(n);
+  t.innerHTML = '<thead><tr><th class="l">名前</th>' + cols.map(n => '<th>' + n + '</th>').join('') + '</tr></thead>';
+  const tb = document.createElement('tbody');
+  LIST.forEach(x => { const tr = document.createElement('tr'); cell(tr, dn(x.p), 'l'); cols.forEach(n => cell(tr, x.series.length > n ? ptxt(x.series[n]) : '', x.series[n] < 0 ? 'neg' : '')); tb.appendChild(tr); });
+  t.appendChild(tb);
+}
+
+// ---- 次の対戦カード（まだ打っていない卓を、回戦の順に3回戦ぶん） ----
+function renderNext(me) {
+  const done = new Set(GAMES.map(g => g.r + '-' + g.t));
+  const rounds = Object.keys(CARDS.rounds).map(Number).sort((a, b) => a - b);
+  const left = rounds.filter(r => CARDS.rounds[r].tables.some(tb => !done.has(r + '-' + tb.no)));
+  const box = $('next'); box.innerHTML = '';
+  const total = CFG.rounds * CFG.tables.length;
+  $('nextlead').textContent = left.length ? '全' + total + '卓のうち、残り' + (total - done.size) + '卓です。' : '全' + total + '卓が終わりました。';
+  $('nexthow').hidden = !left.length;
+  left.slice(0, 3).forEach(r => {
+    const rd = CARDS.rounds[r], div = document.createElement('div'); div.className = 'round';
+    const h = document.createElement('div'); h.className = 'rh'; h.textContent = '第' + r + '回戦'; div.appendChild(h);
+    rd.tables.forEach(tb => {
+      const row = document.createElement('div'), d = done.has(r + '-' + tb.no);
+      row.className = 'tb' + (d ? ' done' : '') + (tb.p.includes(me) ? ' mine' : '');
+      const a = document.createElement('span'); a.textContent = tb.no + '卓';
+      const w = document.createElement('span'); w.className = 'who'; w.textContent = tb.p.map(dn).join('・');
+      const s = document.createElement('span'); s.className = 'st'; s.textContent = d ? '済' : '';
+      row.append(a, w, s); div.appendChild(row);
+    });
+    if (rd.rest && rd.rest.length) {
+      const row = document.createElement('div'); row.className = 'tb' + (rd.rest.includes(me) ? ' mine' : '');
+      const a = document.createElement('span'); a.textContent = '休み';
+      const w = document.createElement('span'); w.className = 'who'; w.textContent = rd.rest.map(dn).join('・');
+      row.append(a, w, document.createElement('span')); div.appendChild(row);
+    }
+    box.appendChild(div);
+  });
+  // 自分の次のカード
+  if (me) {
+    const mine = left.map(r => ({ r, tb: CARDS.rounds[r].tables.find(tb => tb.p.includes(me) && !done.has(r + '-' + tb.no)) })).find(x => x.tb);
+    if (mine) { const p = document.createElement('p'); p.className = 'small'; p.textContent = dn(me) + 'の次のカード：第' + mine.r + '回戦 ' + mine.tb.no + '卓（' + mine.tb.p.filter(q => q !== me).map(dn).join('・') + '）'; box.appendChild(p); }
+  }
+}
+
+// ---- 対局の記録（新しい順） ----
+let LOG_ALL = false;
+function renderLog() {
+  const box = $('log'); box.innerHTML = '';
+  const list = GAMES.slice().reverse(), lim = LOG_ALL ? list.length : 6;
+  if (!list.length) box.innerHTML = '<p class="small">まだ対局がありません。</p>';
+  list.slice(0, lim).forEach(g => {
+    const div = document.createElement('div'); div.className = 'game';
+    const h = document.createElement('div'); h.className = 'gh'; h.textContent = dtxt(g.d) + '　第' + g.r + '回戦 ' + g.t + '卓' + (g.odd ? '（顔ぶれが対戦カードと違います）' : ''); div.appendChild(h);
+    const tw = document.createElement('div'); tw.className = 'tw';
+    const t = document.createElement('table'), tb = document.createElement('tbody');
+    g.p.map((p, i) => ({ p, raw: g.raw[i], r: g.res[i], seat: i })).sort((a, b) => a.r.rank - b.r.rank || a.seat - b.seat).forEach(x => {
+      const tr = document.createElement('tr');
+      cell(tr, x.r.rank + '着', 'r'); cell(tr, dn(x.p), 'l'); cell(tr, fmt(x.raw) + '点', x.raw < 0 ? 'neg' : ''); cell(tr, ptxt(x.r.pts) + 'pt', x.r.pts < 0 ? 'neg' : '');
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); tw.appendChild(t); div.appendChild(tw); box.appendChild(div);
+  });
+  $('logmore').hidden = list.length <= 6;
+  $('logmore').textContent = LOG_ALL ? '新しい6局だけにする' : 'すべて見る（' + list.length + '局）';
+}
+$('logmore').addEventListener('click', () => { LOG_ALL = !LOG_ALL; renderLog(); });
+
+// ---- 対戦の回数（どの2人が何回同じ卓になったか） ----
+function renderPairs() {
+  const ps = everyone(), cnt = {};
+  GAMES.forEach(g => g.p.forEach(a => g.p.forEach(b => { if (a !== b) cnt[a + '|' + b] = (cnt[a + '|' + b] || 0) + 1; })));
+  const full = CFG.rounds * CFG.tables.length * MODE * (MODE - 1) / (CFG.players * (CFG.players - 1));
+  const vals = []; ps.forEach((a, i) => ps.forEach((b, j) => { if (i < j) vals.push(cnt[a + '|' + b] || 0); }));
+  $('pairsum').textContent = '対戦の回数（どの2人も' + full + '回ずつ）';
+  $('pairlead').textContent = 'シーズンの対戦カードを全部打つと、どの2人も' + full + '回ずつ同じ卓になります。いまは、少ない組で' + Math.min(...vals) + '回、多い組で' + Math.max(...vals) + '回です。上の番号は、左の名前の番号です。';
+  const t = $('pairs');
+  t.innerHTML = '<thead><tr><th class="l">名前</th>' + ps.map(p => '<th>' + pnum(p) + '</th>').join('') + '</tr></thead>';
+  const tb = document.createElement('tbody'), me = myName();
+  ps.forEach(a => {
+    const tr = document.createElement('tr'); if (a === me) tr.classList.add('me');
+    cell(tr, pnum(a) + ' ' + dn(a), 'l nm');
+    ps.forEach(b => { if (a === b) cell(tr, '—', 'self'); else { const v = cnt[a + '|' + b] || 0; cell(tr, String(v), v >= full ? 'full' : ''); } });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+
+// ---- 読み込み ----
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+let LAST_LOAD = 0;
+async function load() {
+  LAST_LOAD = Date.now();
+  try {
+    if (!SID) { const sj = await getJson(BASE + 'seasons.json'); SID = String(sj.current || ''); }
+  } catch (e) { setup('シーズンの一覧（seasons.json）を読めませんでした。少し待ってから開き直してください。'); return; }
+  if (!SEASON_RE.test(SID)) { setup('シーズンの名前（URL の ?s=）の形が違います。'); return; }
+  let c, k;
+  try { [c, k] = await Promise.all([getJson(BASE + 's/' + SID + '/season.json'), getJson(BASE + 's/' + SID + '/cards.json')]); }
+  catch (e) { if (!CFG) setup('このシーズン（' + SID + '）の設定か対戦カードを読めませんでした。URL の ?s= を確かめて、少し待ってから開き直してください。'); return; }
+  const errs = checkCfg(c);
+  if (errs.length) { setup('設定（season.json）の書き方が違います: ' + errs.join('／')); return; }
+  if (k.season !== c.season || !k.rounds) { setup('対戦カード（cards.json）が、このシーズンのものではありません。'); return; }
+  applyCfg(c, k);
+  if (!API) setup('点数の受け口（api）がまだ設定されていません。対局の記録は出ません。'); else setup('');
+  if (API) {
+    try {
+      const j = await getJson(API + '?season=' + encodeURIComponent(SID));
+      if (j.ok && j.data && j.data.season === SID) { DATA = j.data; ROSTER = j.data.roster || {}; }
+      else setup('点数を読めませんでした（' + (j.error || '受け口') + '）。');
+    } catch (e) { setup('点数を読めませんでした（通信）。少し待ってから「最新に更新」を押してください。'); }
+  }
+  $('main').hidden = false;
+  fillMe(); render(); renderTrend();
+}
+$('reload').addEventListener('click', load);
+load();
+// 自動の読み直しは、画面に出ているときだけ2分ごと（受け口の読み取りは1日の回数に上限があるため。Halu杯と同じ）
+setInterval(() => { if (!document.hidden && Date.now() - LAST_LOAD >= 120000) load(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LAST_LOAD >= 60000) load(); });
+</script>
+<a class="top" href="#" title="上へ">↑</a>
+</body>
+</html>

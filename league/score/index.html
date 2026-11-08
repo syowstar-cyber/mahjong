@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#22305a">
+<title>Haluリーグ 点数入力</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#22305a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#eef1f7;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020;--grid:#e6e6e1}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+label{display:block;font-weight:700;margin:14px 0 4px}
+.card label:first-child{margin-top:0}
+select,input{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
+input[type=number]{text-align:right}
+/* iPhone の日付の欄は、空のとき高さが縮むので揃える */
+input[type=date]{min-height:52px}
+.qdone{margin:12px 0 0;padding:8px 12px;border-radius:8px;background:#e3f2e6;border:1px solid #9fcfa9;color:var(--ok);font-weight:700}
+button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.primary{width:100%;background:var(--accent);color:var(--accent-fg);margin-top:14px}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.primary:disabled,.ghost:disabled{opacity:.5;cursor:default}
+.msg{min-height:1.5em;margin-top:8px;font-weight:700}
+.msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+/* 読み込みが終わるまでは、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
+#main[hidden]~.pnav{display:none}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{background:#ececE8;font-weight:700}
+td.l,th.l{text-align:left}
+tr:nth-child(even) td{background:var(--card2)}
+.neg{color:var(--ng)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.small{color:var(--muted);font-size:.9rem}
+.hint{background:#faf3e3;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+/* 点棒の欄（名前ごと。席は卓で決めるので出さない） */
+.seat{display:grid;grid-template-columns:minmax(0,1fr) 8.6em 5.8em;grid-template-areas:"nm in pt";gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.seat .nm{grid-area:nm;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.seat .nm.me{box-shadow:inset 4px 0 0 var(--accent);padding-left:10px}
+.seat .in{grid-area:in;display:flex;align-items:center;gap:2px;min-width:0}
+.seat .in input{flex:1;width:100%;min-width:0;padding:10px;font-size:1.1rem}
+.seat .in span{font-weight:700;font-size:1.1rem}
+.seat input.auto{background:var(--soft);color:var(--accent);font-weight:700}
+.seat .sign{flex:none;width:2em;padding:8px 0;font-size:1.15rem;line-height:1.2;background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+.seat .sign.on{background:var(--ng);border-color:var(--ng);color:#fff}
+.seat .pt{grid-area:pt;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
+.sum{display:flex;justify-content:space-between;padding:8px 0;font-weight:700}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
+summary{cursor:pointer;font-weight:700}
+/* 最近の入力 */
+.game{margin:12px 0}
+.game .gh{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-bottom:4px}
+.game td.r{width:2.6em;text-align:center;font-weight:700}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* 狭い画面は、名前を1行目に、点棒とポイントを2行目に分ける */
+@media (max-width:560px){
+  .seat{grid-template-columns:minmax(0,1fr) 6.6em;grid-template-areas:"nm nm" "in pt";gap:6px 8px}
+  .seat .in input{padding:9px 8px}
+  .seat .pt{font-size:.9rem}
+  .game td{padding:8px 6px}
+  .game td.l{white-space:normal;overflow-wrap:anywhere}
+}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 Haluリーグ 点数入力</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">スコアボード</a><a href="./" aria-current="page">点数入力</a><a href="../chousei/">調整表</a><a href="../rule/">ルール</a></nav>
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <h2>点数の報告（卓ごと）</h2>
+  <div class="card">
+    <label for="me">自分の名前</label>
+    <select id="me"></select>
+    <label for="qcard">対戦カード</label>
+    <select id="qcard"></select>
+    <div id="qdone" class="qdone" hidden></div>
+    <label for="qdate">打った日</label>
+    <input type="date" id="qdate">
+    <div id="seats"></div>
+    <div class="small" id="qhint"></div>
+    <div class="small" id="qhow">00は打ちません（25,300点 → 253）。マイナスは「−」ボタンで付けます（先に押しても、後で押しても同じ）。3人入れると、残りの1人は自動で入ります。</div>
+    <div class="sum"><span id="qsumlab">合計</span><span id="qsum">0</span></div>
+    <div id="qwarn" class="small neg"></div>
+    <button class="primary" type="button" id="qsend">この卓の4人分を送信する</button>
+    <div id="qmsg" class="msg" aria-live="polite"></div>
+    <div class="tools"><button class="ghost" type="button" id="qclear">この卓の点数を取り消す</button></div>
+  </div>
+  <details class="hint" id="rulebox"></details>
+
+  <h2>最近の入力</h2>
+  <div class="tools"><button class="ghost" type="button" id="reload">最新に更新</button><span class="small" id="updated"></span></div>
+  <div id="recent"></div>
+  <p class="small">順位と合計ポイントは、スコアボードで見られます。</p>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">スコアボード</a><a href="./" aria-current="page">点数入力</a><a href="../chousei/">調整表</a><a href="../rule/">ルール</a></nav>
+</div>
+
+<script>
+// Haluリーグの点数入力ページ。対戦カード（league/s/<シーズン>/cards.json）の1卓ぶんの点棒を、受け口（season.json の api）へ送る。
+// 席は卓で決める（Halu杯と同じ場決め）ので、席は入れず、カードの4人の名前ごとに点棒を入れる。送る並びはカードの並びのまま
+const $ = id => document.getElementById(id);
+const SEASON_RE = /^[0-9a-z-]{1,24}$/;
+// league/score/ から見た league/ の置き場。試験の写しだけが window.LG_BASE と window.LG_API で差し替える
+const BASE = window.LG_BASE !== undefined ? window.LG_BASE : '../';
+const QS = new URLSearchParams(location.search).get('s') || '';
+let SID = QS;
+let CFG = null, CARDS = null, DATA = { rounds: {}, roster: {}, updated: null }, ROSTER = {}, API = '';
+let MODE = 4, OKA = 0;
+// 点棒の欄や日付を触ったら true。自動の読み直しで、入力中の欄を作り直さない（送信・取り消し・カードの切り替えで false）
+let EDITING = false;
+// 人が選んだカード（'回戦-卓'）。読み直しでも動かさない
+let CARD_PICK = '';
+const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
+const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
+const pnum = p => Number(String(p).slice(1));
+const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP');
+// ポイントは0.1単位の整数で持つ。マイナスは ▲（スコアボードと同じ）
+const ptxt = n => (n > 0 ? '+' : n < 0 ? '▲' : '') + (Math.abs(n) / 10).toFixed(1);
+const nm = p => (p && ROSTER[p]) || '';
+const dn = p => nm(p) || p || '';
+const dtxt = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); if (!m) return ''; const w = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay(); return Number(m[2]) + '/' + Number(m[3]) + '（' + WEEK[w] + '）'; };
+// 日本時間の今日（端末の時計の地域によらない）
+const todayJst = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+// 'YYYY-MM-DD' で、実在する日付
+function validDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return false;
+  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return dt.getUTCFullYear() === Number(m[1]) && dt.getUTCMonth() === Number(m[2]) - 1 && dt.getUTCDate() === Number(m[3]);
+}
+function setup(t) { $('setup').textContent = t; $('setup').hidden = !t; }
+function say(t, ok) { const m = $('qmsg'); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
+// ページの切り替えにもシーズンを付ける（URL に ?s= があるときだけ）
+if (SEASON_RE.test(QS)) document.querySelectorAll('.pnav a').forEach(a => a.setAttribute('href', a.getAttribute('href') + '?s=' + encodeURIComponent(QS)));
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
+
+// ---- 設定（スコアボードと同じ検査） ----
+function checkCfg(c) {
+  const e = [];
+  if (!c || typeof c !== 'object') return ['中身が読めません'];
+  if (!SEASON_RE.test(String(c.season || ''))) e.push('season は英小文字・数字・- で24字まで');
+  if (c.mode !== 3 && c.mode !== 4) e.push('mode は 3 か 4');
+  if (!Number.isInteger(c.players) || c.players < c.mode || c.players > 40) e.push('players は mode〜40');
+  if (!Array.isArray(c.tables) || !c.tables.length) e.push('tables は卓の番号の並び');
+  if (!Number.isInteger(c.rounds) || c.rounds < 1 || c.rounds > 99) e.push('rounds は 1〜99');
+  if (!Number.isInteger(c.start) || c.start <= 0 || c.start % 100) e.push('start は100点単位');
+  if (!Number.isInteger(c.return) || c.return < c.start || c.return % 100) e.push('return は100点単位で start 以上');
+  if (!Array.isArray(c.uma) || c.uma.length !== c.mode || Math.abs(c.uma.reduce((a, b) => a + b, 0)) > 1e-9) e.push('uma は mode 個の数で、合計0');
+  return e;
+}
+function applyCfg(c, k) {
+  CFG = c; CARDS = k;
+  MODE = c.mode;
+  OKA = (c.return - c.start) * MODE / 100;   // オカ（返し−持ち点）×人数。0.1ポイント単位
+  API = String(window.LG_API || c.api || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
+    document.documentElement.style.setProperty('--accent', c.color);
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', c.color);
+  }
+  document.title = c.title + ' 点数入力';
+  $('ttl').textContent = '🀄 ' + c.title + ' 点数入力';
+  $('qdate').max = todayJst();
+  ruleBox();
+}
+
+// ---- ポイントの計算（スコアボードと同じ。どちらかを直したら、もう片方も直す） ----
+// （点棒−返し）÷1,000＋順位点。1位にはオカを足す。丸めない（100点＝0.1ポイント）。
+// 同点は、その人たちで順位点（オカ込み）を分ける。0.1で割り切れない分は、送った並びで前の人が多く取る
+function calcTable(raws) {
+  if (!Array.isArray(raws) || raws.length !== MODE || raws.some(v => !Number.isInteger(v))) return null;
+  const bonus = CFG.uma.map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
+  const order = raws.map((raw, i) => ({ i, raw })).sort((a, b) => b.raw - a.raw || a.i - b.i);
+  const res = raws.map(() => null);
+  for (let k = 0; k < MODE;) {
+    let j = k; while (j + 1 < MODE && order[j + 1].raw === order[k].raw) j++;
+    const n = j - k + 1, sum = bonus.slice(k, j + 1).reduce((a, b) => a + b, 0);
+    const base = Math.floor(sum / n), rem = sum - base * n;
+    for (let m = k; m <= j; m++) res[order[m].i] = { rank: k + 1, tie: n > 1, pts: (order[m].raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+    k = j + 1;
+  }
+  return res;
+}
+const umaText = () => CFG.uma.map((x, i) => (i + 1) + '位 ' + ptxt(Math.round(x * 10) + (i === 0 ? OKA : 0))).join('／');
+function ruleBox() {
+  $('rulebox').innerHTML = '<summary>ポイントの計算（' + fmt(CFG.start) + '点持ち・' + fmt(CFG.return) + '点返し）</summary>'
+    + '① （点棒−' + fmt(CFG.return) + '）÷1,000。100点＝0.1ポイント（丸めない）<br>'
+    + '② 順位点を足す（' + umaText() + '）<br>'
+    + (OKA ? '　1位の順位点は、オカ ' + ptxt(OKA) + ' を含みます。<br>' : '')
+    + '<span class="small">同点は順位点を分けます。トビ終了なし。マイナスの点棒は「−」ボタンを押して、そのまま入れてください。</span>';
+}
+
+// ---- 対戦カード ----
+const recOf = (r, t) => (((DATA && DATA.rounds) || {})[String(r)] || {})[String(t)] || null;
+const keyOf = (r, t) => r + '-' + t;
+function allCards() {
+  const out = [];
+  Object.keys(CARDS.rounds).map(Number).sort((a, b) => a - b).forEach(r => ((CARDS.rounds[r] || {}).tables || []).forEach(tb => out.push({ r, t: Number(tb.no), p: tb.p })));
+  return out;
+}
+const cardLabel = c => c.r + '回戦 ' + c.t + '卓：' + c.p.map(dn).join('・');
+function curCard() {
+  const v = $('qcard').value; if (!v) return null;
+  const [r, t] = v.split('-').map(Number);
+  return allCards().find(c => c.r === r && c.t === t) || null;
+}
+// 自分の名前（スコアボードと同じキーで、この端末に覚える）
+const ME_KEY = () => 'halulg:me:' + SID;
+function myName() { try { return localStorage.getItem(ME_KEY()) || ''; } catch (e) { return ''; } }
+function everyone() { return Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)); }
+function fillMe() {
+  const sel = $('me'), cur = myName();
+  sel.innerHTML = '';
+  sel.appendChild(new Option('（選ぶと、自分のカードが先に出ます）', ''));
+  everyone().forEach(p => sel.appendChild(new Option(p + (nm(p) ? ' ' + nm(p) : ''), p)));
+  sel.value = everyone().includes(cur) ? cur : '';
+}
+$('me').addEventListener('change', () => { try { localStorage.setItem(ME_KEY(), $('me').value); } catch (e) {} CARD_PICK = ''; fillCards(false); });
+// カードの選ぶ欄。まだ入っていないカード（自分のカードを先に）→ 入力済み（入れた新しい順。直すとき）
+function fillCards(keepCur) {
+  const sel = $('qcard'), keep = keepCur === false ? '' : sel.value, me = myName();
+  sel.innerHTML = '';
+  const cards = allCards(), open = cards.filter(c => !recOf(c.r, c.t));
+  const done = cards.filter(c => recOf(c.r, c.t)).sort((a, b) => String(recOf(b.r, b.t).ts || '').localeCompare(String(recOf(a.r, a.t).ts || '')) || b.r - a.r || b.t - a.t);
+  const mine = me ? open.filter(c => c.p.includes(me)) : [];
+  const rest = open.filter(c => !mine.includes(c));
+  const group = (label, list) => {
+    if (!list.length) return;
+    const g = document.createElement('optgroup'); g.label = label;
+    list.forEach(c => g.appendChild(new Option(cardLabel(c), keyOf(c.r, c.t))));
+    sel.appendChild(g);
+  };
+  group('自分のカード（まだ入っていない）', mine);
+  group(mine.length ? 'ほかのカード（まだ入っていない）' : 'まだ入っていないカード', rest);
+  group('入力済み（直すとき）', done);
+  // 選ぶ順: 人が選んだカード → いま選んでいるカード → 自分のまだ入っていない最初のカード → まだ入っていない最初のカード
+  const has = v => v && [...sel.options].some(o => o.value === v);
+  const first = l => l.length ? keyOf(l[0].r, l[0].t) : '';
+  const pick = [CARD_PICK, keep, first(mine), first(open)].find(has);
+  if (pick) sel.value = pick;
+  fillSeats();
+}
+$('qcard').addEventListener('change', () => { CARD_PICK = $('qcard').value; say('', true); fillSeats(); });
+$('qdate').addEventListener('input', () => { EDITING = true; });
+
+// ---- 点棒の欄 ----
+function fillSeats() {
+  EDITING = false;
+  const box = $('seats'); box.innerHTML = '';
+  const c = curCard(), me = myName();
+  $('qdone').hidden = true; $('qhint').textContent = '';
+  if (!c) { $('qdate').value = todayJst(); preview(); buttons(); return; }
+  const rec = recOf(c.r, c.t);
+  $('qdate').value = rec && validDate(rec.d) ? rec.d : todayJst();
+  if (rec) { $('qdone').hidden = false; $('qdone').textContent = '✓ この卓は入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。'; }
+  c.p.forEach(p => {
+    const row = document.createElement('div'); row.className = 'seat'; row.dataset.p = p;
+    const nmEl = document.createElement('div'); nmEl.className = 'nm' + (p === me ? ' me' : ''); nmEl.textContent = dn(p);
+    const inw = document.createElement('div'); inw.className = 'in';
+    inw.innerHTML = '<button type="button" class="sign" aria-label="マイナス" aria-pressed="false">−</button><input type="number" inputmode="numeric" step="1" min="-2000" max="9999" placeholder="例 253"><span>00</span>';
+    const inp = inw.querySelector('input');
+    inp.setAttribute('aria-label', dn(p) + 'の点棒（百点単位）');
+    const i = rec && Array.isArray(rec.p) ? rec.p.indexOf(p) : -1;
+    inp.value = i >= 0 && Number.isInteger(rec.raw[i]) ? rec.raw[i] / 100 : '';
+    const pt = document.createElement('div'); pt.className = 'pt';
+    row.append(nmEl, inw, pt);
+    box.appendChild(row);
+  });
+  const note = ['席は卓で決めるので、名前ごとに点棒を入れてください。'];
+  if (rec && Array.isArray(rec.p) && rec.p.slice().sort().join() !== c.p.slice().sort().join()) note.push('送られた顔ぶれが、対戦カードと違います。入れ直すときは、先に取り消してください。');
+  $('qhint').textContent = note.join(' ');
+  box.querySelectorAll('.seat').forEach(row => {
+    const inp = row.querySelector('input'), sign = row.querySelector('.sign');
+    // 自動の欄を手で打つと手入力に変わる。自動の欄を押したら全選択（打てば置き換わる）。
+    // 範囲外（−2000〜9999 を超える・小数）になる入力は受け付けず、直前の値に戻す（2530 のような打ち間違いを入れさせない）
+    inp.addEventListener('input', () => {
+      // 「−」を先に押してあれば、打った数をマイナスにする（スマホの数字キーにはマイナスがない）
+      const v0 = inp.value.trim();
+      if (inp.dataset.neg && v0 !== '') { if (/^\d/.test(v0)) inp.value = '-' + v0; delete inp.dataset.neg; }
+      const v = inp.value.trim(), u = Number(v);
+      if (v !== '' && (!Number.isInteger(u) || u < Number(inp.min) || u > Number(inp.max))) { inp.value = inp.dataset.good || ''; return; }
+      if (!inp.validity.badInput) inp.dataset.good = inp.value;
+      EDITING = true; delete inp.dataset.auto; inp.classList.remove('auto'); autoFill(); preview();
+    });
+    inp.addEventListener('blur', () => { autoFill(); preview(); });
+    inp.addEventListener('focus', () => { EDITING = true; inp.dataset.good = inp.value; if (inp.dataset.auto) inp.select(); });
+    // 「−」ボタン: 数が入っていれば符号を変える。空なら、次に打つ数をマイナスにする（もう一度押すと取り消し）
+    sign.addEventListener('click', () => {
+      EDITING = true; inp.focus();
+      const v = inp.value.trim();
+      if (v === '') { if (inp.dataset.neg) delete inp.dataset.neg; else inp.dataset.neg = '1'; }
+      else {
+        const u = -Number(v);
+        if (!Number.isInteger(u) || u < Number(inp.min) || u > Number(inp.max)) { say('範囲（−2000〜9999）を超えるため、' + (u < 0 ? 'マイナスにできません' : 'プラスに戻せません'), false); return; }
+        inp.value = String(u); inp.dataset.good = inp.value;
+        delete inp.dataset.auto; inp.classList.remove('auto');
+      }
+      autoFill(); preview();
+    });
+  });
+  autoFill(); preview(); buttons();
+}
+// 3人ぶんが入ったら、残る1人を「卓の合計 − ほかの合計」で埋める。
+// 打とうとしている空欄（フォーカス中）は埋めない（force は送信時）。条件が崩れたら自動の値は消す
+function autoFill(force) {
+  const ins = [...document.querySelectorAll('#seats input')], N = ins.length;
+  if (N < 3) return;
+  const manual = ins.filter(i => !i.dataset.auto && i.value.trim() !== '');
+  const units = manual.map(i => Number(i.value));
+  const ok = manual.length === N - 1 && units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999);
+  const target = ok ? ins.find(i => !manual.includes(i)) : null;
+  ins.forEach(i => { if (i.dataset.auto && i !== target) { i.value = ''; delete i.dataset.auto; i.classList.remove('auto'); } });
+  if (!target || (!force && !target.dataset.auto && target === document.activeElement)) return;
+  target.value = CFG.start * N / 100 - units.reduce((a, b) => a + b, 0);
+  target.dataset.auto = '1'; target.classList.add('auto'); delete target.dataset.neg;
+}
+// 名前ごとに {p, raw, bad}。入力は百点単位（253 → 25,300点）。範囲外は bad にして raw を NaN にする
+function readSeats() {
+  return [...document.querySelectorAll('#seats .seat')].map(row => {
+    const v = row.querySelector('input').value.trim(), p = row.dataset.p;
+    if (v === '') return { p, raw: null, bad: false };
+    const u = Number(v), bad = !Number.isInteger(u) || u < -2000 || u > 9999;
+    return { p, raw: bad ? NaN : u * 100, bad };
+  });
+}
+function preview() {
+  // 「−」ボタンは、マイナスの数が入っているか、次に打つ数をマイナスにする待ちのときに色を付ける
+  document.querySelectorAll('#seats .seat').forEach(r => { const i = r.querySelector('input'), b = r.querySelector('.sign'); const on = !!i.dataset.neg || Number(i.value) < 0; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  const seats = readSeats(), res = calcTable(seats.map(s => s.raw)), total = CFG.start * MODE;
+  document.querySelectorAll('#seats .pt').forEach((el, i) => { const x = res && res[i]; el.textContent = x ? x.rank + '位' + (x.tie ? '(同点)' : '') + ' ' + ptxt(x.pts) : ''; el.className = 'pt' + (x && x.pts < 0 ? ' neg' : ''); });
+  const filled = seats.filter(s => s.raw !== null && !Number.isNaN(s.raw));
+  const sum = filled.reduce((a, s) => a + s.raw, 0);
+  $('qsumlab').textContent = '合計（' + fmt(total) + 'になるはず）';
+  $('qsum').textContent = fmt(sum);
+  const warn = [];
+  if (seats.some(s => s.bad)) warn.push(BAD_UNIT + '。直すまで送れません。');
+  if (seats.length && filled.length === seats.length && sum !== total) warn.push('合計が' + fmt(total) + 'ではありません。点棒を確かめてください（送信はできます）。');
+  // 卓の合計を超える点棒は打ち間違い（2530 など）が多いので注意を出す。トビ終了なしでありうる値なので止めはしない（送る時に確認する）
+  if (filled.some(s => s.raw >= total)) warn.push(fmt(total) + '点以上の点棒があります。合っていますか（送る時にもう一度確かめます）。');
+  if (new Set(filled.map(s => s.raw)).size < filled.length) warn.push('同じ点棒の人がいます。順位点を分けています。');
+  $('qwarn').textContent = warn.join(' ');
+}
+function buttons() { const c = curCard(); $('qsend').disabled = !c; $('qclear').disabled = !c || !recOf(c.r, c.t); }
+
+// ---- 送信と取り消し ----
+async function post(body) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+  return r.json();
+}
+const ERR = { season: 'シーズンの名前が不正です', round: '回戦の指定が不正です', table: '卓の指定が不正です', player: 'プレイヤーの指定が不正です', score: '点数の値が不正です', date: '打った日が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', bad_json: '送り方が不正です', action: '送り方が不正です' };
+const BTNS = () => [$('qsend'), $('qclear')];
+const where = c => c.r + '回戦 ' + c.t + '卓';
+$('qsend').addEventListener('click', async () => {
+  if (!API) { say('点数の受け口がまだ設定されていません', false); return; }
+  const c = curCard();
+  if (!c) { say('対戦カードを選んでください', false); return; }
+  autoFill(true); preview();
+  const seats = readSeats(), total = CFG.start * MODE;
+  if (seats.some(s => s.bad)) { say(BAD_UNIT, false); return; }
+  if (seats.some(s => s.raw === null)) { say('4人全員の点棒を入れてください', false); return; }
+  const d = $('qdate').value;
+  if (!validDate(d)) { say('打った日を入れてください', false); return; }
+  if (d > todayJst()) { say('打った日が、今日より後になっています', false); return; }
+  if (((CFG.from && d < CFG.from) || (CFG.to && d > CFG.to)) && !confirm('打った日（' + d + '）が、シーズンの期間（' + CFG.from + '〜' + CFG.to + '）の外です。このまま送りますか？')) { say('送るのをやめました。打った日を確かめてください', false); return; }
+  const sum = seats.reduce((a, s) => a + s.raw, 0);
+  if (sum !== total && !confirm('合計が ' + fmt(sum) + ' です（' + fmt(total) + ' になるはず）。このまま送りますか？')) { say('送るのをやめました。点棒を確かめてください', false); return; }
+  const big = seats.filter(s => s.raw >= total);
+  if (big.length && !confirm(fmt(total) + '点以上です。合っていますか？\n' + big.map(s => dn(s.p) + ' ' + fmt(s.raw) + '点').join('\n'))) { say('送るのをやめました。点棒を確かめてください', false); return; }
+  // 同じ回戦のほかの卓に、もう入っている人（取り違え）。受け口でも断る
+  const other = seats.map(s => s.p).filter(p => Object.entries((DATA.rounds || {})[String(c.r)] || {}).some(([k, rec]) => k !== String(c.t) && (rec.p || []).includes(p)));
+  if (other.length) { say(other.map(dn).join('・') + ' は、この回戦のほかの卓にもう入っています。カードを確かめてください', false); return; }
+  const cur = recOf(c.r, c.t);
+  if (cur && (JSON.stringify(cur.p) + JSON.stringify(cur.raw) + cur.d !== JSON.stringify(seats.map(s => s.p)) + JSON.stringify(seats.map(s => s.raw)) + d)
+    && !confirm(where(c) + 'には、もう点数が入っています。上書きしますか？\n' + cur.p.map((p, i) => dn(p) + ' ' + fmt(cur.raw[i]) + '点').join('\n'))) { say('送るのをやめました', false); return; }
+  BTNS().forEach(b => { b.disabled = true; });
+  try {
+    say('送信中…', true);
+    const j = await post({ action: 'score', season: SID, round: String(c.r), table: c.t, p: seats.map(s => s.p), raw: seats.map(s => s.raw), d }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok) {
+      // 断られたときは、ほかの端末が先に送っている＝画面が古い。打ちかけの欄を捨てて、最新の状態を出し直す
+      if (j.error === 'dup') { if (j.data) { EDITING = false; render(j.data); } say((j.players || []).map(dn).join('・') + ' は、この回戦のほかの卓にもう入っています。カードを確かめてください', false); return; }
+      say(ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください（送り直すと上書きされます）', false); return;
+    }
+    EDITING = false; render(j.data);
+    say(where(c) + 'の4人分を記録しました', true);
+  } finally { buttons(); }
+});
+$('qclear').addEventListener('click', async () => {
+  const c = curCard();
+  if (!API || !c || !recOf(c.r, c.t)) return;
+  if (!confirm(where(c) + 'の点数を取り消しますか？')) return;
+  BTNS().forEach(b => { b.disabled = true; });
+  try {
+    const j = await post({ action: 'clear', season: SID, round: String(c.r), table: c.t }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok) { say(ERR[j.error] || '取り消しに失敗しました。少し待ってから、もう一度押してください', false); return; }
+    EDITING = false; render(j.data); say('取り消しました', true);
+  } finally { buttons(); }
+});
+
+// ---- 表示 ----
+function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); return td; }
+function render(d) {
+  DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, updated: null };
+  ROSTER = DATA.roster || {};
+  const cards = allCards(), done = cards.filter(c => recOf(c.r, c.t)).length;
+  $('sub').textContent = '対局 ' + done + '/' + cards.length + '卓。打ち終わったら、卓の誰か1人が4人分の点棒を送ってください。';
+  $('updated').textContent = !API ? '' : DATA.updated ? '最終更新 ' + DATA.updated : 'まだ入力がありません';
+  fillMe();
+  renderRecent();
+  if (!EDITING) fillCards();
+}
+// 最近の入力（入れた新しい順に5卓）。「この卓を直す」で上の欄に出す
+function renderRecent() {
+  const box = $('recent'); box.innerHTML = '';
+  const list = [];
+  Object.keys(DATA.rounds || {}).forEach(r => Object.keys(DATA.rounds[r] || {}).forEach(t => {
+    const rec = DATA.rounds[r][t];
+    if (rec && Array.isArray(rec.p) && Array.isArray(rec.raw) && rec.p.length === MODE) list.push({ r: Number(r), t: Number(t), rec });
+  }));
+  list.sort((a, b) => String(b.rec.ts || '').localeCompare(String(a.rec.ts || '')) || b.r - a.r || b.t - a.t);
+  if (!list.length) { box.innerHTML = '<p class="small">まだ入力がありません。</p>'; return; }
+  list.slice(0, 5).forEach(x => {
+    const res = calcTable(x.rec.raw);
+    const div = document.createElement('div'); div.className = 'game';
+    const gh = document.createElement('div'); gh.className = 'gh';
+    const cap = document.createElement('span'); cap.textContent = x.r + '回戦 ' + x.t + '卓・' + dtxt(x.rec.d || String(x.rec.ts || '').slice(0, 10)) + '・入力 ' + String(x.rec.ts || '').slice(11, 16);
+    const fix = document.createElement('button'); fix.type = 'button'; fix.className = 'ghost'; fix.textContent = 'この卓を直す';
+    fix.addEventListener('click', () => { CARD_PICK = keyOf(x.r, x.t); $('qcard').value = CARD_PICK; say('', true); fillSeats(); $('qcard').scrollIntoView({ block: 'center' }); });
+    gh.append(cap, fix); div.appendChild(gh);
+    const tw = document.createElement('div'); tw.className = 'tw';
+    const tbl = document.createElement('table'), tb = document.createElement('tbody');
+    x.rec.p.map((p, i) => ({ p, raw: x.rec.raw[i], r: res ? res[i] : null, i })).sort((a, b) => (a.r && b.r ? a.r.rank - b.r.rank : 0) || a.i - b.i).forEach(y => {
+      const tr = document.createElement('tr');
+      cell(tr, y.r ? y.r.rank + '着' : '', 'r'); cell(tr, dn(y.p), 'l'); cell(tr, fmt(y.raw) + '点', y.raw < 0 ? 'neg' : ''); cell(tr, y.r ? ptxt(y.r.pts) + 'pt' : '', y.r && y.r.pts < 0 ? 'neg' : '');
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb); tw.appendChild(tbl); div.appendChild(tw); box.appendChild(div);
+  });
+}
+
+// ---- 読み込み ----
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+let LAST_LOAD = 0;
+async function load() {
+  LAST_LOAD = Date.now();
+  try {
+    if (!SID) { const sj = await getJson(BASE + 'seasons.json'); SID = String(sj.current || ''); }
+  } catch (e) { setup('シーズンの一覧（seasons.json）を読めませんでした。少し待ってから開き直してください。'); return; }
+  if (!SEASON_RE.test(SID)) { setup('シーズンの名前（URL の ?s=）の形が違います。'); return; }
+  let c, k;
+  try { [c, k] = await Promise.all([getJson(BASE + 's/' + SID + '/season.json'), getJson(BASE + 's/' + SID + '/cards.json')]); }
+  catch (e) { if (!CFG) setup('このシーズン（' + SID + '）の設定か対戦カードを読めませんでした。URL の ?s= を確かめて、少し待ってから開き直してください。'); return; }
+  const errs = checkCfg(c);
+  if (errs.length) { setup('設定（season.json）の書き方が違います: ' + errs.join('／')); return; }
+  if (k.season !== c.season || !k.rounds) { setup('対戦カード（cards.json）が、このシーズンのものではありません。'); return; }
+  applyCfg(c, k);
+  $('main').hidden = false;
+  if (!API) { setup('点数の受け口（api）がまだ設定されていません。送信はできません。'); render(null); return; }
+  setup('');
+  try {
+    const j = await getJson(API + '?season=' + encodeURIComponent(SID));
+    if (j.ok && j.data && j.data.season === SID) render(j.data);
+    else { $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）'; if (!DATA.season) render(null); }
+  } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; if (!DATA.season) render(null); }
+}
+$('reload').addEventListener('click', load);
+load();
+// 自動の読み直しは、画面に出ているときだけ2分ごと（受け口の読み取りは1日の回数に上限があるため。Halu杯と同じ）
+setInterval(() => { if (!document.hidden && Date.now() - LAST_LOAD >= 120000) load(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LAST_LOAD >= 60000) load(); });
+</script>
+<a class="top" href="#" title="上へ">↑</a>
+</body>
+</html>

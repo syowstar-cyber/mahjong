@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#22305a">
+<title>Haluリーグ 調整表</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#22305a;--accent-fg:#fff;--card:#fff;--card2:#f1f1ee;--soft:#eef1f7;--focus:#1a56db;--ok:#1b6e2f;--ng:#b00020;--maybe:#8a5a00;--grid:#e6e6e1}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.7;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 84px}
+header{border-bottom:3px solid var(--accent);margin-bottom:14px;padding-bottom:8px}
+header h1{font-size:1.3rem;margin:0}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0}
+label{display:block;font-weight:700;margin:0 0 4px}
+select{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
+button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.primary{background:var(--accent);color:var(--accent-fg)}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.primary:disabled,.ghost:disabled{opacity:.5;cursor:default}
+.ok{color:var(--ok)}.ng{color:var(--ng)}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+/* 読み込みが終わるまでは、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
+#main[hidden]~.pnav{display:none}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.small{color:var(--muted);font-size:.9rem}
+.hint{background:#faf3e3;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+.chk{display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer}
+.chk input{width:22px;height:22px;margin:0;flex:none}
+/* 自分の予定（1日1行。日付と、○△×のボタン） */
+.mon{font-weight:700;color:var(--muted);font-size:.9rem;margin:14px 0 2px}
+.slot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid var(--grid);border-radius:6px}
+.slot .sd{min-width:0}
+.slot .sd small{color:var(--muted);font-size:.85rem;margin-left:6px}
+.slot.main .sd{font-weight:700}
+.slot.main .sd small{font-weight:400}
+/* 送っていない印の行 */
+.slot.chg{background:var(--soft);box-shadow:inset 4px 0 0 var(--accent)}
+.mk{display:flex;gap:6px;flex:none}
+.mk button{width:46px;height:42px;padding:0;background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+/* 印は図形で描く（○と×の字は、端末の字の形しだいで小さく出るため） */
+.mk svg{display:block;width:22px;height:22px;margin:auto;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+.mk button.on[data-m=o]{background:var(--ok);border-color:var(--ok);color:#fff}
+.mk button.on[data-m=t]{background:var(--maybe);border-color:var(--maybe);color:#fff}
+.mk button.on[data-m=x]{background:var(--muted);border-color:var(--muted);color:#fff}
+/* 送信の帯（送っていない印があるあいだ、画面の下に残る） */
+.sendbar{position:sticky;bottom:0;z-index:4;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;box-shadow:0 -2px 10px rgba(0,0,0,.08);font-weight:700}
+.sendbar button{flex:none;padding:12px 18px}
+/* 日ごとの見通し */
+.day{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:8px 0}
+.day.main{box-shadow:inset 4px 0 0 var(--accent)}
+.day .dh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-weight:700}
+.day .cnt{font-weight:400;color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+.day .who{display:grid;grid-template-columns:3.6em minmax(0,1fr);gap:6px;font-size:.92rem;padding:1px 0}
+.day .who .wl{color:var(--muted)}
+.day .who .wn{overflow-wrap:anywhere}
+.day .ch{margin-top:6px;font-weight:700;font-size:.92rem}
+.day .tb{display:grid;grid-template-columns:5.8em minmax(0,1fr);gap:8px;padding:3px 0;border-top:1px solid var(--grid);font-size:.92rem}
+.day .tb .w{overflow-wrap:anywhere}
+.day .tb.mine{font-weight:700}
+.day .more{font-size:.88rem;color:var(--muted);margin-top:2px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 Haluリーグ 調整表</h1>
+    <div class="sub" id="sub">読み込み中…</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">スコアボード</a><a href="../score/">点数入力</a><a href="./" aria-current="page">調整表</a><a href="../rule/">ルール</a></nav>
+  <div id="setup" class="hint" hidden></div>
+
+  <div id="main" hidden>
+  <div class="card">
+    <label for="me">自分の名前</label>
+    <select id="me"></select>
+    <div class="small">見通しでは、自分のカードが太字になります。</div>
+  </div>
+
+  <h2>自分の予定</h2>
+  <p class="small">打てる日は○、まだわからない日は△、打てない日は×を付けます。同じ印をもう一度押すと消えます。印は「送信する」を押すと送られ、下の見通しに入ります。</p>
+  <p class="small" id="basenote"></p>
+  <label class="chk" id="otherbox"><input type="checkbox" id="others"><span id="otherlab">ほかの日も出す</span></label>
+  <div id="slots"></div>
+  <div class="sendbar" id="sendbar" hidden><span id="pending" aria-live="polite"></span><button class="primary" type="button" id="send">送信する</button></div>
+
+  <h2>日ごとの見通し</h2>
+  <p class="small" id="dayslead"></p>
+  <div class="tools"><button class="ghost" type="button" id="reload">最新に更新</button><span class="small" id="updated"></span></div>
+  <div id="days"></div>
+  <button class="ghost" type="button" id="daysmore" hidden>すべて見る</button>
+  </div>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">スコアボード</a><a href="../score/">点数入力</a><a href="./" aria-current="page">調整表</a><a href="../rule/">ルール</a></nav>
+</div>
+
+<script>
+// Haluリーグの調整表。シーズンの期間の日（season.json の slots）に、各人が○△×を付けて受け口（season.json の api）へ送る。
+// まだ打っていない卓のうち、4人とも○のカードを日ごとに出す。印も点数と同じく、受け口にだけ置く
+const $ = id => document.getElementById(id);
+const SEASON_RE = /^[0-9a-z-]{1,24}$/;
+// league/chousei/ から見た league/ の置き場。試験の写しだけが window.LG_BASE・LG_API・LG_TODAY で差し替える
+const BASE = window.LG_BASE !== undefined ? window.LG_BASE : '../';
+const QS = new URLSearchParams(location.search).get('s') || '';
+let SID = QS;
+let CFG = null, CARDS = null, DATA = { rounds: {}, roster: {}, avail: {}, updated: null }, ROSTER = {}, API = '', SLOTS = [];
+// 送っていない印 { 'YYYY-MM-DD': 'o' | 't' | 'x' | '' }（'' は消す）。名前を変えると捨てる
+let PEND = {};
+let ME_PREV = '', DAYS_ALL = false;
+const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
+// 印のボタン（値・読み上げる言葉・図形）。o＝○、t＝△、x＝×
+const MARKS = [
+  ['o', '打てる', '<circle cx="12" cy="12" r="8"/>'],
+  ['t', 'まだわからない', '<path d="M12 3.8 20.6 19H3.4Z"/>'],
+  ['x', '打てない', '<path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/>']
+];
+// 調整表に出す日の初期値（season.json に slots がないとき）。土曜のランチ後が基本で、月〜金の夜はときどき使う
+const DEF_SLOTS = [{ days: [6], label: 'ランチ後', main: true }, { days: [1, 2, 3, 4, 5], label: '夜' }];
+const DAY = 864e5;
+const nm = p => (p && ROSTER[p]) || '';
+const dn = p => nm(p) || p || '';
+const dtxt = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); if (!m) return ''; const w = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay(); return Number(m[2]) + '/' + Number(m[3]) + '（' + WEEK[w] + '）'; };
+// 日本時間の今日（端末の時計の地域によらない）
+const todayJst = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+// 'YYYY-MM-DD' で、実在する日付
+function validDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return false;
+  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return dt.getUTCFullYear() === Number(m[1]) && dt.getUTCMonth() === Number(m[2]) - 1 && dt.getUTCDate() === Number(m[3]);
+}
+const today = () => validDate(window.LG_TODAY) ? window.LG_TODAY : todayJst();
+const utc = s => Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+function setup(t) { $('setup').textContent = t; $('setup').hidden = !t; }
+// ページの切り替えにもシーズンを付ける（URL に ?s= があるときだけ）
+if (SEASON_RE.test(QS)) document.querySelectorAll('.pnav a').forEach(a => a.setAttribute('href', a.getAttribute('href') + '?s=' + encodeURIComponent(QS)));
+
+// ---- 設定（スコアボードと同じ検査のうち、ここで使うものと、期間・slots） ----
+function checkCfg(c) {
+  const e = [];
+  if (!c || typeof c !== 'object') return ['中身が読めません'];
+  if (!SEASON_RE.test(String(c.season || ''))) e.push('season は英小文字・数字・- で24字まで');
+  if (c.mode !== 3 && c.mode !== 4) e.push('mode は 3 か 4');
+  if (!Number.isInteger(c.players) || c.players < c.mode || c.players > 40) e.push('players は mode〜40');
+  if (!Array.isArray(c.tables) || !c.tables.length) e.push('tables は卓の番号の並び');
+  if (!Number.isInteger(c.rounds) || c.rounds < 1 || c.rounds > 99) e.push('rounds は 1〜99');
+  if (!validDate(c.from) || !validDate(c.to) || c.from > c.to) e.push('from・to は YYYY-MM-DD で、from が先');
+  if (c.slots !== undefined) {
+    const seen = new Set();
+    const ok = Array.isArray(c.slots) && c.slots.length > 0 && c.slots.every(s => s && typeof s === 'object'
+      && typeof s.label === 'string' && s.label.length >= 1 && s.label.length <= 8
+      && Array.isArray(s.days) && s.days.length > 0 && s.days.every(d => Number.isInteger(d) && d >= 0 && d <= 6 && !seen.has(d) && seen.add(d)));
+    if (!ok) e.push('slots は {days: 曜日（0が日曜〜6が土曜）の並び, label: 時間の名前, main: 基本の日なら true} の並び。同じ曜日は1回だけ');
+  }
+  return e;
+}
+// 曜日の並びを、短い言い方にする（[1,2,3,4,5] → 平日、[6] → 土曜）
+function daysText(days) {
+  const s = days.slice().sort((a, b) => a - b).join();
+  if (s === '1,2,3,4,5') return '平日';
+  if (s === '0,6') return '土日';
+  return days.map(d => WEEK[d]).join('・') + '曜';
+}
+function applyCfg(c, k) {
+  CFG = c; CARDS = k;
+  SLOTS = c.slots || DEF_SLOTS;
+  API = String(window.LG_API || c.api || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
+    document.documentElement.style.setProperty('--accent', c.color);
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', c.color);
+  }
+  document.title = c.title + ' 調整表';
+  $('ttl').textContent = '🀄 ' + c.title + ' 調整表';
+  const main = SLOTS.filter(s => s.main), other = SLOTS.filter(s => !s.main), both = main.length > 0 && other.length > 0;
+  const txt = l => l.map(s => daysText(s.days) + 'の' + s.label).join('・');
+  $('basenote').textContent = both ? txt(main) + 'が基本です。' + txt(other) + 'は、カードの4人と店の様子しだいで使います。' : '';
+  $('otherbox').hidden = !both;
+  $('otherlab').textContent = txt(other) + 'も出す';
+  $('dayslead').textContent = '4人とも○のカードを、回戦の順に出します。'
+    + (both ? txt(main) + 'は毎回出し、ほかの日は打てるカードがある日だけ出します。' : '')
+    + '同じ人が入るカードは、同時には打てません。';
+}
+
+// ---- 日と印 ----
+// 今日（始まる前は初日）から最終日までの、調整表に出す日。1日に1つ
+function slotList() {
+  const t = today(), from = t > CFG.from ? t : CFG.from, out = [];
+  for (let x = utc(from), end = utc(CFG.to); x <= end; x += DAY) {
+    const dt = new Date(x), s = SLOTS.find(v => v.days.includes(dt.getUTCDay()));
+    if (s) out.push({ d: dt.toISOString().slice(0, 10), label: s.label, main: !!s.main });
+  }
+  return out;
+}
+const noMain = () => !SLOTS.some(v => v.main);
+// 送った印（受け口の記録）。o＝○、t＝△、x＝×、''＝まだ付けていない
+const savedMark = (p, d) => { const v = (((DATA && DATA.avail) || {})[p] || {})[d]; return v === 'o' || v === 't' || v === 'x' ? v : ''; };
+const pendN = () => Object.keys(PEND).length;
+// 画面に出す自分の印（送っていない印が先）
+const shown = d => has(PEND, d) ? PEND[d] : savedMark(myName(), d);
+
+// ---- 自分の名前（スコアボード・点数入力と同じキーで、この端末に覚える） ----
+const ME_KEY = () => 'halulg:me:' + SID;
+function myName() { try { return localStorage.getItem(ME_KEY()) || ''; } catch (e) { return ''; } }
+function everyone() { return Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)); }
+function fillMe() {
+  const sel = $('me'), cur = pendN() ? ME_PREV : myName();
+  sel.innerHTML = '';
+  sel.appendChild(new Option('（選ぶと、予定を入れられます）', ''));
+  everyone().forEach(p => sel.appendChild(new Option(p + (nm(p) ? ' ' + nm(p) : ''), p)));
+  sel.value = everyone().includes(cur) ? cur : '';
+  ME_PREV = sel.value;
+}
+$('me').addEventListener('change', () => {
+  const n = pendN();
+  if (n && !confirm('送っていない印が' + n + '件あります。名前を変えると消えます。変えますか？')) { $('me').value = ME_PREV; return; }
+  PEND = {}; ME_PREV = $('me').value;
+  try { localStorage.setItem(ME_KEY(), ME_PREV); } catch (e) {}
+  say('', true); renderSlots(); renderDays();
+});
+
+// ---- 自分の予定 ----
+// 基本でない日（平日の夜）も出すか。この端末に覚える
+const OTHERS_KEY = 'halulg:others';
+try { $('others').checked = localStorage.getItem(OTHERS_KEY) === '1'; } catch (e) {}
+$('others').addEventListener('change', () => { try { localStorage.setItem(OTHERS_KEY, $('others').checked ? '1' : ''); } catch (e) {} renderSlots(); });
+function renderSlots() {
+  const box = $('slots'); box.innerHTML = '';
+  if (today() > CFG.to) { box.innerHTML = '<p class="small">このシーズンは終わりました。</p>'; return; }
+  if (!myName()) { box.innerHTML = '<p class="small">名前を選ぶと、予定を入れられます。</p>'; return; }
+  const all = $('others').checked || noMain();
+  let mon = '';
+  slotList().filter(s => s.main || all).forEach(s => {
+    const m = Number(s.d.slice(5, 7)) + '月';
+    if (m !== mon) { mon = m; const h = document.createElement('div'); h.className = 'mon'; h.textContent = m; box.appendChild(h); }
+    const row = document.createElement('div'); row.className = 'slot' + (s.main ? ' main' : ''); row.dataset.d = s.d;
+    const lab = document.createElement('span'); lab.className = 'sd'; lab.textContent = dtxt(s.d);
+    const sm = document.createElement('small'); sm.textContent = s.label; lab.appendChild(sm);
+    const mk = document.createElement('span'); mk.className = 'mk'; mk.setAttribute('role', 'group'); mk.setAttribute('aria-label', dtxt(s.d) + ' ' + s.label);
+    MARKS.forEach(([v, word, shape]) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.m = v; b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg>'; b.title = word; b.setAttribute('aria-label', word); mk.appendChild(b); });
+    row.append(lab, mk); box.appendChild(row);
+    paintRow(row);
+  });
+}
+function paintRow(row) {
+  const d = row.dataset.d, v = shown(d);
+  row.classList.toggle('chg', has(PEND, d));
+  row.querySelectorAll('button[data-m]').forEach(b => { const on = b.dataset.m === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+}
+// 印のボタン。同じ印をもう一度押すと消す。送った印と同じに戻したら、送らない
+$('slots').addEventListener('click', e => {
+  const b = e.target.closest('button[data-m]'), me = myName(); if (!b || !me) return;
+  const row = b.closest('.slot'), d = row.dataset.d, v = shown(d) === b.dataset.m ? '' : b.dataset.m;
+  if (v === savedMark(me, d)) delete PEND[d]; else PEND[d] = v;
+  paintRow(row); say('', true);
+});
+// 送信の帯。送っていない印の数か、送った結果を出す。うまく送れたときの知らせは4秒で消す
+let BAR = { t: '', ok: true }, BAR_TIMER = 0;
+function pendBar() {
+  const n = pendN(), show = n > 0 || !!BAR.t;
+  $('sendbar').hidden = !show;
+  $('pending').textContent = BAR.t || '送っていない印 ' + n + '件';
+  $('pending').className = BAR.t ? (BAR.ok ? 'ok' : 'ng') : '';
+  $('send').hidden = !n;
+}
+function say(t, ok) {
+  BAR = { t, ok }; clearTimeout(BAR_TIMER);
+  if (t && ok && !pendN()) BAR_TIMER = setTimeout(() => { BAR = { t: '', ok: true }; pendBar(); }, 4000);
+  pendBar();
+}
+addEventListener('beforeunload', e => { if (pendN()) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---- 送信 ----
+async function post(body) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+  return r.json();
+}
+const ERR = { season: 'シーズンの名前が不正です', player: '名前の指定が不正です', date: '日付が不正です', mark: '印の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', bad_json: '送り方が不正です', action: '送り方が不正です' };
+$('send').addEventListener('click', async () => {
+  const me = myName(), marks = Object.assign({}, PEND), n = Object.keys(marks).length;
+  if (!n) return;
+  if (!API) { say('予定の受け口がまだ設定されていません', false); return; }
+  if (!me) { say('名前を選んでください', false); return; }
+  $('send').disabled = true; say('送信中…', true);
+  try {
+    const j = await post({ action: 'avail', season: SID, p: me, marks }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok) { say(ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください', false); return; }
+    // 送っているあいだに付け直した印は、送っていない印として残す
+    Object.keys(marks).forEach(d => { if (PEND[d] === marks[d]) delete PEND[d]; });
+    render(j.data);
+    say(n + '件の印を送りました', true);
+  } finally { $('send').disabled = false; }
+});
+
+// ---- 日ごとの見通し ----
+const recOf = (r, t) => (((DATA && DATA.rounds) || {})[String(r)] || {})[String(t)] || null;
+// まだ打っていない卓（回戦の順）
+function openCards() {
+  const out = [];
+  Object.keys(CARDS.rounds).map(Number).sort((a, b) => a - b).forEach(r => ((CARDS.rounds[r] || {}).tables || []).forEach(tb => { if (!recOf(r, tb.no)) out.push({ r, t: Number(tb.no), p: tb.p }); }));
+  return out;
+}
+function renderDays() {
+  const box = $('days'); box.innerHTML = ''; $('daysmore').hidden = true;
+  if (today() > CFG.to) { box.innerHTML = '<p class="small">このシーズンは終わりました。</p>'; return; }
+  const open = openCards();
+  if (!open.length) { box.innerHTML = '<p class="small">すべての卓が終わりました。</p>'; return; }
+  const me = myName(), ps = everyone(), list = [];
+  slotList().forEach(s => {
+    const mk = {}; ps.forEach(p => { mk[p] = savedMark(p, s.d); });
+    const ok = open.filter(c => c.p.every(p => mk[p] === 'o'));
+    // 基本の日は毎回、ほかの日は打てるカードがあるときだけ出す
+    if (!(s.main || noMain() || ok.length)) return;
+    const maybe = open.filter(c => c.p.every(p => mk[p] === 'o' || mk[p] === 't')).length - ok.length;
+    list.push({ s, mk, ok, maybe });
+  });
+  if (!list.length) { box.innerHTML = '<p class="small">これから先に、4人とも○の日はまだありません。</p>'; return; }
+  const lim = DAYS_ALL ? list.length : 6;
+  list.slice(0, lim).forEach(x => box.appendChild(dayCard(x, me)));
+  if (list.length > lim) { $('daysmore').hidden = false; $('daysmore').textContent = 'すべて見る（あと' + (list.length - lim) + '日）'; }
+}
+function dayCard(x, me) {
+  const div = document.createElement('div'); div.className = 'day' + (x.s.main ? ' main' : '');
+  const h = document.createElement('div'); h.className = 'dh';
+  const a = document.createElement('span'); a.textContent = dtxt(x.s.d) + ' ' + x.s.label;
+  const cnt = { o: 0, t: 0, x: 0, '': 0 }; Object.values(x.mk).forEach(v => { cnt[v]++; });
+  const b = document.createElement('span'); b.className = 'cnt'; b.textContent = '○' + cnt.o + '・△' + cnt.t + '・×' + cnt.x + '・未回答' + cnt[''];
+  h.append(a, b); div.appendChild(h);
+  // 印ごとの名前（自分は太字）
+  [['o', '○'], ['t', '△'], ['x', '×'], ['', '未回答']].forEach(([v, lab]) => {
+    const who = Object.keys(x.mk).filter(p => x.mk[p] === v); if (!who.length) return;
+    const row = document.createElement('div'); row.className = 'who';
+    const l = document.createElement('span'); l.className = 'wl'; l.textContent = lab;
+    const n = document.createElement('span'); n.className = 'wn';
+    who.forEach((p, i) => { if (i) n.append('・'); const e = document.createElement(p === me ? 'b' : 'span'); e.textContent = dn(p); n.appendChild(e); });
+    row.append(l, n); div.appendChild(row);
+  });
+  // 打てるカード。回戦の順に6卓まで。そこに入らない自分のカードは足して出す
+  const ch = document.createElement('div'); ch.className = 'ch';
+  ch.textContent = x.ok.length ? '打てるカード（' + x.ok.length + '卓）' : '4人とも○のカードは、まだありません。';
+  div.appendChild(ch);
+  const head = x.ok.slice(0, 6), list = head.concat(x.ok.slice(6).filter(c => c.p.includes(me)).slice(0, 3));
+  list.forEach(c => {
+    const row = document.createElement('div'); row.className = 'tb' + (c.p.includes(me) ? ' mine' : '');
+    const k = document.createElement('span'); k.textContent = c.r + '回戦 ' + c.t + '卓';
+    const w = document.createElement('span'); w.className = 'w'; w.textContent = c.p.map(dn).join('・');
+    row.append(k, w); div.appendChild(row);
+  });
+  const notes = [];
+  if (x.ok.length > list.length) notes.push('ほか' + (x.ok.length - list.length) + '卓');
+  if (x.maybe > 0) notes.push('△の人も入れると、さらに' + x.maybe + '卓');
+  if (notes.length) { const p = document.createElement('div'); p.className = 'more'; p.textContent = notes.join('。') + '。'; div.appendChild(p); }
+  return div;
+}
+$('daysmore').addEventListener('click', () => { DAYS_ALL = true; renderDays(); });
+
+// ---- 表示 ----
+function render(d) {
+  DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, avail: {}, updated: null };
+  ROSTER = DATA.roster || {};
+  const t = today();
+  $('sub').textContent = t > CFG.to ? 'このシーズンは終わりました。'
+    : (t < CFG.from ? 'シーズンは' + dtxt(CFG.from) + 'からです。' : '') + '打てる日に○を付けてください。4人とも○の日に、打てるカードを出します。';
+  // 予定の印では受け口の最終更新が動かない（点数と名簿だけ）。ここでは読み込んだ時刻を出す
+  $('updated').textContent = API ? '読み込み ' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 16) : '';
+  fillMe();
+  // 送っていない印があるときや、印のボタンを触っているときは、行を作り直さずに色だけ塗り直す
+  if ((pendN() || $('slots').contains(document.activeElement)) && $('slots').querySelector('.slot')) document.querySelectorAll('#slots .slot').forEach(paintRow);
+  else renderSlots();
+  renderDays();
+  pendBar();
+}
+
+// ---- 読み込み ----
+const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+let LAST_LOAD = 0;
+async function load() {
+  LAST_LOAD = Date.now();
+  try {
+    if (!SID) { const sj = await getJson(BASE + 'seasons.json'); SID = String(sj.current || ''); }
+  } catch (e) { setup('シーズンの一覧（seasons.json）を読めませんでした。少し待ってから開き直してください。'); return; }
+  if (!SEASON_RE.test(SID)) { setup('シーズンの名前（URL の ?s=）の形が違います。'); return; }
+  let c, k;
+  try { [c, k] = await Promise.all([getJson(BASE + 's/' + SID + '/season.json'), getJson(BASE + 's/' + SID + '/cards.json')]); }
+  catch (e) { if (!CFG) setup('このシーズン（' + SID + '）の設定か対戦カードを読めませんでした。URL の ?s= を確かめて、少し待ってから開き直してください。'); return; }
+  const errs = checkCfg(c);
+  if (errs.length) { setup('設定（season.json）の書き方が違います: ' + errs.join('／')); return; }
+  if (k.season !== c.season || !k.rounds) { setup('対戦カード（cards.json）が、このシーズンのものではありません。'); return; }
+  applyCfg(c, k);
+  $('main').hidden = false;
+  if (!API) { setup('予定の受け口（api）がまだ設定されていません。送信はできません。'); render(null); return; }
+  setup('');
+  try {
+    const j = await getJson(API + '?season=' + encodeURIComponent(SID));
+    if (j.ok && j.data && j.data.season === SID) render(j.data);
+    else { $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）'; if (!DATA.season) render(null); }
+  } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; if (!DATA.season) render(null); }
+}
+$('reload').addEventListener('click', load);
+load();
+// 自動の読み直しは、画面に出ているときだけ2分ごと（受け口の読み取りは1日の回数に上限があるため。Halu杯と同じ）
+setInterval(() => { if (!document.hidden && Date.now() - LAST_LOAD >= 120000) load(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LAST_LOAD >= 60000) load(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "season": "2027-shinshun",
+  "title": "Haluリーグ〜新春〜 2027",
+  "short": "Haluリーグ",
+  "color": "#22305a",
+  "mode": 4,
+  "players": 10,
+  "tables": [1, 2],
+  "rounds": 60,
+  "start": 25000,
+  "return": 30000,
+  "uma": [30, 10, -10, -30],
+  "from": "2027-01-09",
+  "to": "2027-04-24",
+  "place": "Halu",
+  "slots": [
+    { "days": [6], "label": "ランチ後", "main": true },
+    { "days": [1, 2, 3, 4, 5], "label": "夜" }
+  ],
+  "api": "https://script.google.com/macros/s/AKfycbyQVyIs41RTUW4D-kUJEiv9CTu6DYSGfG_XBWQrzZ3vA6NNrBL4blcu_NlIozDzmRwa/exec"
+}
