@@ -45,6 +45,7 @@
 ## 新しいシーズンを始める
 
 1. `s/<シーズン>/season.json` を作る。api は前のシーズンと同じ URL。
+   - シーズンは番号で呼ぶ。フォルダと season は `season2`、title は「Haluリーグ〜シーズン2〜」の形（年は付けない）。
 2. `python league/tools/cards.py --season <シーズン> --write` で対戦カードを作る。
 3. `seasons.json` の list に足し、current を変える。
 4. `python league/tools/meibo.py <名簿ファイル> --season <シーズン>` で、受け口の名簿に P1〜の名前を入れる。
@@ -53,7 +54,7 @@
 ## cards.json（対戦カード）
 
 ```json
-{ "season": "2027-shinshun", "made": "2026-11-08 14:48", "seed": 1,
+{ "season": "season1", "made": "2026-11-08 14:48", "seed": 1,
   "rounds": { "1": { "tables": [ { "no": 1, "p": ["P1", "P5", "P8", "P9"] },
                                  { "no": 2, "p": ["P2", "P4", "P6", "P7"] } ],
                      "rest": ["P3", "P10"] } } }

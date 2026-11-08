@@ -21,7 +21,7 @@ URL は変わらない。シーズンごとの置き場は、シーズンの名�
 4. 表示された**ウェブアプリの URL**（`https://script.google.com/macros/s/.../exec`）をコピーする。
 5. URL を Claude に渡す。
 
-2026-11-08 にデプロイ済み。URL は `league/s/2027-shinshun/season.json` の `api` にある。
+2026-11-08 にデプロイ済み。URL は `league/s/season1/season.json` の `api` にある。
 新しいシーズンの season.json には、同じ URL を写す。
 
 ## 3. URL を受け取った後（Claude が行う）

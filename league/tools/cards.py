@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """Haluリーグの対戦カード（シーズン全部の回戦と卓）を作って検算する。
 
-  python league/tools/cards.py --season 2027-shinshun            … 作って検算を出すだけ（書かない）
-  python league/tools/cards.py --season 2027-shinshun --write    … s/<シーズン>/cards.json に書く
-  python league/tools/cards.py --season 2027-shinshun --check    … いまの cards.json を検算する
+  python league/tools/cards.py --season season1            … 作って検算を出すだけ（書かない）
+  python league/tools/cards.py --season season1 --write    … s/<シーズン>/cards.json に書く
+  python league/tools/cards.py --season season1 --check    … いまの cards.json を検算する
 
 設定は s/<シーズン>/season.json の players（人数）・mode（1卓の人数）・tables（1回戦の卓の番号）・rounds（回戦の数）。
 いま組めるのは 10名・四麻・1回戦2卓（休み2人）で、rounds が15の倍数の形だけ（ほかの形は、要るときに作り方を足す）。
 
-できる形（2027-shinshun＝60回戦）:
+できる形（season1＝60回戦）:
   - 全員の半荘数が同じ（48）・休みの回数が同じ（12）
   - どの2人も同じ回数だけ同じ卓（16回ずつ）
   - 同じ顔ぶれの卓は二度とない（120卓すべて別）
