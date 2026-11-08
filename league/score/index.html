@@ -18,8 +18,16 @@ header h1{font-size:1.3rem;margin:0}
 header .sub{color:var(--muted);font-size:.9rem}
 h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
-label{display:block;font-weight:700;margin:14px 0 4px}
+label,.lab{display:block;font-weight:700;margin:14px 0 4px}
 .card label:first-child{margin-top:0}
+.cnt{font-weight:400;color:var(--muted);font-size:.9rem;margin-left:4px}
+/* この日の出席者（押すと選ぶ・外すが切り替わる） */
+.att{display:flex;flex-wrap:wrap;gap:8px}
+.att button{min-height:44px;padding:6px 12px;font-size:1rem;line-height:1.3;border-radius:999px;border:2px solid var(--field);background:var(--card);color:var(--muted)}
+.att button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.att button .mk{font-weight:400;margin-left:4px}
+/* 印は図形で描く（○と×の字は、端末の字の形しだいで小さく出るため。調整表と同じ形） */
+.att button .mk svg{display:inline-block;width:1em;height:1em;vertical-align:-.14em;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
 select,input{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 input[type=number]{text-align:right}
 /* iPhone の日付の欄は、空のとき高さが縮むので揃える */
@@ -88,13 +96,18 @@ summary{cursor:pointer;font-weight:700}
   <div id="main" hidden>
   <h2>点数の報告（卓ごと）</h2>
   <div class="card">
+    <label for="qdate">対戦日</label>
+    <input type="date" id="qdate">
+    <div class="small" id="qdnote" hidden>朝5時までは、前の日を最初に出しています。</div>
+    <div class="lab" id="attlab">この日の出席者<span class="cnt" id="attcnt"></span></div>
+    <div class="att" id="att" role="group" aria-labelledby="attlab"></div>
+    <div class="small">調整表で○の人を、はじめから選んでいます。名前を押すと、選ぶ・外すが切り替わります。</div>
     <label for="me">自分の名前</label>
     <select id="me"></select>
-    <label for="qcard">対戦カード</label>
+    <label for="qcard">対戦カード<span class="cnt" id="qcnt"></span></label>
     <select id="qcard"></select>
+    <p class="hint" id="qnone" hidden></p>
     <div id="qdone" class="qdone" hidden></div>
-    <label for="qdate">打った日</label>
-    <input type="date" id="qdate">
     <div id="seats"></div>
     <div class="small" id="qhint"></div>
     <div class="small" id="qhow">00は打ちません（25,300点 → 253）。マイナスは「−」ボタンで付けます（先に押しても、後で押しても同じ）。3人入れると、残りの1人は自動で入ります。</div>
@@ -117,18 +130,21 @@ summary{cursor:pointer;font-weight:700}
 <script>
 // Haluリーグの点数入力ページ。対戦カード（league/s/<シーズン>/cards.json）の1卓ぶんの点棒を、受け口（season.json の api）へ送る。
 // 席は卓で決める（Halu杯と同じ場決め）ので、席は入れず、カードの4人の名前ごとに点棒を入れる。送る並びはカードの並びのまま
+// 選べるカードは、対戦日の出席者（調整表で○の人。その場で付け外しできる）で4人そろう、まだ入っていないカードだけ
 const $ = id => document.getElementById(id);
 const SEASON_RE = /^[0-9a-z-]{1,24}$/;
-// league/score/ から見た league/ の置き場。試験の写しだけが window.LG_BASE と window.LG_API で差し替える
+// league/score/ から見た league/ の置き場。試験の写しだけが window.LG_BASE・LG_API・LG_TODAY で差し替える
 const BASE = window.LG_BASE !== undefined ? window.LG_BASE : '../';
 const QS = new URLSearchParams(location.search).get('s') || '';
 let SID = QS;
-let CFG = null, CARDS = null, DATA = { rounds: {}, roster: {}, updated: null }, ROSTER = {}, API = '';
+let CFG = null, CARDS = null, DATA = { rounds: {}, roster: {}, avail: {}, updated: null }, ROSTER = {}, API = '';
 let MODE = 4, OKA = 0;
-// 点棒の欄や日付を触ったら true。自動の読み直しで、入力中の欄を作り直さない（送信・取り消し・カードの切り替えで false）
+// 点棒の欄を触ったら true。自動の読み直しで、入力中の欄を作り直さない（送信・取り消し・カードの切り替えで false）
 let EDITING = false;
 // 人が選んだカード（'回戦-卓'）。読み直しでも動かさない
 let CARD_PICK = '';
+// 対戦日（'YYYY-MM-DD'）。カードと出席者は、この日で絞る。読み直しでも動かさない
+let DAY = '';
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
 const pnum = p => Number(String(p).slice(1));
@@ -145,6 +161,15 @@ function validDate(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return false;
   const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
   return dt.getUTCFullYear() === Number(m[1]) && dt.getUTCMonth() === Number(m[2]) - 1 && dt.getUTCDate() === Number(m[3]);
+}
+// ページの「今日」（試験の写しだけ LG_TODAY で決める。調整表と同じ）
+const today = () => validDate(window.LG_TODAY) ? window.LG_TODAY : todayJst();
+// 対戦日の最初。朝5時までは前の日にする（夜の対局が日付をまたいでも、その夜の日になるように）
+function firstDay() {
+  const t = today();
+  if (new Date(Date.now() + 9 * 3600e3).getUTCHours() >= 5) return t;
+  const [y, m, d] = t.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
 }
 function setup(t) { $('setup').textContent = t; $('setup').hidden = !t; }
 function say(t, ok) { const m = $('qmsg'); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
@@ -177,7 +202,8 @@ function applyCfg(c, k) {
   }
   document.title = c.title + ' 点数入力';
   $('ttl').textContent = '🀄 ' + c.title + ' 点数入力';
-  $('qdate').max = todayJst();
+  $('qdate').max = today();
+  if (!DAY) setDay(firstDay());
   ruleBox();
 }
 
@@ -210,6 +236,8 @@ function ruleBox() {
 // ---- 対戦カード ----
 const recOf = (r, t) => (((DATA && DATA.rounds) || {})[String(r)] || {})[String(t)] || null;
 const keyOf = (r, t) => r + '-' + t;
+// 入力済みの卓の対戦日（送った日。日が無い古い形なら、入れた日）
+const recDay = rec => validDate(rec.d) ? rec.d : String(rec.ts || '').slice(0, 10);
 function allCards() {
   const out = [];
   Object.keys(CARDS.rounds).map(Number).sort((a, b) => a - b).forEach(r => ((CARDS.rounds[r] || {}).tables || []).forEach(tb => out.push({ r, t: Number(tb.no), p: tb.p })));
@@ -233,12 +261,78 @@ function fillMe() {
   sel.value = everyone().includes(cur) ? cur : '';
 }
 $('me').addEventListener('change', () => { try { localStorage.setItem(ME_KEY(), $('me').value); } catch (e) {} CARD_PICK = ''; fillCards(false); });
-// カードの選ぶ欄。まだ入っていないカード（自分のカードを先に）→ 入力済み（入れた新しい順。直すとき）
-function fillCards(keepCur) {
-  const sel = $('qcard'), keep = keepCur === false ? '' : sel.value, me = myName();
+
+// ---- この日の出席者 ----
+// 調整表の印（'o' ○・'t' △・'x' ×・'' 未回答）。図形は調整表と同じ
+const MARK = { o: '<circle cx="12" cy="12" r="8"/>', t: '<path d="M12 3.8 20.6 19H3.4Z"/>', x: '<path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/>' };
+const MARK_WORD = { o: '打てる', t: 'まだわからない', x: '打てない', '': '未回答' };
+const markOf = (p, d) => { const v = (((DATA && DATA.avail) || {})[p] || {})[d]; return v === 'o' || v === 't' || v === 'x' ? v : ''; };
+// 人が付け外しした分 { 'YYYY-MM-DD': { P3: true, P7: false } }。調整表の○と違う人だけ持ち、この端末に覚える（新しい10日ぶん）
+const ATT_KEY = () => 'halulg:att:' + SID;
+let ATT_OVR = null;
+function attOvr() {
+  if (!ATT_OVR) {
+    try { ATT_OVR = JSON.parse(localStorage.getItem(ATT_KEY()) || '{}'); } catch (e) { ATT_OVR = null; }
+    if (!ATT_OVR || typeof ATT_OVR !== 'object' || Array.isArray(ATT_OVR)) ATT_OVR = {};
+  }
+  return ATT_OVR;
+}
+// 出席者か。付け外しがあればそれ、無ければ調整表で○の人
+function isAtt(p, d) { const o = (attOvr()[d] || {})[p]; return typeof o === 'boolean' ? o : markOf(p, d) === 'o'; }
+function toggleAtt(p) {
+  const all = attOvr(), cur = all[DAY], m = cur && typeof cur === 'object' ? Object.assign({}, cur) : {}, v = !isAtt(p, DAY);
+  if (v === (markOf(p, DAY) === 'o')) delete m[p]; else m[p] = v;
+  delete all[DAY];
+  if (Object.keys(m).length) all[DAY] = m;
+  const ks = Object.keys(all); ks.slice(0, Math.max(0, ks.length - 10)).forEach(k => { delete all[k]; });
+  try { localStorage.setItem(ATT_KEY(), JSON.stringify(all)); } catch (e) {}
+  say('', true); fillAtt(); fillCards(true, true);
+}
+function fillAtt() {
+  // 作り直しても、押したボタンにフォーカスを残す（キーボード・読み上げで続けて押せるように）
+  const box = $('att'), a = document.activeElement, keep = a && a.parentNode === box ? a.dataset.p : '';
+  box.innerHTML = '';
+  let n = 0;
+  everyone().forEach(p => {
+    const on = isAtt(p, DAY), mk = markOf(p, DAY);
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.p = p; b.textContent = dn(p);
+    const s = document.createElement('span'); s.className = 'mk';
+    if (mk) s.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + MARK[mk] + '</svg>'; else s.textContent = '未';
+    b.appendChild(s);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('aria-label', dn(p) + '（調整表は' + MARK_WORD[mk] + '）');
+    b.addEventListener('click', () => toggleAtt(p));
+    box.appendChild(b);
+    if (on) n++;
+  });
+  $('attcnt').textContent = '（' + n + '人）';
+  if (keep) { const f = box.querySelector('[data-p="' + keep + '"]'); if (f) f.focus(); }
+}
+
+// ---- 対戦日 ----
+// 「前の日を最初に出しています」は、前の日を出したままのときだけ見せる
+function dayNote() { const f = firstDay(); $('qdnote').hidden = !(DAY === f && f !== today()); }
+function setDay(d) { DAY = d; $('qdate').value = d; dayNote(); }
+// 日を変えたら、出席者とカードを出し直す。選んでいるカードが変わらなければ、打ちかけの点棒は残す
+function onDate() {
+  const v = $('qdate').value;
+  if (!validDate(v) || v === DAY) return;
+  DAY = v; dayNote(); say('', true); fillAtt(); fillCards(true, true);
+}
+$('qdate').addEventListener('input', onDate);
+$('qdate').addEventListener('change', onDate);
+// 日を消したまま離れたら、前の日に戻す
+$('qdate').addEventListener('blur', () => { if (!validDate($('qdate').value)) $('qdate').value = DAY; });
+
+// カードの選ぶ欄。対戦日の出席者で4人そろう、まだ入っていないカード（自分のカードを先に、回戦の順）→ この対戦日に入れたカード（入れた新しい順。直すとき）
+// keepSeats: 選んでいるカードが変わらなければ、点棒の欄を作り直さない（日や出席者を変えたとき）
+function fillCards(keepCur, keepSeats) {
+  const sel = $('qcard'), prev = sel.value, keep = keepCur === false ? '' : prev, me = myName(), d = DAY;
   sel.innerHTML = '';
-  const cards = allCards(), open = cards.filter(c => !recOf(c.r, c.t));
-  const done = cards.filter(c => recOf(c.r, c.t)).sort((a, b) => String(recOf(b.r, b.t).ts || '').localeCompare(String(recOf(a.r, a.t).ts || '')) || b.r - a.r || b.t - a.t);
+  const cards = allCards(), left = cards.filter(c => !recOf(c.r, c.t));
+  const open = left.filter(c => c.p.every(p => isAtt(p, d)));
+  const done = cards.filter(c => { const rec = recOf(c.r, c.t); return rec && recDay(rec) === d; })
+    .sort((a, b) => String(recOf(b.r, b.t).ts || '').localeCompare(String(recOf(a.r, a.t).ts || '')) || b.r - a.r || b.t - a.t);
   const mine = me ? open.filter(c => c.p.includes(me)) : [];
   const rest = open.filter(c => !mine.includes(c));
   const group = (label, list) => {
@@ -247,18 +341,23 @@ function fillCards(keepCur) {
     list.forEach(c => g.appendChild(new Option(cardLabel(c), keyOf(c.r, c.t))));
     sel.appendChild(g);
   };
+  // 打てるカードが無いときは、入力済みを勝手に選ばない（空の行を先に置く）
+  if (!open.length) sel.appendChild(new Option(done.length ? '（直すときは、ここから選ぶ）' : '（選べるカードがありません）', ''));
   group('自分のカード（まだ入っていない）', mine);
   group(mine.length ? 'ほかのカード（まだ入っていない）' : 'まだ入っていないカード', rest);
   group('入力済み（直すとき）', done);
+  $('qcnt').textContent = '（この日に打てる ' + open.length + '枚）';
+  $('qnone').hidden = open.length > 0;
+  // この日にもう入れた卓があれば「ほかに」。1卓も無ければ、日か出席者の選び違いが多い
+  $('qnone').textContent = !left.length ? 'すべての卓が入力済みです。' : done.length ? 'この日に4人そろうカードは、ほかにありません。' : 'この日に4人そろうカードはありません。対戦日と出席者を確かめてください。';
   // 選ぶ順: 人が選んだカード → いま選んでいるカード → 自分のまだ入っていない最初のカード → まだ入っていない最初のカード
   const has = v => v && [...sel.options].some(o => o.value === v);
   const first = l => l.length ? keyOf(l[0].r, l[0].t) : '';
   const pick = [CARD_PICK, keep, first(mine), first(open)].find(has);
-  if (pick) sel.value = pick;
-  fillSeats();
+  sel.value = pick || '';
+  if (keepSeats && sel.value === prev) buttons(); else fillSeats();
 }
 $('qcard').addEventListener('change', () => { CARD_PICK = $('qcard').value; say('', true); fillSeats(); });
-$('qdate').addEventListener('input', () => { EDITING = true; });
 
 // ---- 点棒の欄 ----
 function fillSeats() {
@@ -266,10 +365,9 @@ function fillSeats() {
   const box = $('seats'); box.innerHTML = '';
   const c = curCard(), me = myName();
   $('qdone').hidden = true; $('qhint').textContent = '';
-  if (!c) { $('qdate').value = todayJst(); preview(); buttons(); return; }
+  if (!c) { preview(); buttons(); return; }
   const rec = recOf(c.r, c.t);
-  $('qdate').value = rec && validDate(rec.d) ? rec.d : todayJst();
-  if (rec) { $('qdone').hidden = false; $('qdone').textContent = '✓ この卓は入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。'; }
+  if (rec) { $('qdone').hidden = false; $('qdone').textContent = '✓ この卓は入力済みです（' + rec.ts + '）。直すときは、入れ直して送信すると上書きします。対戦日を直すときは、取り消してから入れ直してください。'; }
   c.p.forEach(p => {
     const row = document.createElement('div'); row.className = 'seat'; row.dataset.p = p;
     const nmEl = document.createElement('div'); nmEl.className = 'nm' + (p === me ? ' me' : ''); nmEl.textContent = dn(p);
@@ -364,7 +462,7 @@ async function post(body) {
   const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
   return r.json();
 }
-const ERR = { season: 'シーズンの名前が不正です', round: '回戦の指定が不正です', table: '卓の指定が不正です', player: 'プレイヤーの指定が不正です', score: '点数の値が不正です', date: '打った日が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', bad_json: '送り方が不正です', action: '送り方が不正です' };
+const ERR = { season: 'シーズンの名前が不正です', round: '回戦の指定が不正です', table: '卓の指定が不正です', player: 'プレイヤーの指定が不正です', score: '点数の値が不正です', date: '対戦日が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', bad_json: '送り方が不正です', action: '送り方が不正です' };
 const BTNS = () => [$('qsend'), $('qclear')];
 const where = c => c.r + '回戦 ' + c.t + '卓';
 $('qsend').addEventListener('click', async () => {
@@ -376,9 +474,9 @@ $('qsend').addEventListener('click', async () => {
   if (seats.some(s => s.bad)) { say(BAD_UNIT, false); return; }
   if (seats.some(s => s.raw === null)) { say('4人全員の点棒を入れてください', false); return; }
   const d = $('qdate').value;
-  if (!validDate(d)) { say('打った日を入れてください', false); return; }
-  if (d > todayJst()) { say('打った日が、今日より後になっています', false); return; }
-  if (((CFG.from && d < CFG.from) || (CFG.to && d > CFG.to)) && !confirm('打った日（' + d + '）が、シーズンの期間（' + CFG.from + '〜' + CFG.to + '）の外です。このまま送りますか？')) { say('送るのをやめました。打った日を確かめてください', false); return; }
+  if (!validDate(d)) { say('対戦日を入れてください', false); return; }
+  if (d > today()) { say('対戦日が、今日より後になっています', false); return; }
+  if (((CFG.from && d < CFG.from) || (CFG.to && d > CFG.to)) && !confirm('対戦日（' + d + '）が、シーズンの期間（' + CFG.from + '〜' + CFG.to + '）の外です。このまま送りますか？')) { say('送るのをやめました。対戦日を確かめてください', false); return; }
   const sum = seats.reduce((a, s) => a + s.raw, 0);
   if (sum !== total && !confirm('合計が ' + fmt(sum) + ' です（' + fmt(total) + ' になるはず）。このまま送りますか？')) { say('送るのをやめました。点棒を確かめてください', false); return; }
   const big = seats.filter(s => s.raw >= total);
@@ -417,14 +515,14 @@ $('qclear').addEventListener('click', async () => {
 // ---- 表示 ----
 function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); return td; }
 function render(d) {
-  DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, updated: null };
+  DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, avail: {}, updated: null };
   ROSTER = DATA.roster || {};
   const cards = allCards(), done = cards.filter(c => recOf(c.r, c.t)).length;
   $('sub').textContent = '対局 ' + done + '/' + cards.length + '卓。打ち終わったら、卓の誰か1人が4人分の点棒を送ってください。';
   $('updated').textContent = !API ? '' : DATA.updated ? '最終更新 ' + DATA.updated : 'まだ入力がありません';
   fillMe();
   renderRecent();
-  if (!EDITING) fillCards();
+  if (!EDITING) { fillAtt(); fillCards(); }
 }
 // 最近の入力（入れた新しい順に5卓）。「この卓を直す」で上の欄に出す
 function renderRecent() {
@@ -442,7 +540,13 @@ function renderRecent() {
     const gh = document.createElement('div'); gh.className = 'gh';
     const cap = document.createElement('span'); cap.textContent = x.r + '回戦 ' + x.t + '卓・' + dtxt(x.rec.d || String(x.rec.ts || '').slice(0, 10)) + '・入力 ' + String(x.rec.ts || '').slice(11, 16);
     const fix = document.createElement('button'); fix.type = 'button'; fix.className = 'ghost'; fix.textContent = 'この卓を直す';
-    fix.addEventListener('click', () => { CARD_PICK = keyOf(x.r, x.t); $('qcard').value = CARD_PICK; say('', true); fillSeats(); $('qcard').scrollIntoView({ block: 'center' }); });
+    // 入力済みのカードは、その対戦日でしか選べない。日を合わせてから選ぶ
+    fix.addEventListener('click', () => {
+      CARD_PICK = keyOf(x.r, x.t); say('', true);
+      const d = recDay(x.rec); if (validDate(d)) setDay(d);
+      fillAtt(); fillCards(true, false);
+      $('qcard').scrollIntoView({ block: 'center' });
+    });
     gh.append(cap, fix); div.appendChild(gh);
     const tw = document.createElement('div'); tw.className = 'tw';
     const tbl = document.createElement('table'), tb = document.createElement('tbody');
