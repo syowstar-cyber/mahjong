@@ -47,6 +47,22 @@ def table_pts(raws, cfg):
     return pts
 
 
+def table_places(raws, M):
+    """1卓の順位（席の順に (上, 下)）。同じ点棒で並んだ人は、並んだ順位の幅（1位と2位で並べば (1, 2)）"""
+    if len(raws) != M:
+        return [None] * len(raws)
+    order = sorted(range(M), key=lambda i: (-raws[i], i))
+    out, k = [None] * M, 0
+    while k < M:
+        j = k
+        while j + 1 < M and raws[order[j + 1]] == raws[order[k]]:
+            j += 1
+        for m in range(k, j + 1):
+            out[order[m]] = (k + 1, j + 1)
+        k = j + 1
+    return out
+
+
 def junni_split(n, mode):
     """順位決定戦の卓の人数（点数入力ページの junniSplit と同じ）。mode 人ずつに分け、余りは下の卓から1人ずつ足す（3麻だけ）"""
     k = n // mode
@@ -81,32 +97,60 @@ def build(cfg, kumi, data):
         for rec in r.values():
             players |= set(rec.get("p", []))
     tot, cnt, by = {p: 0 for p in players}, {p: 0 for p in players}, {p: {} for p in players}
+    # 平均順位は12倍の整数で持つ（並んだ人は幅の真ん中＝1位と2位で並べば1.5位）。最下位の回数も12倍（並んだ人数で割る）
+    pos, last = {p: 0 for p in players}, {p: 0 for p in players}
     for r in prelim:
         for rec in (rounds.get(r) or {}).values():
-            for p, v in zip(rec["p"], table_pts(rec["raw"], cfg)):
+            for p, v, w in zip(rec["p"], table_pts(rec["raw"], cfg), table_places(rec["raw"], M)):
                 if v is None:
                     continue
                 tot[p] += v
                 cnt[p] += 1
                 by[p][r] = v
+                pos[p] += (w[0] + w[1]) * 6
+                if w[1] == M:
+                    last[p] += 12 // (w[1] - w[0] + 1)
     rk = sorted(players, key=lambda p: (-tot[p], pn(p)))
-    # 合計が同じかたまりは、全員の生年月日が入っていれば年上から並べる（nenrei の会。受け口の agerank＝年上からの順。同じ日の人どうしは同点のまま）
+    # 合計が同じかたまりの並べ方（点数入力ページの tieCmp と同じ）。doten が heikin の会は、予選の平均順位が上（小さい方）→ 最下位の率が低い方。
+    # nenrei の会は、全員の生年月日が入っていれば年上から（受け口の agerank＝年上からの順）。どちらも同じ人どうしは同点のまま
+    heikin = cfg.get("doten") == "heikin"
     agerank = (data.get("agerank") or {}) if cfg.get("nenrei") is True else {}
     age = lambda p: agerank[p] if isinstance(agerank.get(p), int) else None
-    byage, i = set(), 0
+
+    def tie_cmp(g):
+        if heikin:
+            def c(a, b):
+                if (cnt[a] > 0) != (cnt[b] > 0):
+                    return -1 if cnt[a] > 0 else 1
+                if not cnt[a]:
+                    return 0
+                return (pos[a] * cnt[b] - pos[b] * cnt[a]) or (last[a] * cnt[b] - last[b] * cnt[a])
+            return c
+        if all(age(p) is not None for p in g):
+            return lambda a, b: age(a) - age(b)
+        return None
+    cmpof, i = {}, 0
     while i < len(rk):
         j = i
         while j + 1 < len(rk) and tot[rk[j + 1]] == tot[rk[i]]:
             j += 1
         g = rk[i:j + 1]
-        if len(g) > 1 and all(age(p) is not None for p in g):
-            rk[i:j + 1] = sorted(g, key=lambda p: (age(p), pn(p)))
-            byage |= set(g)
+        c = tie_cmp(g) if len(g) > 1 else None
+        if c:
+            rk[i:j + 1] = sorted(g, key=functools.cmp_to_key(lambda a, b, c=c: c(a, b) or pn(a) - pn(b)))
+            cmpof.update((p, c) for p in g)
         i = j + 1
     prank = {}
     for i, p in enumerate(rk):
         q = rk[i - 1] if i else None
-        prank[p] = prank[q] if q and tot[q] == tot[p] and (p not in byage or age(q) == age(p)) else i + 1
+        prank[p] = prank[q] if q and tot[q] == tot[p] and (p not in cmpof or cmpof[p](q, p) == 0) else i + 1
+
+    def kime(p):
+        """同じ合計の人と、何で順位が分かれたか（点数入力ページの tieBy と同じ）"""
+        if not heikin:
+            return "年齢"
+        same = any(q != p and cnt[q] > 0 and tot[q] == tot[p] and pos[p] * cnt[q] == pos[q] * cnt[p] for q in players)
+        return f"{M}着率" if same else "平均順位"
     # 決勝: 決勝の点数が入った人を上に。1半荘なら素点、複数なら決勝のポイント合計。卓をまたいで比べ、同点は予選の順位（1半荘の同じ卓は起家に近い方）
     fin = {}
     for r in finals:
@@ -184,7 +228,8 @@ def build(cfg, kumi, data):
     for p in rk:
         cells = [fpt(by[p][r]) if r in by[p] else ("抜け" if p in rest_by[r] else "お休み" if p in out_by[r] else "") for r in prelim]
         tie = cnt[p] > 0 and any(q != p and cnt[q] > 0 and prank[q] == prank[p] for q in players)
-        mark = " 同点" if tie else " 年齢" if p in byage and cnt[p] > 0 else ""
+        split = p in cmpof and cnt[p] > 0 and any(q != p and cnt[q] > 0 and tot[q] == tot[p] for q in players)
+        mark = " 同点" if tie else f" {kime(p)}" if split else ""
         L.append(f"| {prank[p]}{mark} | {dn(p)} | " + " | ".join(cells) + f" | {fpt(tot[p]) if cnt[p] else ''} |")
     L += ["", "## 卓ごとの点棒", ""]
     for r in prelim + finals:

@@ -439,6 +439,17 @@ const roundDone = r => { const k = kumiRound(r), n = k && Array.isArray(k.tables
 // 年齢の上下（nenrei の会）。受け口の agerank＝生年月日を入れた人どうしの年上からの順（1 が最年長・同じ日は同じ数）
 const nenrei = () => !!(CFG && CFG.nenrei === true);
 const age = p => (nenrei() && Number.isInteger(AGERANK[p])) ? AGERANK[p] : null;
+// 予選の合計が同じ人の並べ方（doten が "heikin" の会）: 平均順位が小さい方、それも同じなら最下位（3麻は3着）の率が低い方（点数入力ページの tieCmp・tieBy と同じ）
+const heikin = () => !!(CFG && CFG.doten === 'heikin');
+const lastName = () => MODE + '着率';
+function tieCmp(g) {
+  if (heikin()) return (a, b) => (b.n > 0) - (a.n > 0) || (a.n && b.n ? (a.pos * b.n - b.pos * a.n) || (a.last * b.n - b.last * a.n) : 0);
+  if (nenrei() && g.every(x => age(x.p) !== null)) return (a, b) => age(a.p) - age(b.p);
+  return null;
+}
+const tieBy = (g, x) => !heikin() ? '年齢' : g.some(y => y !== x && y.n > 0 && x.pos * y.n === y.pos * x.n) ? lastName() : '平均順位';
+// ラインと同じ合計で圏内のときの、決め手の言い方
+const KIME_WHY = { '年齢': '年齢が上のため', '平均順位': '予選の平均順位が上のため', '同点': '同じ合計の人がみな圏内のため' };
 // 返し以上の人数で順位点が変わるとき（uma が表）は、その人数の行を使う。表にない人数は "1" の行
 function umaFor(raws) {
   const u = CFG.uma;
@@ -446,7 +457,8 @@ function umaFor(raws) {
   const n = raws.filter(v => v >= CFG.return).length;
   return u[String(n)] || u['1'];
 }
-// 1卓の点棒 → 順位とポイント（0.1単位の整数）。全員そろっていなければ null。同点は順位点（オカ込み）を分け、割り切れない分は起家に近い方
+// 1卓の点棒 → 順位とポイント（0.1単位の整数）。全員そろっていなければ null。同点は順位点（オカ込み）を分け、割り切れない分は起家に近い方。
+// rank は並んだ順位の一番上、hi は一番下
 function calcTable(raws) {
   if (!Array.isArray(raws) || raws.length !== MODE || raws.some(v => v === null || v === undefined || Number.isNaN(v))) return (raws || []).map(() => null);
   const bonus = umaFor(raws).map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
@@ -458,32 +470,40 @@ function calcTable(raws) {
     const base = Math.floor(sum / n), rem = sum - base * n;
     for (let m = k; m <= j; m++) {
       const o = order[m];
-      res[o.i] = { raw: o.raw, rank: k + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+      res[o.i] = { raw: o.raw, rank: k + 1, hi: j + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
     }
     k = j + 1;
   }
   return res;
 }
-// 予選の順位。合計ポイントの大きい順。抜け番の半荘は0ポイント。合計が同じかたまりは、全員の生年月日が入っていれば年上から（nenrei の会）
+// 予選の順位。合計ポイントの大きい順。抜け番の半荘は0ポイント。合計が同じかたまりは会の決まり（tieCmp）で並べる（点数入力ページの prelimStats と同じ）
 function prelimStats() {
   const st = {};
-  const add = p => st[p] || (st[p] = { p, by: {}, total: 0, n: 0 });
+  const add = p => st[p] || (st[p] = { p, by: {}, total: 0, n: 0, pos: 0, last: 0 });
   players().forEach(add);
   PRELIM.forEach(r => Object.entries(recsOf(r)).forEach(([t, rec]) => {
     const res = calcTable(rec.raw);
-    (rec.p || []).forEach((p, i) => { const x = add(p); if (res[i]) { x.by[r] = { pts: res[i].pts, table: t }; x.total += res[i].pts; x.n++; } });
+    (rec.p || []).forEach((p, i) => {
+      const x = add(p), v = res[i];
+      if (!v) return;
+      x.by[r] = { pts: v.pts, table: t }; x.total += v.pts; x.n++;
+      x.pos += (v.rank + v.hi) * 6;
+      if (v.hi === MODE) x.last += 12 / (v.hi - v.rank + 1);
+    });
   }));
   const list = Object.values(st).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  const groups = [];
   for (let i = 0; i < list.length;) {
     let j = i; while (j + 1 < list.length && list[j + 1].total === list[i].total) j++;
-    const g = list.slice(i, j + 1), byAge = g.length > 1 && g.every(x => age(x.p) !== null);
-    if (byAge) g.sort((a, b) => age(a.p) - age(b.p) || pnum(a.p) - pnum(b.p));
-    g.forEach((x, m) => { x.byAge = byAge; list[i + m] = x; });
+    const g = list.slice(i, j + 1), cmp = g.length > 1 ? tieCmp(g) : null;
+    if (cmp) g.sort((a, b) => cmp(a, b) || pnum(a.p) - pnum(b.p));
+    g.forEach((x, m) => { list[i + m] = x; });
+    groups.push({ g, cmp, i });
     i = j + 1;
   }
-  list.forEach((x, i) => { const y = list[i - 1]; x.rank = y && y.total === x.total && (!x.byAge || age(y.p) === age(x.p)) ? y.rank : i + 1; });
+  groups.forEach(({ g, cmp, i }) => g.forEach((x, m) => { const y = g[m - 1]; x.rank = y && (!cmp || cmp(y, x) === 0) ? y.rank : i + m + 1; }));
   list.forEach(x => { x.tie = x.n > 0 && list.some(y => y !== x && y.n > 0 && y.rank === x.rank); });
-  list.forEach(x => { x.byAge = x.byAge && x.n > 0 && !x.tie; });
+  groups.forEach(({ g, cmp }) => g.forEach(x => { x.kime = cmp && x.n > 0 && !x.tie && g.some(y => y !== x && y.n > 0) ? tieBy(g, x) : ''; }));
   return list;
 }
 const lineK = () => FINALS.length ? CFG.final.tables * MODE : 0;
@@ -505,8 +525,8 @@ function lineTie(rk, x) {
   while (lo > 0 && ok[lo - 1].rank === x.rank) lo--;
   while (hi + 1 < ok.length && ok[hi + 1].rank === x.rank) hi++;
   if (lo > K - 1) return '';
-  if (hi <= K - 1) return x.byAge || x.tie ? '圏内（年齢）' : '';
-  return !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（集計係が決める）' : '同点（年齢で決まる）';
+  if (hi <= K - 1) return x.kime || x.tie ? '圏内（' + (x.kime || (heikin() ? '同点' : '年齢')) + '）' : '';
+  return heikin() || !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（集計係が決める）' : '同点（年齢で決まる）';
 }
 // 逆算で使う点棒の上限と下限（受け口と同じ）。r 位（0 始まり）で取れる点棒の上限は、卓の合計から、上の人が自分と同じ・下の人が下限のとき
 const RAW_TOP = 999900, RAW_LOW = -200000;
@@ -544,15 +564,15 @@ function renderLine() {
   if (!DATA) { out.innerHTML = '<p class="small">' + (DATA_ST === 'wait' ? '点数を読み込み中…' : '点数を読めませんでした。少し待ってから「最新に更新」を押してください。') + '</p>'; return; }
   const rk = prelimStats(), x = rk.find(y => y.p === p);
   if (!x || !rk.some(y => y.n > 0)) { out.innerHTML = '<p class="small">予選の点数が入ると、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
-  let h = x.n ? '<p>' + esc(dn(p)) + ' の現在: 予選 ' + x.rank + '位' + (x.tie ? '（同点）' : x.byAge ? '（年齢）' : '') + '・合計 <b>' + fpt(x.total) + '</b>（' + x.n + '半荘）</p>' : '<p>' + esc(dn(p)) + ' はまだポイントがありません。</p>';
+  let h = x.n ? '<p>' + esc(dn(p)) + ' の現在: 予選 ' + x.rank + '位' + (x.tie ? '（同点）' : x.kime ? '（' + x.kime + '）' : '') + '・合計 <b>' + fpt(x.total) + '</b>（' + x.n + '半荘）</p>' : '<p>' + esc(dn(p)) + ' はまだポイントがありません。</p>';
   if (goneList().includes(p)) { out.innerHTML = h + '<p class="small">途中で抜けたため、決勝には進みません。</p>'; return; }
   const B = borderFor(rk, p);
   if (B === null) { out.innerHTML = h + '<p class="small">' + K + '位ラインは、ほかの' + K + '人以上のポイントがそろってから出ます。</p>'; return; }
   const D = B - x.total, t = D === 0 && x.n ? lineTie(rk, x) : '';
   h += '<p>' + K + '位ライン（自分を除いた' + K + '番目の合計）: <b>' + fpt(B) + '</b></p>';
   if (D < 0) h += '<p>いまは<b>圏内</b>。' + (K + 1) + '位との差は ' + fpt(-D) + ' です。</p>';
-  else if (t) h += '<p>' + K + '位ラインと同じ合計です。' + (t === '圏内（年齢）' ? 'いまは<b>圏内</b>です（年齢が上のため）。' : t === '同点（集計係が決める）' ? (nenrei() ? '生年月日も同じなので、' : '') + '集計係が決めます。' : '同点は年齢が上の方が上位なので、生年月日で決まります。') + '</p>';
-  else h += '<p>圏内に入るには <b>あと ' + fpt(D + 1) + '</b> 必要です（同点は' + (nenrei() ? '年齢順の' : '集計係が決める') + 'ため、上回る数字）。</p>';
+  else if (t) h += '<p>' + K + '位ラインと同じ合計です。' + (t.startsWith('圏内（') ? 'いまは<b>圏内</b>です（' + (KIME_WHY[t.slice(3, -1)] || t.slice(3, -1) + 'が低いため') + '）。' : t === '同点（集計係が決める）' ? (heikin() ? '平均順位も' + lastName() + 'も同じなので、' : nenrei() ? '生年月日も同じなので、' : '') + '集計係が決めます。' : '同点は年齢が上の方が上位なので、生年月日で決まります。') + '</p>';
+  else h += '<p>圏内に入るには <b>あと ' + fpt(D + 1) + '</b> 必要です（同点は' + (heikin() ? '平均順位などで決まる' : nenrei() ? '年齢順の' : '集計係が決める') + 'ため、上回る数字）。</p>';
   // 予選の残り（まだ点数がなく、抜け番でもない半荘）
   const left = PRELIM.filter(r => !x.by[r] && !isLocked(r) && !roundDone(r) && !restOf(r).includes(p)).length;
   if (!left) { out.innerHTML = h + '<p class="small">予選の半荘は、もう残っていません。</p>'; return; }

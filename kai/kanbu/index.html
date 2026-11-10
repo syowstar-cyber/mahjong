@@ -365,8 +365,9 @@ function renderCfg() {
     ['予選', c.prelim + '半荘'],
     ['決勝', n ? '予選の上位' + n + '人・' + c.final.hanchan + '半荘' : 'なし'],
     ...(n ? [['順位決定戦', c.final.junni === 1 ? '決勝に出ない人が、決勝1半荘目の時間に1半荘' : 'なし']] : []),
-    ['予選の同点', nenrei() ? '年齢が上の人が上位（生年月日を入れる）' : '同じ順位（集計係が決める）'],
+    ['予選の同点', c.doten === 'heikin' ? '予選の平均順位が上の人が上位（それも同じなら' + c.mode + '着率が低い人。それも同じなら集計係が決める）' : nenrei() ? '年齢が上の人が上位（生年月日を入れる）' : '同じ順位（集計係が決める）'],
     ['持ち点', Number.isInteger(c.start) && Number.isInteger(c.return) ? fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し' : '―'],
+    ['トビ終了', c.tobi === true ? 'あり（箱下もそのまま計算）' : 'なし'],
     ['回の名前', c.kai],
   ];
   const t = $('cfg'); t.innerHTML = '';

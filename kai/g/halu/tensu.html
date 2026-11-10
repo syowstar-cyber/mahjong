@@ -60,7 +60,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <div class="wrap">
   <header>
     <h1 id="ttl">🀄 三麻Halu杯 点数早見表</h1>
-    <div class="sub">草案（2026-11-03）。3人麻雀・ツモ損なしの点数です。</div>
+    <div class="sub">草案（2026-11-10）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
@@ -203,13 +203,13 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 
 <h2 id="t5">5. 本場と申告</h2>
 <ul>
-<li>本場1本につき、ロンは600点を足します。ツモは2人が300点ずつ足します。</li>
-<li>ダブロンは、2人それぞれのロンの点を払います。本場の分は、放銃者の下家だけがもらいます（<a href="rule.html#s2">ルールの2章</a>）。</li>
+<li>本場1本につき、ロンは1,000点を足します。ツモは2人が500点ずつ足します。</li>
+<li>ダブロンは、2人それぞれのロンの点を払います。本場は1本につき500点ずつ、2人に払います（<a href="rule.html#s2">ルールの2章</a>）。</li>
 <li>ツモは、子のツモも親のツモも「〇〇オール」と言います。</li>
 </ul>
-<div class="ex">例（子の30符3翻ツモ）: 「2,000オール」。1本場なら「2,300オール」<br>例（親の30符3翻ツモ）: 「2,900オール」。1本場なら「3,200オール」</div>
+<div class="ex">例（子の30符3翻ツモ）: 「2,000オール」。1本場なら「2,500オール」<br>例（親の30符3翻ツモ）: 「2,900オール」。1本場なら「3,400オール」</div>
 
-<p class="src">ツモの払い方と本場の点は、麻雀格闘倶楽部（三人打ち）に合わせています。細かい解釈で迷ったときは、運営が判断します。</p>
+<p class="src">ツモの払い方は、麻雀格闘倶楽部（三人打ち）に合わせています。細かい解釈で迷ったときは、運営が判断します。</p>
 
   </main>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
@@ -264,7 +264,7 @@ function payOf(kind, b) {
   if (kind[1] === 'r') return [{ who: '放銃した人', v: ron, n: 1 }];
   return [{ who: kind === 'kt' ? '親と子の' : '子', v: up100(ron / 2), n: 2 }];
 }
-// 本場は、ロンは1本600点、ツモは払う2人が1本300点ずつ（payOf の点に足すだけ）
+// 本場は、ロンは1本1,000点、ツモは払う2人が1本500点ずつ（payOf の点に足すだけ。2026-11-10 に600点から変えた）
 function calc() {
   const kind = $('ck').value, fu = Number($('cf').value), han = $('ch').value, hb = Number($('cb').value) || 0, big = !(Number(han) <= 4);
   $('cf').disabled = big;
@@ -272,7 +272,7 @@ function calc() {
   const ng = noHand(kind, fu, han);
   $('cnote').textContent = '';
   if (ng) { box.textContent = ng; return; }
-  const add = hb * (kind[1] === 't' ? 300 : 600);
+  const add = hb * (kind[1] === 't' ? 500 : 1000);
   const b = basePts(fu, han), pays = payOf(kind, b), total = pays.reduce((a, x) => a + (x.v + add) * x.n, 0);
   const head = document.createElement('div');
   head.textContent = (kind[0] === 'k' ? '子' : '親') + 'の' + (kind[1] === 't' ? 'ツモ' : 'ロン') + '　' + (big ? '' : fu + '符' + han + '翻　') + (handName(b) ? handName(b) + '　' : '') + (hb ? hb + '本場　' : '') + '合計 ' + fmt(total) + '点';
@@ -285,7 +285,7 @@ function calc() {
     if (add) d.appendChild(document.createTextNode('（本場の' + fmt(add) + '点を含む）'));
     box.appendChild(d);
   });
-  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + (kind[1] === 't' ? 'ツモは、ロンの点の半分です（100点未満は切り上げ）。' : '') + '本場は、ロン1本600点、ツモは1人300点です。';
+  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + (kind[1] === 't' ? 'ツモは、ロンの点の半分です（100点未満は切り上げ）。' : '') + '本場は、ロン1本1,000点、ツモは1人500点です。';
 }
 fillFu();
 HAN.forEach(([v, t]) => $('ch').appendChild(new Option(t, v)));

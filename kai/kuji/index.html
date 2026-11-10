@@ -448,7 +448,7 @@ $('calc').addEventListener('submit', ev => {
 // ---- 9章: 決勝最終実況（決勝の最後の半荘。2026-11-02 主催） ----
 // 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く（見ている人の画面は pull で読み直す）。入れる欄は、幹部用ページから開いたとき（UNEI）だけ出す。
 // 前の半荘までの決勝のポイントといまの点棒から、総合の順位と、アガって総合1位になるのに要る手を出す。
-// 出すのは taikai.json の jikkyo が true の会で、3麻・決勝1卓・2半荘以上。局は東南3局ずつ（南3局がオーラス）・南場の流局は連荘・
+// 出すのは taikai.json の jikkyo が true の会で、3麻・決勝1卓・2半荘以上。局は東南3局ずつ（南3局がオーラス）・南場の流局は親が聴牌なら連荘・
 // 南3局の親はアガってトップならアガリやめ（g/halu/rule.html）・点の払い方はツモ損なし（g/halu/tensu.html）
 const KYOKU = ['東1局', '東2局', '東3局', '南1局', '南2局', '南3局'], ORAS = 5;
 // 9章を出す会か（幹部用ページの入口も同じ条件。kanbu/index.html の liveOn。どちらかを直したら、もう片方も直す）
@@ -483,7 +483,7 @@ function calcTable(raws) {
     const base = Math.floor(sum / n), rem = sum - base * n;
     for (let m = k; m <= j; m++) {
       const o = order[m];
-      res[o.i] = { raw: o.raw, rank: k + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
+      res[o.i] = { raw: o.raw, rank: k + 1, hi: j + 1, tie: n > 1, pts: (o.raw - CFG.return) / 100 + base + (m - k < rem ? 1 : 0) };
     }
     k = j + 1;
   }
@@ -492,23 +492,35 @@ function calcTable(raws) {
 // 予選の順位（score/index.html の prelimStats と同じ並べ方。どちらかを直したら、もう片方も直す）。決勝の総合の同点は、予選の順位が上の方が上位
 const nenrei = () => !!(CFG && CFG.nenrei === true);
 const age = p => (nenrei() && Number.isInteger(AGERANK[p])) ? AGERANK[p] : null;
+// 予選の合計が同じ人の並べ方（doten が "heikin" の会は平均順位、それも同じなら最下位の率。点数入力ページの tieCmp と同じ）
+const heikin = () => !!(CFG && CFG.doten === 'heikin');
+function tieCmp(g) {
+  if (heikin()) return (a, b) => (b.n > 0) - (a.n > 0) || (a.n && b.n ? (a.pos * b.n - b.pos * a.n) || (a.last * b.n - b.last * a.n) : 0);
+  if (nenrei() && g.every(x => age(x.p) !== null)) return (a, b) => age(a.p) - age(b.p);
+  return null;
+}
 function prelimRank() {
-  const st = {}, add = p => st[p] || (st[p] = { p, total: 0 });
+  const st = {}, add = p => st[p] || (st[p] = { p, total: 0, n: 0, pos: 0, last: 0 });
   for (let i = 1; i <= CFG.players; i++) add('P' + i);
   for (let r = 1; r <= CFG.prelim; r++) Object.values(recsOf(String(r))).forEach(rec => {
     const res = calcTable(rec.raw);
-    (rec.p || []).forEach((p, i) => { const x = add(p); if (res[i]) x.total += res[i].pts; });
+    (rec.p || []).forEach((p, i) => {
+      const x = add(p), v = res[i];
+      if (!v) return;
+      x.total += v.pts; x.n++;
+      x.pos += (v.rank + v.hi) * 6;
+      if (v.hi === MODE) x.last += 12 / (v.hi - v.rank + 1);
+    });
   });
   const list = Object.values(st).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  const rk = {};
   for (let i = 0; i < list.length;) {
     let j = i; while (j + 1 < list.length && list[j + 1].total === list[i].total) j++;
-    const g = list.slice(i, j + 1), byAge = g.length > 1 && g.every(x => age(x.p) !== null);
-    if (byAge) g.sort((a, b) => age(a.p) - age(b.p) || pnum(a.p) - pnum(b.p));
-    g.forEach((x, m) => { x.byAge = byAge; list[i + m] = x; });
+    const g = list.slice(i, j + 1), cmp = g.length > 1 ? tieCmp(g) : null;
+    if (cmp) g.sort((a, b) => cmp(a, b) || pnum(a.p) - pnum(b.p));
+    g.forEach((x, m) => { const y = g[m - 1]; x.rank = y && (!cmp || cmp(y, x) === 0) ? y.rank : i + m + 1; rk[x.p] = x.rank; });
     i = j + 1;
   }
-  const rk = {};
-  list.forEach((x, i) => { const y = list[i - 1]; x.rank = y && y.total === x.total && (!x.byAge || age(y.p) === age(x.p)) ? y.rank : i + 1; rk[x.p] = x.rank; });
   return rk;
 }
 
@@ -543,14 +555,14 @@ function handsOf(tsumo) {
   LIMITS.forEach(([h, t]) => hs.push({ han: h, fu: 0, b: basePts(0, h), lim: t }));
   return hs;
 }
-// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場（ロンは1本600・ツモは1人300）と供託は、アガった人へ
+// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場（ロンは1本1,000・ツモは1人500。2026-11-10 に600から変えた）と供託は、アガった人へ
 function afterWin(st, w, how, b) {
   const R = st.raw.slice(), oya = w === st.kyoku % MODE;
   if (how === 'tsumo') {
-    const v = payOf(oya ? 'ot' : 'kt', b)[0].v + 300 * st.honba;
+    const v = payOf(oya ? 'ot' : 'kt', b)[0].v + 500 * st.honba;
     R.forEach((_, i) => { if (i === w) return; R[i] -= v; R[w] += v; });
   } else {
-    const v = payOf(oya ? 'or' : 'kr', b)[0].v + 600 * st.honba;
+    const v = payOf(oya ? 'or' : 'kr', b)[0].v + 1000 * st.honba;
     R[how] -= v; R[w] += v;
   }
   R[w] += 1000 * st.kyotaku;
@@ -565,11 +577,12 @@ function totalsOf(R, seats, ctx) {
 const beats = (a, b, prk) => a.total > b.total || (a.total === b.total && prk[a.p] < prk[b.p]);
 const byTotal = (T, prk) => T.slice().sort((a, b) => b.total - a.total || prk[a.p] - prk[b.p]);
 // その手でアガって、総合1位で終わるか。オーラスの子のアガリは終局。オーラスの親は、アガってこの半荘のトップならアガリやめで終われる（トップでなければ続く）。
-// オーラスより前は、アガった後に総合1位に立つか（参考）
+// トビ終了の会（tobi）は、アガった後に誰かの点棒がマイナスなら、親がトップでなくても終局。オーラスより前は、アガった後に総合1位に立つか（参考）
+const tobi = () => !!(CFG && CFG.tobi === true);
 function winsBy(st, ctx, w, how, b) {
   const T = totalsOf(afterWin(st, w, how, b), st.seats, ctx), me = T[w];
   if (!T.every(x => x === me || beats(me, x, ctx.prk))) return false;
-  return st.kyoku !== ORAS || w !== st.kyoku % MODE || me.rank2 === 1;
+  return st.kyoku !== ORAS || w !== st.kyoku % MODE || me.rank2 === 1 || (tobi() && T.some(x => x.raw < 0));
 }
 // 1つのアガリ方で要る手。any＝どの手でも・none＝届かない・b＝届く一番小さい手の基本点・gap＝それより大きいのに届かない手（順位点の表の切り替わりで、まれに出る）
 function condOf(st, ctx, w, how) {
@@ -638,7 +651,8 @@ function standHtml(T, ctx, d) {
 // アガリの条件（総合の順に1人ずつ。ツモと、ほかの2人からのロン）
 function condHtml(st, ctx, S, d, oras) {
   let h = '<h3>' + (oras ? 'アガリの条件（優勝＝総合1位）' : 'この局のアガリで総合1位に立つには（参考）') + '</h3><p class="small">'
-    + (oras ? 'オーラスです。子がアガると、ここで終わります。親は、アガってこの半荘のトップならアガリやめで終われます（トップでなければ続きます）。流局は連荘です。'
+    // 流局の扱いは、ルールの4章（南場は親の聴牌で連荘・ノーテンなら親が移って終わる。2026-11-10 に「流局は連荘」から変えた）
+    + (oras ? 'オーラスです。子がアガると、ここで終わります。親は、アガってこの半荘のトップならアガリやめで終われます（トップでなければ続きます）。' + (tobi() ? '誰かの点棒がマイナスになれば、そこで終わります（トビ）。' : '') + '流局は、親が聴牌なら連荘、ノーテンなら終わりです。'
       : 'オーラス（南3局）の前です。いまアガって、総合1位に立つのに要る手です。') + '</p>';
   S.forEach((x, k) => {
     const w = x.i, oya = w === d;
