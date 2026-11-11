@@ -60,7 +60,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <div class="wrap">
   <header>
     <h1 id="ttl">🀄 三麻Halu杯 点数早見表</h1>
-    <div class="sub">草案（2026-11-10）。3人麻雀・ツモ損なしの点数です。</div>
+    <div class="sub">草案（2026-11-11）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
@@ -101,20 +101,20 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <tr><th>満貫<small>5翻</small></th><td><b>8,000</b></td><td><b>4,000</b></td></tr>
 <tr><th>跳満<small>6〜7翻</small></th><td><b>12,000</b></td><td><b>6,000</b></td></tr>
 <tr><th>倍満<small>8〜10翻</small></th><td><b>16,000</b></td><td><b>8,000</b></td></tr>
-<tr><th>三倍満<small>11翻〜</small></th><td><b>24,000</b></td><td><b>12,000</b></td></tr>
-<tr><th>役満</th><td><b>32,000</b></td><td><b>16,000</b></td></tr>
+<tr><th>三倍満<small>11〜12翻</small></th><td><b>24,000</b></td><td><b>12,000</b></td></tr>
+<tr><th>役満<small>数え役満は13翻〜</small></th><td><b>32,000</b></td><td><b>16,000</b></td></tr>
 </tbody></table></div>
 <h3>親のアガリ</h3>
 <div class="tw"><table class="sc"><thead><tr><th></th><th>ロン</th><th>ツモ<small>子2人が同じ点</small></th></tr></thead><tbody>
 <tr><th>満貫<small>5翻</small></th><td><b>12,000</b></td><td><b>6,000</b></td></tr>
 <tr><th>跳満<small>6〜7翻</small></th><td><b>18,000</b></td><td><b>9,000</b></td></tr>
 <tr><th>倍満<small>8〜10翻</small></th><td><b>24,000</b></td><td><b>12,000</b></td></tr>
-<tr><th>三倍満<small>11翻〜</small></th><td><b>36,000</b></td><td><b>18,000</b></td></tr>
-<tr><th>役満</th><td><b>48,000</b></td><td><b>24,000</b></td></tr>
+<tr><th>三倍満<small>11〜12翻</small></th><td><b>36,000</b></td><td><b>18,000</b></td></tr>
+<tr><th>役満<small>数え役満は13翻〜</small></th><td><b>48,000</b></td><td><b>24,000</b></td></tr>
 </tbody></table></div>
 <ul>
 <li>4翻30符から上と、3翻60符から上も満貫です（切り上げ満貫）。</li>
-<li>役満の役以外は、翻を重ねても三倍満までです。ダブル役満は2倍です。</li>
+<li>役満の役がなくても、13翻以上は役満です（数え役満）。数え役満は、何翻でも役満1つ分です。ダブル役満は2倍です。</li>
 </ul>
 
 <h2 id="t3">3. 子のアガリ（満貫まで）</h2>
@@ -204,7 +204,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <h2 id="t5">5. 本場と申告</h2>
 <ul>
 <li>本場1本につき、ロンは1,000点を足します。ツモは2人が500点ずつ足します。</li>
-<li>ダブロンは、2人それぞれのロンの点を払います。本場は1本につき500点ずつ、2人に払います（<a href="rule.html#s2">ルールの2章</a>）。</li>
+<li>ダブロンは、2人それぞれのロンの点を払います。本場は1本につき500点ずつ、2人に払います。場のリーチ棒は、2人で山分けします（<a href="rule.html#s2">ルールの2章</a>）。</li>
 <li>ツモは、子のツモも親のツモも「〇〇オール」と言います。</li>
 </ul>
 <div class="ex">例（子の30符3翻ツモ）: 「2,000オール」。1本場なら「2,500オール」<br>例（親の30符3翻ツモ）: 「2,900オール」。1本場なら「3,400オール」</div>
@@ -225,9 +225,9 @@ const fmt = n => n.toLocaleString('ja-JP');
 
 // ---- 点数の計算（2026-11-01 に点数入力ページから移した）。アガリ・符・翻から、誰からいくらもらうか ----
 // ツモ損なし: ツモは、ロンの点を残りの2人で折半し、100点未満は切り上げる（麻雀格闘倶楽部の三人打ちと同じ。子のツモも親のツモも2人は同じ点）。
-// 切り上げ満貫あり・数え役満なし。下の表と同じ数になる
+// 切り上げ満貫あり・数え役満あり（13翻からは役満の y1 を選ぶ。2026-11-11 から）。下の表と同じ数になる
 const FU = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
-const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11翻〜）'], ['y1', '役満'], ['y2', 'ダブル役満']];
+const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11・12翻）'], ['y1', '役満（数え役満の13翻〜も）'], ['y2', 'ダブル役満']];
 const up100 = v => Math.ceil(v / 100) * 100;
 // 基本点（符×2の(翻+2)乗）。満貫から上は決まった数
 function basePts(fu, han) {

@@ -34,11 +34,9 @@
     ["16:30", "集計・決勝の発表"],
     ["16:45", "決勝 1半荘目・順位決定戦"],
     ["17:35", "決勝 2半荘目（ほかの人は観戦）"],
-    ["18:45", "終了（目安）"],
-    ["19:00", "打ち上げ（21:00まで）"]
+    ["18:45", "終了（目安）"]
   ],
   "junbi": ["麻雀ZOOに、45,000点持ち・赤5筒と赤5索を1枚ずつでお願いする", "タイマーの準備", "ゴープロの準備"],
-  "uchiage": true,
   "kuji": "2026-11-13",
   "api": "https://script.google.com/macros/s/AKfycbzxCQFEJTYpjSEUdVEb5AdZyCeMWLagpyvnV7CuKXsHYbnAu34PV7PEQSKqoauxAzsC/exec"
 }

@@ -524,7 +524,7 @@ function prelimRank() {
   return rk;
 }
 
-// 点の払い方（g/halu/tensu.html の basePts・handName・payOf と同じ。ツモ損なし（ツモはロンの点を2人で折半）・切り上げ満貫あり・数え役満なし。どちらかを直したら、もう片方も直す）
+// 点の払い方（g/halu/tensu.html の basePts・handName・payOf と同じ。ツモ損なし（ツモはロンの点を2人で折半）・切り上げ満貫あり・数え役満あり（13翻からは役満の点。2026-11-11 から）。どちらかを直したら、もう片方も直す）
 const up100 = v => Math.ceil(v / 100) * 100;
 function basePts(fu, han) {
   if (han === 'y1') return 8000;
