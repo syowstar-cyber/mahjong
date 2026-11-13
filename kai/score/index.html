@@ -698,6 +698,7 @@ function fillSeats() {
     inw.innerHTML = '<button type="button" class="sign" aria-label="マイナス" aria-pressed="false">−</button><input type="number" inputmode="numeric" step="1" min="-2000" max="9999" placeholder="例 253" aria-label="' + esc(lab) + 'の点棒（百点単位）"><span>00</span>';
     const inp = inw.querySelector('input');
     inp.value = (raws[i] === null || raws[i] === undefined) ? '' : raws[i] / 100;
+    inp.dataset.pv = inp.value;   // 元の値（入力済みの卓は送ってあった点棒）。自動の欄を決め直すときに戻す
     const pt = document.createElement('div'); pt.className = 'pt';
     row.append(inw, pt);
     box.appendChild(row);
@@ -728,7 +729,7 @@ function fillSeats() {
   $('qsend').disabled = locked || ph; $('qclear').disabled = locked || !rec;
   box.querySelectorAll('.seat').forEach(row => {
     const inp = row.querySelector('input'), sign = row.querySelector('.sign');
-    // 自動の欄を手で打つと手入力に変わる。自動の欄を押したら全選択（打てば置き換わる）
+    // 打った欄は「この卓で打った欄」（typed）になる（自動の欄に打っても同じ）。自動の欄を押したら全選択（打てば置き換わる）
     // 範囲外（min〜max を超える・小数）になる入力は受け付けず、直前の値に戻す（2530 のような打ち間違いを入れさせない）
     inp.addEventListener('input', () => {
       // 「−」を先に押してあれば、打った数をマイナスにする（スマホの数字キーにはマイナスがない）
@@ -737,7 +738,7 @@ function fillSeats() {
       const v = inp.value.trim(), u = Number(v);
       if (v !== '' && (!Number.isInteger(u) || u < Number(inp.min) || u > Number(inp.max))) { inp.value = inp.dataset.good || ''; return; }
       if (!inp.validity.badInput) inp.dataset.good = inp.value;
-      EDITING = true; delete inp.dataset.auto; inp.classList.remove('auto'); autoFill(); preview();
+      EDITING = true; inp.dataset.typed = '1'; delete inp.dataset.auto; inp.classList.remove('auto'); autoFill(); preview();
     });
     inp.addEventListener('blur', () => { autoFill(); preview(); });
     inp.addEventListener('focus', () => { EDITING = true; inp.dataset.good = inp.value; if (inp.dataset.auto) inp.select(); });
@@ -750,7 +751,7 @@ function fillSeats() {
       else {
         const u = -Number(v);
         if (!Number.isInteger(u) || u < Number(inp.min) || u > Number(inp.max)) { say('qmsg', '範囲（−2000〜9999）を超えるため、' + (u < 0 ? 'マイナスにできません' : 'プラスに戻せません'), false); return; }
-        inp.value = String(u); inp.dataset.good = inp.value;
+        inp.value = String(u); inp.dataset.good = inp.value; inp.dataset.typed = '1';
         delete inp.dataset.auto; inp.classList.remove('auto');
       }
       autoFill(); preview();
@@ -758,17 +759,19 @@ function fillSeats() {
   });
   autoFill(); preview();
 }
-// 人数−1人ぶんが入ったら、残る1人を「卓の合計 − ほかの合計」で埋める。
-// 打とうとしている空欄（フォーカス中）は埋めない（force は送信時）。条件が崩れたら自動の値は消す
+// 残る1人を「卓の合計 − ほかの合計」で埋める。埋める欄＝空いた欄がちょうど1つならその欄。
+// 空いた欄がなく、この卓で打った欄（typed）が人数−1なら、打っていない欄（入力済みの卓を直すときの、元の点棒のままの欄）。
+// 自動の欄は、いったん元に戻してから決め直す（打って空けた欄は空へ、ほかは元の値 pv へ）。
+// 打とうとしている欄（フォーカス中）は埋めない（force は送信時）
 function autoFill(force) {
   const ins = [...document.querySelectorAll('#seats input')], N = ins.length;
   if (N < 3 || isLocked(qround.value)) return;
-  const manual = ins.filter(i => !i.dataset.auto && i.value.trim() !== '');
-  const units = manual.map(i => Number(i.value));
-  const ok = manual.length === N - 1 && units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999);
-  const target = ok ? ins.find(i => !manual.includes(i)) : null;
-  ins.forEach(i => { if (i.dataset.auto && i !== target) { i.value = ''; delete i.dataset.auto; i.classList.remove('auto'); } });
-  if (!target || (!force && !target.dataset.auto && target === document.activeElement)) return;
+  ins.forEach(i => { if (i.dataset.auto) { i.value = i.dataset.typed ? '' : (i.dataset.pv || ''); delete i.dataset.auto; i.classList.remove('auto'); } });
+  const blank = ins.filter(i => i.value.trim() === ''), typed = ins.filter(i => i.dataset.typed && i.value.trim() !== '');
+  const target = blank.length === 1 ? blank[0] : !blank.length && typed.length === N - 1 ? ins.find(i => !typed.includes(i)) : null;
+  if (!target || (!force && target === document.activeElement)) return;
+  const units = ins.filter(i => i !== target).map(i => Number(i.value));
+  if (!units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999)) return;
   target.value = CFG.start * N / 100 - units.reduce((a, b) => a + b, 0);
   target.dataset.auto = '1'; target.classList.add('auto'); delete target.dataset.neg;
 }

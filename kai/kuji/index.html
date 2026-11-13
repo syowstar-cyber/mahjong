@@ -141,7 +141,7 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
     <summary>運営の入力（入れるのは1人だけ）</summary>
     <p id="lfpre" class="small" hidden></p>
     <form id="liveform" autocomplete="off">
-      <p class="small">局が終わるたびに、これから打つ局と、いまの点棒を入れて送ります。点棒は1人を空けると、その人の分が自動で入ります。見ている人の画面には、30秒ほどで出ます。</p>
+      <p class="small">局が終わるたびに、これから打つ局と、いまの点棒を入れて送ります。点棒の欄には、前の局の点棒が入っています。2人分を打つか、1人を空けると、残りの1人は自動で入ります。見ている人の画面には、30秒ほどで出ます。</p>
       <div class="lvlab">席（東1局の並び。最初に1回）</div>
       <div class="lv3" id="lfseat"></div>
       <div class="lv3">
@@ -718,7 +718,7 @@ function doneHtml(rec, ctx, n) {
 }
 
 // ---- 9章: 運営の入力 ----
-// 席（東1局の東・南・西）・これから打つ局・本場・供託・いまの点棒（百点単位。1人を空けると自動）を送る。
+// 席（東1局の東・南・西）・これから打つ局・本場・供託・いまの点棒（百点単位。2人を打つか1人を空けると、残りの1人は自動）を送る。
 // 受け口の live が変わったら、入れかけでなければ、欄をその値に合わせ直す（読み直しで入れかけを消さない）
 const SEAT_LABEL = ['東（起家）', '南', '西'];
 let LF_DIRTY = false, LF_KEY = '';
@@ -739,11 +739,12 @@ function fillLiveForm(ctx) {
   if (!LF_DIRTY && key !== LF_KEY) {
     LF_KEY = key;
     const v = liveState(ctx), s = v && !v.bad ? v : null;
+    // 点棒の欄には、いまの点棒（前の局の点棒）を前の値 pv として入れる。この局で打った印（typed）と自動の印は消す
     [0, 1, 2].forEach(i => {
       $('lfs' + i).value = s ? s.seats[i] : '';
-      const r = $('lfr' + i); r.value = String((s ? s.raw[i] : CFG.start) / 100); delete r.dataset.auto; r.classList.remove('auto');
+      const r = $('lfr' + i); r.value = r.dataset.pv = String((s ? s.raw[i] : CFG.start) / 100);
+      delete r.dataset.auto; delete r.dataset.typed; r.classList.remove('auto');
     });
-    $('lfr2').dataset.auto = '1'; $('lfr2').classList.add('auto');
     $('lfkyoku').value = String(s ? s.kyoku : 0);
     $('lfhonba').value = String(s ? s.honba : 0);
     $('lfkyotaku').value = String(s ? s.kyotaku : 0);
@@ -754,25 +755,32 @@ function fillLiveForm(ctx) {
 }
 // 点棒の欄の見出しは、選んだ人の名前（選ぶ前は席）
 function lfLabels() { [0, 1, 2].forEach(i => { const p = $('lfs' + i) ? $('lfs' + i).value : ''; $('lfl' + i).textContent = p ? dn(p) : SEAT_LABEL[i]; }); }
-// 点棒の自動: 2人に数が入っていれば、空いている1人を「持ち点の合計−供託−2人」にする（score/index.html の autoFill と同じ考え方）
-function lfAuto() {
+// 点棒の自動: 残る1人を「持ち点の合計−供託−ほかの2人」にする（score/index.html の autoFill と同じ考え方）。
+// 埋める欄＝空いた欄がちょうど1つならその欄。空いた欄がなく、この局で打った欄（typed）が2つなら、打っていない欄（前の局の点棒のままの欄）。
+// 自動の欄は、いったん元に戻してから決め直す（打って空けた欄は空へ、ほかは前の局の点棒 pv へ）。
+// 打とうとしている欄（フォーカス中）は埋めない（消して打ち直すときに、消したそばから埋まらないように。force は送信時）
+function lfAuto(force) {
   const ins = [0, 1, 2].map(i => $('lfr' + i)), ky = numOf($('lfkyotaku').value);
-  const manual = ins.filter(i => !i.dataset.auto && i.value.trim() !== ''), units = manual.map(i => numOf(i.value));
-  const ok = manual.length === MODE - 1 && units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999) && ky >= 0 && ky <= 99;
-  const target = ok ? ins.find(i => !manual.includes(i)) : null;
-  ins.forEach(i => { if (i.dataset.auto && i !== target) { i.value = ''; delete i.dataset.auto; i.classList.remove('auto'); } });
-  if (!target) return;
+  ins.forEach(i => { if (i.dataset.auto) { i.value = i.dataset.typed ? '' : (i.dataset.pv || ''); delete i.dataset.auto; i.classList.remove('auto'); } });
+  const blank = ins.filter(i => i.value.trim() === ''), typed = ins.filter(i => i.dataset.typed && i.value.trim() !== '');
+  const target = blank.length === 1 ? blank[0] : !blank.length && typed.length === MODE - 1 ? ins.find(i => !typed.includes(i)) : null;
+  if (!target || (!force && target === document.activeElement)) return;
+  const units = ins.filter(i => i !== target).map(i => numOf(i.value));
+  if (!units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999) || !(ky >= 0 && ky <= 99)) return;
   target.value = String((CFG.start * MODE - 1000 * ky) / 100 - units.reduce((a, b) => a + b, 0));
   target.dataset.auto = '1'; target.classList.add('auto');
 }
 $('liveform').addEventListener('input', ev => {
   LF_DIRTY = true;
-  // 自動の欄に打ったら、その欄は手で入れた欄になる
-  if (ev.target.dataset && ev.target.dataset.auto) { delete ev.target.dataset.auto; ev.target.classList.remove('auto'); }
+  // 点棒の欄に打ったら、その欄は「この局で打った欄」（自動の欄に打っても同じ）
+  const t = ev.target;
+  if (t && /^lfr\d$/.test(t.id)) { t.dataset.typed = '1'; delete t.dataset.auto; t.classList.remove('auto'); }
   lfAuto(); lfLabels();
   const ps = [0, 1, 2].map(i => $('lfs' + i) ? $('lfs' + i).value : '').filter(Boolean);
   $('lfwarn').textContent = new Set(ps).size < ps.length ? '同じ人が2つの席に選ばれています。' : '';
 });
+// 欄を離れたら決め直す（空けたまま離れた欄は、ここで自動で埋まる）
+$('liveform').addEventListener('focusout', () => lfAuto());
 const LIVE_ERR = { action: '受け口がまだ実況に対応していません。主催が受け口の新しいバージョンをデプロイすると送れます', live: '送り方が不正です', player: '席の人の指定が不正です', score: '点棒の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', kai: '回の名前（大会設定）が不正です', bad_json: '送り方が不正です' };
 async function postLive(live) {
   const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'live', kai: CFG.kai, live }) });
@@ -782,7 +790,7 @@ $('liveform').addEventListener('submit', async ev => {
   ev.preventDefault();
   if (!API) { say('lfmsg', '点数の受け口が設定されていません', false); return; }
   if (liveCtx().wait) return;
-  lfAuto();
+  lfAuto(true);
   const seats = [0, 1, 2].map(i => $('lfs' + i).value);
   if (seats.some(p => !p) || new Set(seats).size < MODE) { say('lfmsg', '席に3人を1人ずつ選んでください', false); return; }
   const kyoku = Number($('lfkyoku').value), honba = numOf($('lfhonba').value), kyotaku = numOf($('lfkyotaku').value), end = $('lfend').checked;
