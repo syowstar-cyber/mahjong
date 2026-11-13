@@ -60,7 +60,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <div class="wrap">
   <header>
     <h1 id="ttl">🀄 三麻Halu杯 点数早見表</h1>
-    <div class="sub">草案（2026-11-11）。3人麻雀・ツモ損なしの点数です。</div>
+    <div class="sub">草案（2026-11-14）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
@@ -90,6 +90,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <h3>決まり</h3>
 <ul>
 <li>ロンの点の半分に100点未満が出るときは、100点に切り上げます。例: 子の40符1翻はロン1,300点なので、ツモは半分の650点を切り上げて、700点ずつです。</li>
+<li>平和ツモは20符です。20符のロンはありませんが、20符で数えたロンの点の半分を払います。例: 子の20符2翻は、1,300点の半分650点を切り上げて700点ずつです。</li>
 <li>翻は、ドラも入れたふつうの数です。符の数え方は<a href="rule.html#s10">ルールの10章</a>です。</li>
 </ul>
 <h3>表の見方</h3>
@@ -114,7 +115,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 </tbody></table></div>
 <ul>
 <li>4翻30符から上と、3翻60符から上も満貫です（切り上げ満貫）。</li>
-<li>役満の役がなくても、13翻以上は役満です（数え役満）。数え役満は、何翻でも役満1つ分です。ダブル役満は2倍です。</li>
+<li>役満の役がなくても、13翻以上は役満です（数え役満）。数え役満は、何翻でも役満1つ分です。ダブル役満は2倍、トリプル役満は3倍です。</li>
 </ul>
 
 <h2 id="t3">3. 子のアガリ（満貫まで）</h2>
@@ -227,12 +228,13 @@ const fmt = n => n.toLocaleString('ja-JP');
 // ツモ損なし: ツモは、ロンの点を残りの2人で折半し、100点未満は切り上げる（麻雀格闘倶楽部の三人打ちと同じ。子のツモも親のツモも2人は同じ点）。
 // 切り上げ満貫あり・数え役満あり（13翻からは役満の y1 を選ぶ。2026-11-11 から）。下の表と同じ数になる
 const FU = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
-const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11・12翻）'], ['y1', '役満（数え役満の13翻〜も）'], ['y2', 'ダブル役満']];
+const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11・12翻）'], ['y1', '役満（数え役満の13翻〜も）'], ['y2', 'ダブル役満'], ['y3', 'トリプル役満']];
 const up100 = v => Math.ceil(v / 100) * 100;
 // 基本点（符×2の(翻+2)乗）。満貫から上は決まった数
 function basePts(fu, han) {
   if (han === 'y1') return 8000;
   if (han === 'y2') return 16000;
+  if (han === 'y3') return 24000;
   const h = Number(han);
   if (h >= 11) return 6000;
   if (h >= 8) return 4000;
@@ -241,7 +243,7 @@ function basePts(fu, han) {
   const b = fu * Math.pow(2, h + 2);
   return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
 }
-const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満' })[b] || '';
+const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満', 24000: 'トリプル役満' })[b] || '';
 // 符の選択肢。平和ツモの20符はツモのときだけ出す（ロンに切り替えて20符が消えたら30符にする）
 function fillFu() {
   const sel = $('cf'), tsumo = $('ck').value[1] === 't', was = sel.value;
@@ -249,11 +251,12 @@ function fillFu() {
   FU.filter(f => tsumo || f !== 20).forEach(f => sel.appendChild(new Option(f + '符' + (f === 20 ? '（平和ツモ）' : f === 25 ? '（七対子）' : ''), String(f))));
   sel.value = [...sel.options].some(o => o.value === was) ? was : '30';
 }
-// ない組み合わせ（20符は平和ツモだけで2翻から。25符は七対子だけで2翻から。七対子のツモは3翻から）。満貫から上は符を見ない
+// ない組み合わせ（20符は平和ツモだけで2翻から。25符は七対子だけで2翻から。七対子のツモは3翻から。1翻は100符まで＝表と同じ。2026-11-14）。満貫から上は符を見ない
 function noHand(kind, fu, han) {
   const h = Number(han), tsumo = kind[1] === 't';
   if (!(h <= 4)) return '';
   if (fu === 20 && h < 2) return '20符は平和ツモだけで、2翻からです。';
+  if (fu === 110 && h < 2) return '1翻は100符までです。';
   if (fu === 25 && h < 2) return '25符は七対子だけで、2翻からです。';
   if (fu === 25 && tsumo && h < 3) return '七対子のツモは、3翻からです。';
   return '';
