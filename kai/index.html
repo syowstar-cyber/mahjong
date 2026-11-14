@@ -269,7 +269,7 @@ const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => A
 function renderSched() {
   const s = schedRows(), memo = str(CFG.schedule_note);
   // 結果が出たら出さない（2026-11-14 主催）
-  $('schedbox').hidden = !s.length || resultDone();
+  $('schedbox').hidden = !s.length || endView();
   $('schedmemo').hidden = !(s.length && memo); $('schedmemo').textContent = memo;
   if (!s.length) { $('schednote').textContent = ''; return; }
   const isToday = CFG.date === today();
@@ -310,7 +310,7 @@ function renderInfo() {
   $('whererow').hidden = !place;
   renderPlace(place, str(CFG.address));
   // 結果が出たら出さない（2026-11-14 主催）
-  $('info').hidden = (!day && !place) || resultDone();
+  $('info').hidden = (!day && !place) || endView();
 }
 function renderPlace(place, addr) {
   const box = $('where'); box.innerHTML = '';
@@ -350,9 +350,11 @@ function render() {
   renderInfo();
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
+  if (DATA_ST === 'ok') rememberEnd(resultDone());
   // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルールと早見表は出さない（pageLinks は render より先に呼ばれる）。
-  // 自分の卓の欄は名前を選ぶ所だけにして、ページの一番上（結果の上）へ回す（見出し・自分の表・最新に更新・席の決まりは出さない）。一番下の QR コードも出さない
-  const end = resultDone();
+  // 自分の卓の欄は名前を選ぶ所だけにして、ページの一番上（結果の上）へ回す（見出し・自分の表・最新に更新・席の決まりは出さない）。一番下の QR コードも出さない。
+  // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView）
+  const end = endView();
   if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
   if (end) $('result').before($('mecard')); else $('mineh').after($('mecard'));
   ['mineh', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
@@ -404,6 +406,12 @@ const junniOn = () => !!(CFG && CFG.final.tables > 0 && CFG.final.junni === 1);
 const isJunniT = (r, t) => junniOn() && String(r) === 'F1' && Number(t) > CFG.final.tables;
 const recOf = (r, t) => recsOf(r)[String(t)] || null;
 const resultDone = () => { const f = FINALS[FINALS.length - 1]; return !!(DATA && f && CFG.final.tables > 0) && Array.from({ length: CFG.final.tables }, (_, i) => recOf(f, i + 1)).every(Boolean); };
+// 結果が出たことを、この端末に覚える（覚えるのは回の名前だけ。名前・点数は覚えない。キーは点数入力・対戦表・幹部用と同じ）。
+// 受け口をまだ読めていない間と、読めなかったときも、前に結果を見た端末では結果の後の形で出す（2026-11-14 主催「元に戻ってる」）。受け口を読めたら resultDone だけで決める
+const END_KEY = 'halukai:end:' + G;
+const endSeen = () => { try { return !!CFG && localStorage.getItem(END_KEY) === CFG.kai; } catch (e) { return false; } };
+const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
+const endView = () => resultDone() || (DATA_ST !== 'ok' && endSeen());
 function junniSplit(n, mode) {
   const k = Math.floor(n / mode), add = mode === 3 ? Math.min(n - k * mode, k) : 0;
   return Array.from({ length: k }, (_, i) => mode + (i >= k - add ? 1 : 0));
@@ -478,8 +486,13 @@ function finalRanking() {
 // 優勝（大きく）・決勝の2位から下・自分の順位・最終順位の表（自分の名前に色）
 function renderResult() {
   const box = $('result'), rows = resultDone() ? finalRanking() : [];
-  box.hidden = !rows.length;
-  if (!rows.length) { box.innerHTML = ''; return; }
+  box.hidden = !rows.length && !endView();
+  if (!rows.length) {
+    // 前に結果を見た端末で、受け口をまだ読めていないとき（読み込み中・通信の失敗）は、結果の欄に様子だけ出す
+    box.innerHTML = box.hidden ? '' : '<div class="lab">結果</div>' + (DATA_ST === 'ng' ? '<p class="warn">結果を読めませんでした（通信）。</p><button class="ghost" type="button" id="rretry">もう一度読む</button>' : '<p class="small">結果を読み込んでいます…</p>');
+    if ($('rretry')) $('rretry').addEventListener('click', load);
+    return;
+  }
   const top = rows.filter(x => x.rank === 1), all = PRELIM.concat(FINALS).every(isLocked);
   const sub = x => esc(x.how) + ' ' + esc(x.val);
   let h = '<div class="lab">結果' + (all ? '（確定）' : '') + '</div>'
@@ -541,7 +554,7 @@ function progress() {
 // 一番上の「次は」。抜け番・お休みの半荘なら、その次に打つ卓も出す。予選がぜんぶ済んだら、決勝の卓の出る所を出す
 function renderNext() {
   // 結果が出たら「次は」は出さない
-  if (resultDone()) { $('next').hidden = true; $('next').innerHTML = ''; return; }
+  if (endView()) { $('next').hidden = true; $('next').innerHTML = ''; return; }
   const box = $('next'), pg = progress();
   box.innerHTML = ''; box.hidden = !pg || !pg.list.length;
   if (box.hidden) return;
@@ -720,7 +733,7 @@ function needRaw(r, need) {
 function renderLine() {
   const box = $('linebox'), out = $('line'), K = lineK(), p = ME;
   // 結果が出たら出さない（2026-11-14 主催）
-  box.hidden = !lineShow() || !String(CFG.api || '').trim() || resultDone();
+  box.hidden = !lineShow() || !String(CFG.api || '').trim() || endView();
   if (box.hidden) return;
   $('lineh').textContent = K + '位ライン（決勝に行ける目安）';
   if (!p) { out.innerHTML = '<p class="small">上の「自分の名前」を選ぶと、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
@@ -929,6 +942,21 @@ if (G_OK) {
 
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+// 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
+// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
+async function getApi(u) {
+  for (let i = 0; ; i++) {
+    const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), 15000) : 0;
+    try {
+      const r = await fetch(bust(u), ac ? { cache: 'no-store', signal: ac.signal } : { cache: 'no-store' });
+      if (!r.ok) throw new Error('http ' + r.status);
+      return await r.json();
+    } catch (e) {
+      if (i >= 2) throw e;
+      await new Promise(res => setTimeout(res, 2000 * (i + 1)));
+    } finally { clearTimeout(tm); }
+  }
+}
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 // URL の # の場所へ（対戦表の「決勝ライン」から来たとき。#lineh）。本文は読み込みの後に出るので、ブラウザが自分では飛べない。
 // 飛んだ後の画面の位置を返す（その場所がなければ null）
@@ -973,7 +1001,7 @@ async function load() {
   JUMPED = true;
   if (!api) return;
   try {
-    const j = await getJson(api + '?kai=' + encodeURIComponent(c.kai));
+    const j = await getApi(api + '?kai=' + encodeURIComponent(c.kai));
     if (j.ok && j.data && j.data.kai === c.kai) {
       ROSTER = j.data.roster || {}; DATA = j.data; DATA_ST = 'ok';
       AGERANK = (j.data.agerank && typeof j.data.agerank === 'object') ? j.data.agerank : {};

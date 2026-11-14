@@ -164,7 +164,7 @@ function applyTheme(c) {
 function pageLinks(c) {
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? CONF + c[k] : '';
-    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
+    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u || endNow(); if (u) a.setAttribute('href', u); });
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
@@ -172,6 +172,13 @@ function pageLinks(c) {
 // 受け口が読めなかった読み直しでは、前に読めたときの答えのまま
 let END = false;
 const resultDone = (c, rounds) => { const f = c.final || {}, r = (rounds && rounds['F' + f.hanchan]) || {}; return f.tables > 0 && Number.isInteger(f.hanchan) && f.hanchan > 0 && Array.from({ length: f.tables }, (_, i) => r[String(i + 1)]).every(Boolean); };
+// 結果が出たことを、この端末に覚える（回の名前だけ。キーと考え方はトップページの endSeen・rememberEnd と同じ。どちらかを直したら、もう片方も直す）。
+// 受け口をまだ一度も読めていない間と読めなかったときは、前に結果を見た端末なら結果の後の形で出す（2026-11-14 主催「元に戻ってる」）
+let GOT = false;   // 受け口を一度でも読めたか
+const END_KEY = 'halukai:end:' + G;
+const endSeen = () => { try { return !!CFG && localStorage.getItem(END_KEY) === CFG.kai; } catch (e) { return false; } };
+const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
+const endNow = () => END || (!GOT && endSeen());
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。名前（名簿）と出席は覚えない
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
@@ -383,6 +390,21 @@ function renderCfg() {
 
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+// 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
+// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
+async function getApi(u) {
+  for (let i = 0; ; i++) {
+    const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), 15000) : 0;
+    try {
+      const r = await fetch(bust(u), ac ? { cache: 'no-store', signal: ac.signal } : { cache: 'no-store' });
+      if (!r.ok) throw new Error('http ' + r.status);
+      return await r.json();
+    } catch (e) {
+      if (i >= 2) throw e;
+      await new Promise(res => setTimeout(res, 2000 * (i + 1)));
+    } finally { clearTimeout(tm); }
+  }
+}
 async function load() {
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
   let c;
@@ -401,7 +423,7 @@ async function load() {
   if (!API) UCHI_ST = 'none';
   if (API) {
     try {
-      const j = await getJson(API + '?kai=' + encodeURIComponent(c.kai));
+      const j = await getApi(API + '?kai=' + encodeURIComponent(c.kai));
       if (j.ok && j.data && j.data.kai === c.kai) {
         ROSTER = j.data.roster || {};
         BIRTH_OK = !!j.data.agerank && typeof j.data.agerank === 'object';
@@ -409,12 +431,12 @@ async function load() {
         // 打ち上げの回答（古い受け口は uchiage を返さない）
         const u = j.data.uchiage;
         UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
-        END = resultDone(c, j.data.rounds);
+        END = resultDone(c, j.data.rounds); GOT = true; rememberEnd(END);
       }
     }
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
-  if (END) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
+  if (endNow()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;

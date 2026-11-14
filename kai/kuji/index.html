@@ -196,7 +196,7 @@ function applyTheme(c) {
 // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す
 // 結果が出たら（決勝の最後の半荘の決勝の卓がぜんぶ入ったら）、ルールと早見表は出さない（2026-11-14 主催。トップ・点数入力と同じ）
 function pageLinks(c) {
-  const end = resultDone();
+  const end = endView();
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u || end; if (u) a.setAttribute('href', u); });
@@ -204,7 +204,14 @@ function pageLinks(c) {
 }
 // 結果が出たか（トップページの resultDone と同じ）。受け口を読み直すたびに見る
 const resultDone = () => !!(CFG && CFG.final && CFG.final.tables > 0 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan > 0) && Array.from({ length: CFG.final.tables }, (_, i) => recsOf('F' + CFG.final.hanchan)[String(i + 1)]).every(Boolean);
-const hideRuleLinks = () => { if (resultDone()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); };
+// 結果が出たことを、この端末に覚える（回の名前だけ。キーと考え方はトップページの endSeen・rememberEnd・endView と同じ。どちらかを直したら、もう片方も直す）。
+// 受け口をまだ読めていない間と読めなかったときは、前に結果を見た端末なら結果の後の形で出す（2026-11-14 主催「元に戻ってる」）
+let LOADED = false;   // 受け口を一度でも読めたか
+const END_KEY = 'halukai:end:' + G;
+const endSeen = () => { try { return !!CFG && localStorage.getItem(END_KEY) === CFG.kai; } catch (e) { return false; } };
+const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
+const endView = () => resultDone() || (!LOADED && endSeen());
+const hideRuleLinks = () => { if (endView()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); };
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。型・組み合わせ・点数は覚えない（いつも新しく読む）
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
@@ -872,6 +879,7 @@ function take(d) {
   const was = JSON.stringify(ROSTER), waited = NAME_WAIT;
   NAME_WAIT = false;
   DATA = { rounds: d.rounds || {} }; AGERANK = d.agerank || {}; LIVE = d.live || null; ROSTER = d.roster || {};
+  LOADED = true; rememberEnd(resultDone());
   hideRuleLinks();
   PULL_AT = Date.now();
   $('lvat').textContent = '読み直し ' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 19);
@@ -904,6 +912,21 @@ function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(
 
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+// 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
+// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
+async function getApi(u) {
+  for (let i = 0; ; i++) {
+    const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), 15000) : 0;
+    try {
+      const r = await fetch(bust(u), ac ? { cache: 'no-store', signal: ac.signal } : { cache: 'no-store' });
+      if (!r.ok) throw new Error('http ' + r.status);
+      return await r.json();
+    } catch (e) {
+      if (i >= 2) throw e;
+      await new Promise(res => setTimeout(res, 2000 * (i + 1)));
+    } finally { clearTimeout(tm); }
+  }
+}
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 // 上の移動のボタン「決勝ライン」の飛び先は、トップの K位ラインの欄（2026-11-03 に目安を点数入力ページからトップへ移した）。
 // 出すのは、トップにその欄が出る会だけ（決勝と受け口があり、まだ全部の半荘が確定していない。index.html の renderLine と同じ条件）
@@ -954,7 +977,7 @@ async function load() {
   API = String(c.api || '').trim();
   if (API) {
     try {
-      const j = await getJson(API + '?kai=' + encodeURIComponent(c.kai));
+      const j = await getApi(API + '?kai=' + encodeURIComponent(c.kai));
       if (j.ok && j.data && j.data.kai === c.kai) take(j.data);
     } catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); setup(notes.join(' ')); }
     // 名前を読めなかったとき（通信・返事の形が違う）は、「読み込み中」を消す
