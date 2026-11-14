@@ -64,6 +64,7 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 /* 決勝ライン（自分の名前の目安）。段落の間を詰める */
 #line p{margin:8px 0}#line>p:first-child{margin-top:0}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.tools[hidden]{display:none}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
 .warn{color:var(--ng);font-weight:700}
@@ -120,16 +121,16 @@ details[open]>summary{margin-bottom:8px}
     <div class="info" id="whererow"><span class="k">場所</span><span class="v" id="where"></span></div>
   </div>
   <h2 id="mineh">自分の席</h2>
-  <div class="card">
+  <div class="card" id="mecard">
     <label for="me">自分の名前</label>
     <select id="me"></select>
     <div id="mine" style="margin-top:10px"></div>
-    <div class="tools">
+    <div class="tools" id="metools">
       <button class="ghost" type="button" id="reload">最新に更新</button>
       <span class="small" id="updated"></span>
     </div>
   </div>
-  <ul class="small" style="padding-left:1.3em;margin:8px 0 12px">
+  <ul class="small" id="minenote" style="padding-left:1.3em;margin:8px 0 12px">
     <li id="seatnote">東が起家です。</li>
     <li id="finnote" hidden></li>
   </ul>
@@ -348,8 +349,13 @@ function render() {
   renderInfo();
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
-  // 結果が出たら、切り替えボタンのルールと早見表も出さない（2026-11-14 主催）。pageLinks は render より先に呼ばれる
-  if (resultDone()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
+  // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルールと早見表は出さない（pageLinks は render より先に呼ばれる）。
+  // 自分の卓の欄は名前を選ぶ所だけにして、ページの一番上（結果の上）へ回す（見出し・自分の表・最新に更新・席の決まりは出さない）。一番下の QR コードも出さない
+  const end = resultDone();
+  if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
+  if (end) $('result').before($('mecard')); else $('mineh').after($('mecard'));
+  ['mineh', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
+  $('qrbox').hidden = end || !$('qrimg').innerHTML;
   renderNext();
   renderMine();
   renderUpdated();

@@ -167,6 +167,10 @@ function pageLinks(c) {
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
+// 結果が出たか（決勝の最後の半荘の決勝の卓がぜんぶ入った）。出たら、切り替えボタンのルールと早見表を出さない（トップ・点数入力・対戦表の resultDone と同じ。どちらかを直したら、もう片方も直す。2026-11-14 主催）。
+// 受け口が読めなかった読み直しでは、前に読めたときの答えのまま
+let END = false;
+const resultDone = (c, rounds) => { const f = c.final || {}, r = (rounds && rounds['F' + f.hanchan]) || {}; return f.tables > 0 && Number.isInteger(f.hanchan) && f.hanchan > 0 && Array.from({ length: f.tables }, (_, i) => r[String(i + 1)]).every(Boolean); };
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。名前（名簿）と出席は覚えない
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
@@ -404,10 +408,12 @@ async function load() {
         // 打ち上げの回答（古い受け口は uchiage を返さない）
         const u = j.data.uchiage;
         UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
+        END = resultDone(c, j.data.rounds);
       }
     }
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
+  if (END) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
