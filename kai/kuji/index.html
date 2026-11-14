@@ -235,6 +235,8 @@ function setTitle(t) { document.title = t + ' 対戦表'; $('ttl').textContent =
 let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
 // 受け口から読むもの（点数・年上からの順・決勝最終実況）と、受け口の URL
 let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
+// 受け口で確定した半荘（当日の操作で幹部用ページから付ける。古い受け口は返さないので空）。上の「決勝ライン」のボタンを出すかに使う（トップと同じ考え方）
+let GLOCK = [];
 // はじめの読み込みで、受け口の名前を待っている間（1章の表に「名前を読み込み中」と出す）
 let NAME_WAIT = false;
 const nm = p => (p && ROSTER[p]) || '';
@@ -887,6 +889,8 @@ function take(d) {
   const was = JSON.stringify(ROSTER), waited = NAME_WAIT;
   NAME_WAIT = false;
   DATA = { rounds: d.rounds || {} }; AGERANK = d.agerank || {}; LIVE = d.live || null; ROSTER = d.roster || {};
+  GLOCK = Array.isArray(d.locked) ? d.locked.map(String) : [];
+  $('jline').hidden = !lineOn(CFG);
   LOADED = true; rememberEnd(resultDone());
   hideRuleLinks();
   PULL_AT = Date.now();
@@ -937,11 +941,11 @@ async function getApi(u) {
 }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 // 上の移動のボタン「決勝ライン」の飛び先は、トップの K位ラインの欄（2026-11-03 に目安を点数入力ページからトップへ移した）。
-// 出すのは、トップにその欄が出る会だけ（決勝と受け口があり、まだ全部の半荘が確定していない。index.html の renderLine と同じ条件）
+// 出すのは、トップにその欄が出る会だけ（決勝と受け口があり、まだ全部の半荘が確定していない。確定は大会設定の locked と受け口の確定。index.html の renderLine と同じ条件）
 const topUrl = id => '../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '#' + id;
 const lineOn = c => {
   if (!(c.final && c.final.tables > 0) || !String(c.api || '').trim()) return false;
-  const lk = (c.locked || []).map(String);
+  const lk = (c.locked || []).map(String).concat(GLOCK);
   return !Array.from({ length: c.prelim }, (_, i) => String(i + 1)).concat(Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1))).every(r => lk.includes(r));
 };
 async function load() {

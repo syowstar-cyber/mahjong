@@ -261,6 +261,9 @@ const navShow = on => document.querySelectorAll('.pnav').forEach(n => { n.hidden
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 // 決勝ラインの計算に使う（load() で大会設定から入れる。点数入力ページと同じ名前）。DATA_ST＝受け口を読めたか（wait＝はじめの読み込み中・ok・ng）
 let MODE = 4, TOTAL = 100000, OKA = 0, PRELIM = [], FINALS = [], LOCKED = [], AGERANK = {}, DATA_ST = 'wait';
+// 当日の操作（幹部用ページから受け口に入れる）。SHIFT＝時刻ずらし（taikai.json の tojitsu が true の会だけ時間割に足す）、GLOCK＝受け口で確定した半荘（大会設定の locked と同じに扱う。allFixed には数えない）。
+// 古い受け口は返さない（空のまま）。useData で入れる
+let SHIFT = [], GLOCK = [];
 const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
@@ -296,25 +299,37 @@ const mins = t => { const [h, m] = String(t).split(':').map(Number); return h * 
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 const str = v => typeof v === 'string' ? v.trim() : '';
 const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
+// 当日の時刻ずらしを足した時刻。from は大会設定の時刻と比べる（ずらした後の時刻ではない）。ずらしの無い行は、書いたままの形で返す。
+// 幹部用の tojitsu・hhmm・shiftMin・shiftedT と同じ（どれかを直したら、ほかも直す）
+const tojitsu = () => !!(CFG && CFG.tojitsu === true);
+const hhmm = m => { m = Math.max(0, Math.min(1439, m)); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const shiftMin = t => tojitsu() ? SHIFT.reduce((a, s) => a + (mins(t) >= mins(s.from) ? s.min : 0), 0) : 0;
+const shiftedT = t => { const d = shiftMin(t); return d ? hhmm(mins(t) + d) : String(t); };
 function renderSched() {
   const s = schedRows(), memo = str(CFG.schedule_note);
   // 結果が出たら出さない（2026-11-14 主催）
   $('schedbox').hidden = !s.length || endView();
   $('schedmemo').hidden = !(s.length && memo); $('schedmemo').textContent = memo;
   if (!s.length) { $('schednote').textContent = ''; return; }
+  // ずらした後の時刻（ずらしの無い行は書いたまま）。ずらした行は、元の時刻も小さく出す（幹部用の時間割と同じ）
+  const st = s.map(r => shiftedT(r[0])), moved = st.some((v, i) => v !== s[i][0]);
   const isToday = CFG.date === today();
   let cur = -1;
-  if (isToday) { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); s.forEach((r, i) => { if (mins(r[0]) <= now) cur = i; }); }
+  if (isToday) { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); st.forEach((v, i) => { if (mins(v) <= now) cur = i; }); }
   const t = $('sched');
   t.innerHTML = '<thead><tr><th>時刻</th><th>内容</th></tr></thead>';
   const tb = document.createElement('tbody');
   s.forEach((r, i) => {
     const tr = document.createElement('tr'); if (i === cur) tr.className = 'now';
-    [r[0], r[1] + (i === cur ? '（いま）' : '')].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    const t1 = document.createElement('td'), t2 = document.createElement('td');
+    t1.textContent = st[i];
+    if (st[i] !== r[0]) { const o = document.createElement('div'); o.className = 'small'; o.textContent = '元 ' + r[0]; t1.appendChild(o); }
+    t2.textContent = r[1] + (i === cur ? '（いま）' : '');
+    tr.append(t1, t2);
     tb.appendChild(tr);
   });
   t.appendChild(tb);
-  $('schednote').textContent = isToday ? '色のついた行が、いまの時間です。時刻は目安です。' : '時刻は目安です。';
+  $('schednote').textContent = (isToday ? '色のついた行が、いまの時間です。' : '') + (moved ? '時刻を変えた行は、元の時刻を小さく出しています。' : '') + '時刻は目安です。';
 }
 // ページの一番上の日時と場所。日時は開催日（taikai.json の date）と、当日の流れの最初と「終了」の行の時刻。
 // 場所は taikai.json の place・address。地図はグーグルマップで住所を探す（郵便番号は外す）
@@ -328,8 +343,8 @@ function dayText(s) {
 function renderInfo() {
   const day = dayText(CFG.date), place = str(CFG.place), s = schedRows();
   // 「10:45 集合 〜 18:30 終了（目安）」。内容は「・」の前だけ（集合・受付・写真撮影 → 集合）。
-  // 終わりは「終了」で始まる行（その後の打ち上げは入れない）。なければ最後の行
-  const at = r => r[0] + ' ' + r[1].split('・')[0];
+  // 終わりは「終了」で始まる行（その後の打ち上げは入れない）。なければ最後の行。時刻は当日のずらしを足した時刻
+  const at = r => shiftedT(r[0]) + ' ' + r[1].split('・')[0];
   const end = s.find(r => r[1].startsWith('終了')) || s[s.length - 1];
   const when = $('when'); when.innerHTML = '';
   if (day) {
@@ -735,7 +750,8 @@ const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP'
 // ポイントは 0.1 単位の整数で持ち、表示で小数1桁にする（浮動小数の誤差を出さない）
 const fpt = n => (n === null || n === undefined) ? '' : (n > 0 ? '+' : n < 0 ? '−' : '') + (Math.abs(n) / 10).toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const isLocked = r => LOCKED.includes(String(r));
+// 確定した半荘＝大会設定の locked か、受け口の確定（当日の操作。GLOCK）。全部の半荘が確定したかの allFixed は、大会設定の locked だけで見る
+const isLocked = r => LOCKED.includes(String(r)) || GLOCK.includes(String(r));
 const recsOf = r => (DATA && DATA.rounds && DATA.rounds[r]) || {};
 const kumiRound = r => (KUMI && KUMI.rounds && KUMI.rounds[r]) || null;
 const restOf = r => { const k = kumiRound(r); return (k && Array.isArray(k.rest)) ? k.rest : []; };
@@ -1094,6 +1110,9 @@ function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 function useData(d) {
   ROSTER = d.roster || {}; DATA = d; DATA_ST = 'ok';
   AGERANK = (d.agerank && typeof d.agerank === 'object') ? d.agerank : {};
+  // 当日の操作（時刻ずらし・受け口の確定）。古い受け口は返さないので空
+  SHIFT = Array.isArray(d.shift) ? d.shift.filter(x => x && T_RE.test(String(x.from)) && Number.isInteger(x.min)) : [];
+  GLOCK = Array.isArray(d.locked) ? d.locked.map(String) : [];
   // 打ち上げの回答（古い受け口は uchiage を返さない）
   const u = d.uchiage;
   UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};

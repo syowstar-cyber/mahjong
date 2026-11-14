@@ -258,6 +258,8 @@ function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg
 
 let CFG = null, KUMI = null, KATA = null, DATA = { rounds: {}, roster: {}, updated: null }, ROSTER = {}, AGERANK = {};
 let MODE = 4, TOTAL = 100000, OKA = 0, API = '', PRELIM = [], FINALS = [], LOCKED = [];
+// 受け口で確定した半荘（当日の操作で幹部用ページから付ける）。大会設定の locked と同じに扱う（allFixed には数えない）。古い受け口は返さないので空。render で入れる
+let GLOCK = [];
 // 点棒の欄や選ぶ欄を触ったら true。自動更新で入力中の欄を作り直さない（送信・取り消し・卓の切り替えで false）
 let EDITING = false;
 // 半荘の選択: 受け口から初めて読んだときだけ、まだ全卓がそろっていない最初の半荘にする（人が選んだら動かさない）
@@ -270,7 +272,7 @@ const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';                              // 表示名（名前がなければ P番号）
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';     // 選ぶ欄（P番号＋名前）
 const isFinal = r => String(r).startsWith('F');
-const isLocked = r => LOCKED.includes(String(r));
+const isLocked = r => LOCKED.includes(String(r)) || GLOCK.includes(String(r));
 // 場決めあり（taikai.json の bakime）。席と起家は卓で決めるので、報告の欄は席（東・南・西・北）を出さず、その卓の人の名前だけを出す（2026-11-02 主催）。
 // 並びは席ではない＝同点で0.1が割り切れないときの「起家に近い方」は使えない（README の bakime）
 const bakime = () => !!(CFG && CFG.bakime === true);
@@ -329,6 +331,7 @@ function checkCfg(c) {
   return e;
 }
 function applyCfg(c, k, kt) {
+  if (CFG && CFG.kai !== c.kai) GLOCK = [];   // 前の回の受け口の確定は持ち越さない
   CFG = c; KUMI = k; KATA = kt || null;
   applyTheme(c);
   pageLinks(c);
@@ -340,8 +343,12 @@ function applyCfg(c, k, kt) {
   FINALS = c.final.tables > 0 ? Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1)) : [];
   LOCKED = (c.locked || []).map(String);
   setTitle(c.title);
-  const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, k ? k.rounds : null, KATA ? KATA.rounds : null, !!c.bakime, c.tobi === true, c.doten || '']);
-  // 入力中は作り直さない（次の読み込みでもう一度比べる）
+  reshape();
+}
+// 大会設定・組み合わせ・確定（受け口の確定も）の形が変わったときだけ、半荘の選択肢や表の見出しを作り直す。入力中は作り直さない（次の読み込みでもう一度比べる）
+function reshape() {
+  const c = CFG, k = KUMI;
+  const shape = JSON.stringify([c.kai, MODE, c.players, c.prelim, c.final, c.tables || [], c.start, c.return, c.uma, LOCKED, GLOCK, k ? k.rounds : null, KATA ? KATA.rounds : null, !!c.bakime, c.tobi === true, c.doten || '']);
   if (shape !== SHAPE && !EDITING) { SHAPE = shape; buildStatic(); }
 }
 
@@ -879,6 +886,8 @@ $('qsend').addEventListener('click', async () => {
     if (!j.ok) {
       // 断られたときは、ほかの端末が先に送っている＝画面が古い。打ちかけの欄を捨てて、最新の状態を出し直す
       if (j.error === 'dup') { if (j.data) { EDITING = false; render(j.data); } say('qmsg', (j.players || []).map(dn).join('・') + ' は、この半荘のほかの卓にもう入っています。半荘と卓を確かめてください', false); return; }
+      // 幹部用ページで、この半荘が確定された後（画面が古い）。最新の状態を出し直す
+      if (j.error === 'locked') { if (j.data) { EDITING = false; render(j.data); } say('qmsg', LOCKED_TEXT, false); return; }
       say('qmsg', ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください（送り直すと上書きされます）', false); return;
     }
     const tl = whereText(r, t);
@@ -894,6 +903,7 @@ $('qclear').addEventListener('click', async () => {
   BTNS().forEach(b => { b.disabled = true; });
   try {
     const j = await post({ action: 'clear', kai: CFG.kai, round: r, table: Number(t) }).catch(() => ({ ok: false, error: 'net' }));
+    if (!j.ok && j.error === 'locked') { if (j.data) { EDITING = false; render(j.data); } say('qmsg', LOCKED_TEXT, false); return; }
     if (!j.ok) { say('qmsg', ERR[j.error] || '取り消しに失敗しました。少し待ってから、もう一度押してください', false); return; }
     EDITING = false; render(j.data); say('qmsg', '取り消しました', true);
   } finally { BTNS().forEach(b => { b.disabled = false; }); fillSeatsButtons(); }
@@ -915,6 +925,9 @@ function render(d) {
   if (d && d.rounds) LOADED = true;
   ROSTER = DATA.roster || {};
   AGERANK = (DATA.agerank && typeof DATA.agerank === 'object') ? DATA.agerank : {};
+  // 受け口の確定（当日の操作）。変わったら、半荘の選択肢の「（確定）」と表の見出しを作り直す
+  GLOCK = d && Array.isArray(d.locked) ? d.locked.map(String) : [];
+  reshape();
   hideRuleLinks();
   entryState();
   $('updated').textContent = !API ? '' : DATA.updated ? '最終更新 ' + DATA.updated : 'まだ報告がありません';
