@@ -214,6 +214,8 @@ function setTitle(t) { document.title = t + ' 対戦表'; $('ttl').textContent =
 let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
 // 受け口から読むもの（点数・年上からの順・決勝最終実況）と、受け口の URL
 let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
+// はじめの読み込みで、受け口の名前を待っている間（1章の表に「名前を読み込み中」と出す）
+let NAME_WAIT = false;
 const nm = p => (p && ROSTER[p]) || '';
 const dn = p => nm(p) || p || '';
 const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';
@@ -340,6 +342,8 @@ function lotteryHtml(seed, tag) {
 // ---- 1章・8章: 本番の結果 ----
 function renderResult() {
   const box = $('result'), lot = $('lottery');
+  // 人が開けた「半荘ごとの組み合わせ」は、名前が届いて出し直すときも開けたままにする（トップページと同じ。2026-11-14）
+  const opened = !!(box.querySelector('details.kumi') || {}).open;
   if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは、下の「くじの説明」を開くと、「4. 計算してみる」で仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   const want = roundsOf(draw(seedOf(N4))), now = (KUMI && KUMI.rounds) || {}, ks = kataKeys();
@@ -353,7 +357,7 @@ function renderResult() {
     h += '<p>' + (from > 1 ? (from - 1) + '半荘目までは、型と本番の番号のとおりです。' : '') + from + '半荘目からは、当日の組み直しです' + (outs.length ? '（お休み: ' + outs.map(p => esc(dn(p))).join('・') + '）' : '') + '。組み直しでも、くじで決まった枠と No. の組は変えません。</p>';
   }
   // 対戦表（いまの組み合わせ。当日に組み直したら、組み直した後の表）。トップページの「半荘ごとの組み合わせ」と同じ表なので、たたんで出す
-  h += '<details class="card"><summary>半荘ごとの組み合わせ（予選' + Object.keys(now).length + '半荘・トップページと同じ）</summary>' + roundTables(now, dn) + '</details>';
+  h += '<details class="card kumi"' + (opened ? ' open' : '') + '><summary>半荘ごとの組み合わせ（予選' + Object.keys(now).length + '半荘・トップページと同じ）</summary>' + (NAME_WAIT ? '<p class="small">名前を読み込み中です。数秒で、番号が名前に変わります。</p>' : '') + roundTables(now, dn) + '</details>';
   if (restOrOut(now)) h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
   h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">トップページ</a>で見られます。</p>';
   box.innerHTML = h;
@@ -823,11 +827,12 @@ $('lfclear').addEventListener('click', async () => {
 // 受け口の返事を持つ（点数・名簿・年上からの順・決勝最終実況）。名前が変わったときだけ、全部を出し直す
 let PULL_AT = 0;
 function take(d) {
-  const was = JSON.stringify(ROSTER);
+  const was = JSON.stringify(ROSTER), waited = NAME_WAIT;
+  NAME_WAIT = false;
   DATA = { rounds: d.rounds || {} }; AGERANK = d.agerank || {}; LIVE = d.live || null; ROSTER = d.roster || {};
   PULL_AT = Date.now();
   $('lvat').textContent = '読み直し ' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 19);
-  if (JSON.stringify(ROSTER) !== was) renderAll(); else renderLive();
+  if (waited || JSON.stringify(ROSTER) !== was) renderAll(); else renderLive();
 }
 // 読み直し。開催日だけ、画面に出ているときに、決勝の最後の半荘の間は30秒ごと・ほかは2分ごと（受け口の読み取りは1日の回数に上限があるため。ほかの日は読み直さない）
 async function pull() {
@@ -901,6 +906,7 @@ async function load() {
   if (N4 && !$('n4').value) $('n4').value = N4;
   setup(notes.join(' '));
   $('main').hidden = false;
+  NAME_WAIT = !!String(c.api || '').trim();
   renderAll();
   API = String(c.api || '').trim();
   if (API) {
@@ -908,6 +914,8 @@ async function load() {
       const j = await getJson(API + '?kai=' + encodeURIComponent(c.kai));
       if (j.ok && j.data && j.data.kai === c.kai) take(j.data);
     } catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); setup(notes.join(' ')); }
+    // 名前を読めなかったとき（通信・返事の形が違う）は、「読み込み中」を消す
+    if (NAME_WAIT) { NAME_WAIT = false; renderResult(); }
   }
   jumpToHash();
 }
