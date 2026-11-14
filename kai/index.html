@@ -350,7 +350,8 @@ function render() {
     sel.appendChild(new Option('（選ぶ）', ''));
     list.forEach(p => sel.appendChild(new Option(dnf(p), p)));
   });
-  ME = list.includes(SAVED) ? SAVED : '';
+  // 結果が出たら、名前は選んでいない扱い（自分の順位の1文と、自分の名前の色を出さない。この端末に覚えた名前は消さない。2026-11-14 主催「トップの名前の選択を外して」）
+  ME = list.includes(SAVED) && !endView() ? SAVED : '';
   $('me').value = ME; $('ume').value = ME;
   // 開催日は、日時・場所を「当日の流れ」の見出しのすぐ下へ回す（「次は」のすぐ下に自分の席を出す）。ほかの日は一番上
   if (c.date === today() && schedRows().length) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
@@ -359,12 +360,11 @@ function render() {
   try { renderResult(); } catch (e) { $('result').hidden = true; }
   if (DATA_ST === 'ok') rememberEnd(resultDone());
   // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルールと早見表は出さない（pageLinks は render より先に呼ばれる）。
-  // 自分の卓の欄は名前を選ぶ所だけにして、ページの一番上（結果の上）へ回す（見出し・自分の表・最新に更新・席の決まりは出さない）。一番下の QR コードも出さない。
+  // 自分の卓の欄は、名前の選択も含めて出さない（見出し・名前の選択・自分の表・最新に更新・席の決まり。2026-11-14 主催「トップの名前の選択を外して」）。一番下の QR コードも出さない。
   // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView）
   const end = endView();
   if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
-  if (end) $('result').before($('mecard')); else $('mineh').after($('mecard'));
-  ['mineh', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
+  ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
   $('qrbox').hidden = end || !$('qrimg').innerHTML;
   renderNext();
   renderMine();
@@ -422,7 +422,7 @@ function renderRounds(end) {
 }
 // ---- 卓ごとの結果（結果が出たら、組み合わせの欄の代わりに出す。2026-11-14 主催） ----
 // 点数入力ページの renderResults・roundLabel・tableLabel・rankOnly と同じ中身（どちらかを直したら、もう片方も直す）。
-// 入った卓ごとに、打った人・点棒・順位・ポイント。名前を選んだ人は自分の名前に色。返すのは出した半荘の数。
+// 入った卓ごとに、打った人・点棒・順位・ポイント。返すのは出した半荘の数（結果が出たら名前は選んでいない扱いなので、自分の名前の色はつかない）。
 // 順位決定戦の卓は、順位は卓の中の順（rankOnly）で、ポイントはふつうの卓と同じ計算（トータルの順位に足す分。2026-11-14 主催「ポイントが入っていない」）
 const roundLabel = r => String(r).startsWith('F') ? (FINALS.length > 1 ? '決勝 ' + r.slice(1) + '半荘目' : '決勝') + (String(r) === 'F1' && junniOn() ? '・順位決定戦' : '') : '予選 ' + r + '半荘目';
 // 順位決定戦の卓の順位は点棒の多い順（同じ点棒は予選の順位が上の方）。ここではポイントをつけない。全員そろっていなければ null。pr は予選の順位（P番号 → 順位）
@@ -550,13 +550,13 @@ function finalRanking() {
   });
   return rows;
 }
-// 優勝（大きく）・決勝の2位から下・自分の順位・最終順位の表（自分の名前に色）
+// 優勝（大きく）・決勝の2位から下・最終順位の表（結果が出たら名前は選んでいない扱いなので、自分の順位の1文と自分の名前の色は出ない）
 function renderResult() {
   const box = $('result'), rows = resultDone() ? finalRanking() : [];
   box.hidden = !rows.length && !endView();
   if (!rows.length) {
     // 前に結果を見た端末で、受け口をまだ読めていないとき（読み込み中・通信の失敗）は、結果の欄に様子だけ出す
-    box.innerHTML = box.hidden ? '' : '<div class="lab">結果</div>' + (DATA_ST === 'ng' ? '<p class="warn">結果を読めませんでした（通信）。</p><button class="ghost" type="button" id="rretry">もう一度読む</button>' : '<p class="small">結果を読み込んでいます…</p>');
+    box.innerHTML = box.hidden ? '' : '<div class="lab">結果' + (PRELIM.concat(FINALS).every(isLocked) ? '（確定）' : '') + '</div>' + (DATA_ST === 'ng' ? '<p class="warn">結果を読めませんでした（通信）。</p><button class="ghost" type="button" id="rretry">もう一度読む</button>' : '<p class="small">結果を読み込んでいます…</p>');
     if ($('rretry')) $('rretry').addEventListener('click', load);
     return;
   }
@@ -854,8 +854,9 @@ document.querySelectorAll('input[name=uch]').forEach(x => x.addEventListener('ch
 const uts = ts => ts ? String(ts).slice(5, 16).replace('-', '/') : '';
 function sayU(t, cls) { const m = $('ust'); m.textContent = t; m.className = 'st' + (cls ? ' ' + cls : ''); }
 function renderUchi() {
-  $('uchibox').hidden = !(CFG.uchiage === true);
-  if (CFG.uchiage !== true) return;
+  // 結果が出たら出さない（名前の選択を外したので、答えられない。2026-11-14 主催）
+  $('uchibox').hidden = !(CFG.uchiage === true) || endView();
+  if ($('uchibox').hidden) return;
   const ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
   document.querySelectorAll('input[name=uch]').forEach(x => { if (!UCHI_PICKED) x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
   $('usend').disabled = !ok || !ME; $('udel').disabled = !ok || !mine;
