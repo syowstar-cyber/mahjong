@@ -188,13 +188,18 @@ function applyTheme(c) {
   t.content = c.short || c.group || c.title || '';
 }
 // ルール・点数早見表のページ（taikai.json の rule・tensu。会のフォルダの中の .html）がある会だけ、切り替えボタンに出す。くじは、くじで決める会（kuji）だけ
+// 結果が出たら（決勝の最後の半荘の決勝の卓がぜんぶ入ったら）、ルールと早見表は出さない（2026-11-14 主催。トップ・対戦表と同じ）
 function pageLinks(c) {
+  const end = resultDone();
   ['rule', 'tensu'].forEach(k => {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? '../' + CONF + c[k] : '';
-    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u; if (u) a.setAttribute('href', u); });
+    document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u || end; if (u) a.setAttribute('href', u); });
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
+// 結果が出たか（トップページの resultDone と同じ）。点数を読み直すたびに見る
+const resultDone = () => !!(CFG && CFG.final && CFG.final.tables > 0 && FINALS.length) && Array.from({ length: CFG.final.tables }, (_, i) => recOf(FINALS[FINALS.length - 1], i + 1)).every(Boolean);
+const hideRuleLinks = () => { if (resultDone()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); };
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
@@ -876,6 +881,7 @@ function render(d) {
   DATA = (d && d.rounds) ? d : { rounds: {}, roster: {}, updated: null };
   ROSTER = DATA.roster || {};
   AGERANK = (DATA.agerank && typeof DATA.agerank === 'object') ? DATA.agerank : {};
+  hideRuleLinks();
   $('updated').textContent = !API ? '' : DATA.updated ? '最終更新 ' + DATA.updated : 'まだ報告がありません';
   // 卓の入力状況
   const st = $('status'); st.innerHTML = '';
