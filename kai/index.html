@@ -99,12 +99,26 @@ details[open]>summary{margin-bottom:8px}
 .result{border:2px solid var(--accent);background:var(--soft)}
 .result .lab{font-size:.95rem;font-weight:700;color:var(--muted)}
 .result .win{font-size:1.6rem;font-weight:700;color:var(--accent);line-height:1.4;margin:2px 0}
-.result .pod{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
-.result .pod>div{flex:1 1 0;min-width:8em;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
 .result h3{margin-top:14px}
-/* 結果の表は、順位の列を細く、成績の列を広く（スマホで「順位決定戦（10〜12位）」が2行に収まる幅） */
-.result th:first-child,.result td:first-child{width:3em}
-.result th:nth-child(3),.result td:nth-child(3){width:48%}
+/* 最終順位の表（2026-11-15 主催「1ページにまとめる」）。決め方ごとに見出しの行で区切り、右の列はその決め方の成績だけ（右に寄せる） */
+table.rk th,table.rk td{width:auto}
+table.rk col.c1{width:3.6em}
+table.rk col.c3{width:6.5em}
+table.rk tr.grp th{font-size:.9rem}
+table.rk td.v{text-align:right;white-space:nowrap}
+/* トータルの順位の表は、順位の列を細く、トータルの列を広く（スマホで「決勝1半荘目 +48.2」が1行に収まる幅） */
+#tbox th:first-child,#tbox td:first-child{width:3em}
+#tbox th:nth-child(3),#tbox td:nth-child(3){width:48%}
+/* 予選の成績（半荘ごとのポイント）。横に動かしても名前の列は左に残す（点数入力ページの集計表と同じ形） */
+table.pre{table-layout:auto;width:auto;min-width:100%}
+table.pre th,table.pre td{width:auto;white-space:nowrap;text-align:right}
+table.pre th:first-child,table.pre td:first-child{text-align:left}
+table.pre .nm{text-align:left;position:sticky;left:0;z-index:1;background:var(--card);box-shadow:inset -1px 0 0 var(--line)}
+table.pre th.nm{background:#ececE8;z-index:2}
+table.pre tr:nth-child(even) td.nm{background:var(--card2)}
+table.pre td.sum{font-weight:700}
+/* 切り替えボタンの並びを丸ごと隠すとき（全部の半荘が確定した回）。.pnav の display:flex が hidden に勝つため */
+.pnav[hidden]{display:none}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 <script src="fresh.js" defer></script>
@@ -121,6 +135,8 @@ details[open]>summary{margin-bottom:8px}
 
   <div id="main" hidden>
   <div class="card result" id="result" hidden></div>
+  <details id="tfold" hidden><summary>トータルの順位（参考）</summary><div id="tbox"></div></details>
+  <details id="pfold" hidden><summary>予選の成績（半荘ごとのpt）</summary><div id="pbox"></div></details>
   <div id="remade" class="hint warn" hidden></div>
   <div class="next" id="next" hidden></div>
   <div class="card" id="info" hidden>
@@ -192,7 +208,7 @@ details[open]>summary{margin-bottom:8px}
 </div>
 
 <script>
-// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・決勝ライン・当日の流れ・打ち上げ・組み合わせ。結果が出たら、結果と卓ごとの結果）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
+// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・決勝ライン・当日の流れ・打ち上げ・組み合わせ。結果が出たら、結果のページになる＝優勝と最終順位、たたんだトータルの順位・予選の成績・卓ごとの結果）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
 // 受け口からは名前（名簿）・入力済みの卓と点数・打ち上げの回答を読む。送るのは打ち上げの回答だけ。当日に組み直して push したら、開き直すか「最新に更新」で出る（開催日は2分ごとに読み直す）
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
@@ -238,7 +254,10 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-function setTitle(t) { document.title = t + ' トップページ'; $('ttl').textContent = '🀄 ' + t + ' トップページ'; }
+// ページの名前。結果が出たら「結果」と呼ぶ（2026-11-15 主催「1ページにまとめる」）
+function setTitle(t, end) { const s = t + (end ? ' 結果' : ' トップページ'); document.title = s; $('ttl').textContent = '🀄 ' + s; }
+// 全部の半荘が確定した回は、切り替えボタンの並び（上と下）を出さない（点数入力＝対戦結果のページはトップへ移り、ルール・早見表・対戦表は結果の後は出さないため、トップだけが残る。2026-11-15 主催「1ページにまとめる」）
+const navShow = on => document.querySelectorAll('.pnav').forEach(n => { n.hidden = !on; });
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 // 決勝ラインの計算に使う（load() で大会設定から入れる。点数入力ページと同じ名前）。DATA_ST＝受け口を読めたか（wait＝はじめの読み込み中・ok・ng）
 let MODE = 4, TOTAL = 100000, OKA = 0, PRELIM = [], FINALS = [], LOCKED = [], AGERANK = {}, DATA_ST = 'wait';
@@ -335,8 +354,8 @@ function renderPlace(place, addr) {
 }
 
 function render() {
-  const c = CFG;
-  setTitle(c.title);
+  const c = CFG, end = endView();
+  setTitle(c.title, end);
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
   const rm = $('remade');
@@ -354,18 +373,17 @@ function render() {
     list.forEach(p => sel.appendChild(new Option(dnf(p), p)));
   });
   // 結果が出たら、名前は選んでいない扱い（自分の順位の1文と、自分の名前の色を出さない。この端末に覚えた名前は消さない。2026-11-14 主催「トップの名前の選択を外して」）
-  ME = list.includes(SAVED) && !endView() ? SAVED : '';
+  ME = list.includes(SAVED) && !end ? SAVED : '';
   $('me').value = ME; $('ume').value = ME;
   // 開催日は、日時・場所を「当日の流れ」の見出しのすぐ下へ回す（「次は」のすぐ下に自分の席を出す）。ほかの日は一番上
   if (c.date === today() && schedRows().length) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
   renderInfo();
   // 結果で何か起きても、ほかの欄は出す
-  try { renderResult(); } catch (e) { $('result').hidden = true; }
+  try { renderResult(); } catch (e) { ['result', 'tfold', 'pfold'].forEach(id => { $(id).hidden = true; }); }
   if (DATA_ST === 'ok') rememberEnd(resultDone());
   // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルール・早見表・対戦表は出さず、点数入力は「対戦結果」と呼ぶ（pageLinks は render より先に呼ばれる）。
   // 自分の卓の欄は、名前の選択も含めて出さない（見出し・名前の選択・自分の表・最新に更新・席の決まり。2026-11-14 主催「トップの名前の選択を外して」）。一番下の QR コードも出さない。
-  // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView）
-  const end = endView();
+  // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView。上の end）
   if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
   scoreLink(end);
   ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
@@ -384,14 +402,15 @@ function render() {
   if (!fn.hidden) fn.textContent = '決勝は予選の上位' + c.final.tables * c.mode + '人' + (junni ? 'で、ほかの人は順位決定戦です。' : 'です。') + (bakime() ? '' : '決勝の席は自動卓のサイコロで決めます。');
 }
 // 一番下の欄。半荘ごと（全部の卓）の組み合わせ。名前を選んだ人は自分の席の表で足りるので、たたんで出す（名前を選んでいない間は開く）。
-// 結果が出たら、組み合わせの代わりに卓ごとの結果をたたんで出す（2026-11-14 主催）。受け口をまだ読めていない間は、欄ごと出さない
+// 結果が出たら、組み合わせの代わりに卓ごとの結果をたたんで出す（2026-11-14 主催）。見出しは出さず、たたむ箱の見出しの行を「卓ごとの結果（…）」にして、上のトータルの順位・予選の成績と同じ形で並べる（2026-11-15 主催「1ページにまとめる」）。
+// 受け口をまだ読めていない間は、欄ごと出さない
 function renderRounds(end) {
   const c = CFG, rs = rounds(), box = $('rounds'); box.innerHTML = '';
-  $('rh').textContent = end ? '卓ごとの結果' : '半荘ごとの組み合わせ';
+  $('rh').hidden = end;
   if (end) {
     const n = DATA ? renderTres(box) : 0;
     $('rnone').hidden = true; $('rbox').hidden = !n; $('rfold').hidden = !n;
-    $('rsum').textContent = '全部の卓（予選' + PRELIM.length + '半荘' + (FINALS.length ? '・決勝' + (FINALS.length > 1 ? FINALS.length + '半荘' : '') : '') + '）';
+    $('rsum').textContent = '卓ごとの結果（予選' + PRELIM.length + '半荘' + (FINALS.length ? '・決勝' + (FINALS.length > 1 ? FINALS.length + '半荘' : '') : '') + '）';
     autoOpen('rfold', 'end', false);
     return;
   }
@@ -486,7 +505,7 @@ const endView = () => resultDone() || (DATA_ST !== 'ok' && endSeen());
 // 確定した結果の写し（2026-11-15 主催「読み込まずにそのまま表示されるようにして」）。大会設定の locked に全部の半荘が入った回は、受け口の中身（名前と点数など、受け口が返すものそのまま）を
 // この端末に覚え、次に開いたときは受け口を待たずに出す（確定の後は点数が変わらないため）。受け口は後ろで読み直し、中身が変わっていたときだけ出し直して覚え直す。
 // 使うのは、大会設定を読んで同じ回で全部の半荘が確定しているときだけ（ほかの回の写しと、確定を外した回の写しは消す）。名前はファイルに置かない決まりのまま（覚えるのは見た人の端末の中だけ）。
-// キーと形は点数入力（対戦結果）と同じ（allFixed は幹部用にもある。確定した回の幹部用はトップへ移るので、写しは使わない）。どれかを直したら、ほかも直す
+// 写しを使うのはトップだけ（全部の半荘が確定した回は、点数入力＝対戦結果と幹部用がトップへ移るため。2026-11-15 主催「1ページにまとめる」）。allFixed は点数入力と幹部用にもある。どれかを直したら、ほかも直す
 const FINAL_KEY = 'halukai:final:' + G;
 const allFixed = c => {
   const f = c.final || {}, ls = (c.locked || []).map(String);
@@ -578,10 +597,12 @@ function finalRanking() {
   });
   return rows;
 }
-// 優勝（大きく）・決勝の2位から下・最終順位の表（結果が出たら名前は選んでいない扱いなので、自分の順位の1文と自分の名前の色は出ない）
+// 優勝（大きく）と最終順位の表。その下に、トータルの順位（決勝が2半荘以上の会だけ）と予選の成績をたたんで出す（2026-11-15 主催「1ページにまとめる」。
+// 点数入力ページの最終順位・集計表の代わり。全部の半荘が確定した回の点数入力ページはトップへ移る）。結果が出たら名前は選んでいない扱いなので、自分の名前の色はつけない
 function renderResult() {
   const box = $('result'), rows = resultDone() ? finalRanking() : [];
   box.hidden = !rows.length && !endView();
+  $('tfold').hidden = $('pfold').hidden = true;
   if (!rows.length) {
     // 前に結果を見た端末で、受け口をまだ読めていないとき（読み込み中・通信の失敗）は、結果の欄に様子だけ出す
     box.innerHTML = box.hidden ? '' : '<div class="lab">結果' + (PRELIM.concat(FINALS).every(isLocked) ? '（確定）' : '') + '</div>' + (DATA_ST === 'ng' ? '<p class="warn">結果を読めませんでした（通信）。</p><button class="ghost" type="button" id="rretry">もう一度読む</button>' : '<p class="small">結果を読み込んでいます…</p>');
@@ -589,20 +610,34 @@ function renderResult() {
     return;
   }
   const top = rows.filter(x => x.rank === 1), all = PRELIM.concat(FINALS).every(isLocked);
-  const sub = x => esc(x.how) + ' ' + esc(x.val);
+  // 優勝の下の1行は「決勝2半荘の合計 +94.3」「決勝 52,300点」の形
+  const sub = x => (x.how === '決勝の合計' ? '決勝' + FINALS.length + '半荘の合計' : x.how) + ' ' + x.val;
   let h = '<div class="lab">結果' + (all ? '（確定）' : '') + '</div>'
     + '<div class="win">🏆 優勝　' + top.map(x => esc(dn(x.p))).join('・') + '</div>'
-    + (top.length > 1 ? '<p class="warn">1位が同点です。集計係が決めます。</p>' : '<div class="small">' + sub(top[0]) + '</div>');
-  const pod = rows.filter(x => x.rank > 1 && x.rank <= MODE && x.how.startsWith('決勝'));
-  if (pod.length) h += '<div class="pod">' + pod.map(x => '<div><span class="small">' + x.rank + '位</span><br><b>' + esc(dn(x.p)) + '</b><div class="small">' + sub(x) + '</div></div>').join('') + '</div>';
-  const mine = ME ? rows.find(x => x.p === ME) : null;
-  if (mine) h += '<p style="margin:10px 0 0">自分（' + esc(dn(ME)) + '）は <b>' + mine.rank + '位</b>' + (mine.tie ? '（同点）' : '') + 'です。</p>';
-  h += '<h3>最終順位</h3><div class="tw"><table><thead><tr><th>順位</th><th>名前</th><th>成績</th></tr></thead><tbody>'
-    + rows.map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td' + (x.p === ME ? ' class="me"' : '') + '>' + esc(dn(x.p)) + '</td><td><span class="small">' + esc(x.how).replace('（', '<br>（') + '</span><br>' + esc(x.val) + '</td></tr>').join('')
-    + '</tbody></table></div><p class="small" style="margin:6px 0 0">対戦結果ページの最終順位と同じです。' + (all ? '' : '集計係が確定するまでは、変わることがあります。') + '</p>';
-  // 最終順位の後ろに、トータルの順位（決勝が2半荘以上の会だけ）。何か起きても、上の結果は出す
-  if (FINALS.length >= 2) { try { h += totalHtml(); } catch (e) {} }
+    + (top.length > 1 ? '<p class="warn">1位が同点です。集計係が決めます。</p>' : '<div class="small">' + esc(sub(top[0])) + '</div>');
+  // 最終順位。決め方（決勝・順位決定戦の卓・予選の合計）ごとに見出しの行で区切り、右の列はその決め方の成績だけ。区切りごとに tbody を分ける（行の色の縞が区切りごとにそろう）
+  const head = how => how === '決勝' ? '決勝（点棒）' : how === '決勝の合計' ? '決勝（' + FINALS.length + '半荘の合計）' : how.startsWith('順位決定戦（') ? '順位決定戦 ' + how.slice(6, -1) + '（点棒）' : how === '予選の合計' ? '予選の合計（pt）' : how;
+  let tb = '', cur = null;
+  rows.forEach(x => {
+    if (x.how !== cur) { cur = x.how; tb += (tb ? '</tbody>' : '') + '<tbody><tr class="grp"><th colspan="3">' + esc(head(x.how)) + '</th></tr>'; }
+    tb += '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td>' + esc(dn(x.p)) + '</td><td class="v' + (String(x.val).startsWith('−') ? ' neg' : '') + '">' + esc(x.val) + '</td></tr>';
+  });
+  h += '<h3>最終順位</h3><div class="tw"><table class="rk"><colgroup><col class="c1"><col><col class="c3"></colgroup>' + tb + '</tbody></table></div>'
+    + (all ? '' : '<p class="small" style="margin:6px 0 0">集計係が確定するまでは、変わることがあります。</p>');
   box.innerHTML = h;
+  // トータルの順位と予選の成績（たたむ箱の中だけを書き直す＝人が開け閉めしたものは、読み直しで戻さない）。何か起きても、上の結果は出す
+  if (FINALS.length >= 2) { try { $('tbox').innerHTML = totalHtml(); $('tfold').hidden = false; } catch (e) {} }
+  try { $('pbox').innerHTML = prelimHtml(); $('pfold').hidden = false; } catch (e) {}
+}
+// 予選の成績（半荘ごとのポイント。並びと数は点数入力ページの集計表と同じ）。抜け番の半荘は「抜け」
+function prelimHtml() {
+  const rk = prelimStats(), td = (t, cls) => '<td class="' + [cls || '', t.startsWith('−') ? 'neg' : ''].join(' ').trim() + '">' + esc(t) + '</td>';
+  const notes = ['合計ポイントの順です。' + (PRELIM.length > 1 ? PRELIM[0] + '〜' + PRELIM[PRELIM.length - 1] : PRELIM[0]) + ' は半荘ごとのポイントです。' + (rk.some(x => PRELIM.some(r => !x.by[r] && restOf(r).includes(x.p))) ? '「抜け」は抜け番（0ポイント）です。' : '')];
+  if (rk.some(x => x.tie || x.kime)) notes.push(heikin() ? '合計が同じ人は、平均順位が上の人を上にしています。それも同じなら、' + lastName() + 'の低い人です。' : nenrei() ? '合計が同じ人は、年齢が上の人を上にしています。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。');
+  return '<div class="tw"><table class="pre"><thead><tr><th>順位</th><th class="nm">名前</th><th>合計</th>' + PRELIM.map(r => '<th>' + r + '</th>').join('') + '</tr></thead><tbody>'
+    + rk.map(x => '<tr><td>' + x.rank + '位' + (x.tie ? ' 同点' : x.kime ? ' ' + esc(x.kime) : '') + '</td><td class="nm">' + esc(dn(x.p)) + '</td>' + td(x.n ? fpt(x.total) : '', 'sum')
+      + PRELIM.map(r => td(x.by[r] ? fpt(x.by[r].pts) : restOf(r).includes(x.p) ? '抜け' : '')).join('') + '</tr>').join('')
+    + '</tbody></table></div><p class="small" style="margin:6px 0 0">' + notes.join('') + '</p>';
 }
 // トータルの順位（決勝2半荘目から後を除く＝全員が打った分。予選と、決勝1半荘目・順位決定戦のポイントの合計。2026-11-14 主催）。
 // 同じ合計は同じ順位の数字（参考の順位なので、会の決まりでは分けない）
@@ -623,8 +658,8 @@ function totalRows() {
 }
 function totalHtml() {
   const ex = FINALS.length === 2 ? '決勝2半荘目' : '決勝2半荘目から後';
-  return '<h3>トータルの順位（' + ex + 'を除く）</h3><div class="tw"><table><thead><tr><th>順位</th><th>名前</th><th>トータル</th></tr></thead><tbody>'
-    + totalRows().map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td' + (x.p === ME ? ' class="me"' : '') + '>' + esc(dn(x.p)) + '</td><td><b>' + fpt(x.total) + '</b>'
+  return '<div class="tw"><table><thead><tr><th>順位</th><th>名前</th><th>トータル</th></tr></thead><tbody>'
+    + totalRows().map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td>' + esc(dn(x.p)) + '</td><td><b>' + fpt(x.total) + '</b>'
       + '<div class="small">予選 ' + fpt(x.pre) + (x.f1 === null ? '' : '<br>' + x.how + ' ' + fpt(x.f1)) + '</div></td></tr>').join('')
     + '</tbody></table></div><p class="small" style="margin:6px 0 0">予選と、決勝1半荘目・順位決定戦のポイントを足した順位です。' + ex + 'は決勝の人だけが打つため、入れていません。最終順位とは別の、参考の順位です。</p>';
 }
@@ -1094,6 +1129,7 @@ async function load() {
   LOCKED = (c.locked || []).map(String);
   applyTheme(c);
   pageLinks(c);
+  navShow(!allFixed(c));
   saveShell(c);
   const api = String(c.api || '').trim();
   if (!api) UCHI_ST = 'none';
@@ -1108,10 +1144,10 @@ async function load() {
   // ただし開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから出す（結果の前の形が一瞬出ないように。2026-11-14 主催「下のページが一瞬表示される」）。
   // 待つ間は、切り替えボタンのルール・早見表・対戦表と点数入力も出さない（結果が出ていたら出さないボタンと、呼び名が「対戦結果」に変わるボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
   // 受け口の返事が4秒たっても来なければ、待たずに出す。確定した結果の写しで出せるときは待たない。
-  // 待つ間は、見出しの下を「読み込み中…」にする（写しのある回は、開いた瞬間に消しているため）
+  // 待つ間は、見出しの下を「読み込み中…」にする（写しのある回は、開いた瞬間に消しているため）。ページの名前は、全部の半荘が確定した決勝のある回なら、待つ間から「結果」
   const hold = $('main').hidden && !!api && !snap && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
   const timer = hold ? setTimeout(open, 4000) : 0;
-  if (hold) { $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); } else open();
+  if (hold) { setTitle(c.title, allFixed(c) && c.final.tables > 0); $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); } else open();
   if (!api) return;
   // 写しで出した後は、受け口の中身が写しと同じなら出し直さない（画面を動かさない）。受け口を読めなかったときも、写しのまま
   let same = false;
@@ -1135,8 +1171,9 @@ $('reload').addEventListener('click', load);
 const SH = G_OK ? readShell() : null;
 // 前に結果を見た回（写しの kai）と、開催日（写しの date）から後で結果が出たかをまだ確かめていない間は、ルール・早見表・対戦表のボタンを開いた瞬間から出さない
 // （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
-// 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出し、結果が出たかを確かめていない間は出さない（scoreLink）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); const seen = seenKai(SH.kai), wait = !seen && (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today()); if (seen || wait) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(seen ? true : wait ? null : false); }
+// 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出し、結果が出たかを確かめていない間は出さない（scoreLink）。
+// 前に結果を見た回は、ページの名前を「結果」で出し、切り替えボタンの並びも出さない（大会設定を読んで、全部の半荘が確定していなければ出す）
+if (SH) { applyTheme(SH); pageLinks(SH); const seen = seenKai(SH.kai), wait = !seen && (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today()); setTitle(SH.title, seen); if (seen || wait) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(seen ? true : wait ? null : false); if (seen) navShow(false); }
 // 確定した結果の写しがある回は、大会設定を読むまでの短い間も「読み込み中…」を出さない（大会設定を読んだら、すぐ結果が出るため）
 if (SH && hasFinal(SH.kai)) $('sub').textContent = '';
 load();
