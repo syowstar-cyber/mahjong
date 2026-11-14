@@ -266,7 +266,8 @@ const str = v => typeof v === 'string' ? v.trim() : '';
 const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
 function renderSched() {
   const s = schedRows(), memo = str(CFG.schedule_note);
-  $('schedbox').hidden = !s.length;
+  // 結果が出たら出さない（2026-11-14 主催）
+  $('schedbox').hidden = !s.length || resultDone();
   $('schedmemo').hidden = !(s.length && memo); $('schedmemo').textContent = memo;
   if (!s.length) { $('schednote').textContent = ''; return; }
   const isToday = CFG.date === today();
@@ -342,7 +343,8 @@ function render() {
   ME = list.includes(SAVED) ? SAVED : '';
   $('me').value = ME; $('ume').value = ME;
   // 開催日は、日時・場所を「当日の流れ」の見出しのすぐ下へ回す（「次は」のすぐ下に自分の席を出す）。ほかの日は一番上
-  if (c.date === today() && schedRows().length) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
+  // 結果が出たら当日の流れを出さないので、日時・場所は一番上（結果の下）へ戻す
+  if (c.date === today() && schedRows().length && !resultDone()) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
   renderInfo();
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
@@ -708,7 +710,8 @@ function needRaw(r, need) {
 // 自分の名前（ME）の、いまの予選の順位・K位ラインまでの差・次の半荘の順位ごとに要る点棒の目安。読み直すたびに出し直す
 function renderLine() {
   const box = $('linebox'), out = $('line'), K = lineK(), p = ME;
-  box.hidden = !lineShow() || !String(CFG.api || '').trim();
+  // 結果が出たら出さない（2026-11-14 主催）
+  box.hidden = !lineShow() || !String(CFG.api || '').trim() || resultDone();
   if (box.hidden) return;
   $('lineh').textContent = K + '位ライン（決勝に行ける目安）';
   if (!p) { out.innerHTML = '<p class="small">上の「自分の名前」を選ぶと、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
