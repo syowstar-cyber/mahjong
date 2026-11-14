@@ -61,6 +61,7 @@ Halu杯の記念大会（店の貸し切り・ゲストあり）の部品は hal
 - 会ごとに `g/<会>/manifest.json` とアイコン（`icon-512.png`・`icon-192.png`・`icon-180.png`）を持つ。`python kai/tools/make_pwa.py` が `taikai.json` の `short`・`group`・`color`・`pai` から作る（`short`・`color`・`pai` を変えたら作り直す）。
 - ページは `?g=` から会の manifest を選ぶ。ホーム画面から開くと、その会のトップページが開く。
 - 読み込みの手伝い（`sw.js`）は、ページの見た目（HTML・アイコン・manifest）だけを手元に置く。設定・組み合わせ（`.json`）と受け口は手元に置かず、いつも新しく読む。`sw.js` の中身を変えたら `CACHE` の番号を上げる。
+- 古いページを出さない（2026-11-14 主催）: GitHub Pages はページを端末に10分まで置く（`max-age=600`）。各ページは `<head>` で `fresh.js` を読み、開いたときと裏から戻ったときに、出ているページの日時（`document.lastModified`）とサーバーの日時（HEAD）を比べる。新しい版があれば取り直して開き直す。そのページで何か入れた後は、一番上に「新しい版があります」の知らせだけ出す。同じ版への自動の開き直しはタブごとに1回。ページを足したら、`<head>` に `fresh.js` を読む行を足す。
 - LINE で配るときは、URL に `openExternalBrowser=1` を付ける（LINE の中のブラウザでなく、Safari や Chrome で開く＝ホーム画面に追加できる）。貼る文は `docs/LINE案内文.md`（リポ直下の docs）。
 
 ## 回ごとに
