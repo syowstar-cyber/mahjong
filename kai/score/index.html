@@ -1011,13 +1011,14 @@ function renderResults() {
     any = true;
     const h = document.createElement('h3'); h.textContent = roundLabel(r); box.appendChild(h);
     keys.forEach(k => {
-      const rec = recs[k], res = tableRes(r, k, rec.raw, rec.p);
+      // 順位決定戦の卓も、ポイントはふつうの卓と同じ計算で出す（トップのトータルの順位に足す分。順位は卓の中の順のまま。2026-11-14 主催「ポイントが入っていない」）
+      const rec = recs[k], res = tableRes(r, k, rec.raw, rec.p), pt = isJunni(r, k) ? calcTable(rec.raw) : res;
       const cap = document.createElement('div'); cap.className = 'small'; cap.textContent = tableLabel(r, k) + '（' + rec.ts + '）'; box.appendChild(cap);
       const tw = document.createElement('div'); tw.className = 'tw'; tw.style.marginBottom = '8px';
       // 場決めの会は、送った並びが席ではないので「席」の列を出さない
       const tbl = document.createElement('table'); tbl.innerHTML = '<thead><tr>' + (bakime() ? '' : '<th class="l">席</th>') + '<th class="l">プレイヤー</th><th>点棒</th><th>順位</th><th>pt</th></tr></thead>';
       const tb = document.createElement('tbody');
-      rec.p.forEach((p, i) => { const tr = document.createElement('tr'); if (!bakime()) cell(tr, WINDS[i] || '', 'l'); cell(tr, dn(p), 'l'); cell(tr, fmt(rec.raw[i]), rec.raw[i] < 0 ? 'neg' : ''); cell(tr, res[i] ? res[i].rank + '位' : ''); cell(tr, res[i] && res[i].pts !== null ? fpt(res[i].pts) : ''); tb.appendChild(tr); });
+      rec.p.forEach((p, i) => { const tr = document.createElement('tr'); if (!bakime()) cell(tr, WINDS[i] || '', 'l'); cell(tr, dn(p), 'l'); cell(tr, fmt(rec.raw[i]), rec.raw[i] < 0 ? 'neg' : ''); cell(tr, res[i] ? res[i].rank + '位' : ''); cell(tr, pt[i] && pt[i].pts !== null ? fpt(pt[i].pts) : ''); tb.appendChild(tr); });
       tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
     });
   });
