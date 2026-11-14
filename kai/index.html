@@ -307,7 +307,8 @@ function renderInfo() {
   $('whenrow').hidden = !day;
   $('whererow').hidden = !place;
   renderPlace(place, str(CFG.address));
-  $('info').hidden = !day && !place;
+  // 結果が出たら出さない（2026-11-14 主催）
+  $('info').hidden = (!day && !place) || resultDone();
 }
 function renderPlace(place, addr) {
   const box = $('where'); box.innerHTML = '';
@@ -343,8 +344,7 @@ function render() {
   ME = list.includes(SAVED) ? SAVED : '';
   $('me').value = ME; $('ume').value = ME;
   // 開催日は、日時・場所を「当日の流れ」の見出しのすぐ下へ回す（「次は」のすぐ下に自分の席を出す）。ほかの日は一番上
-  // 結果が出たら当日の流れを出さないので、日時・場所は一番上（結果の下）へ戻す
-  if (c.date === today() && schedRows().length && !resultDone()) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
+  if (c.date === today() && schedRows().length) $('schedbox').querySelector('h2').after($('info')); else $('next').after($('info'));
   renderInfo();
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
