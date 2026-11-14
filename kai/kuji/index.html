@@ -237,6 +237,9 @@ let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
 let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
 // 受け口で確定した半荘（当日の操作で幹部用ページから付ける。古い受け口は返さないので空）。上の「決勝ライン」のボタンを出すかに使う（トップと同じ考え方）
 let GLOCK = [];
+// 組み合わせ表（kumiawase.json）そのものと、受け口のくじの番号（幹部用ページで入れる。{n4, date, ts, log}）・そのうち型の抽せんの日の4桁。
+// N4 と KUMI は出す番号と表（applyKuji）
+let KUMI0 = null, QKUJI = null, N4_GAS = '';
 // はじめの読み込みで、受け口の名前を待っている間（1章の表に「名前を読み込み中」と出す）
 let NAME_WAIT = false;
 const nm = p => (p && ROSTER[p]) || '';
@@ -312,6 +315,17 @@ function roundsOf(order) {
   });
   return out;
 }
+// 出す番号と表（第21回から。抽せんの夜の push を無くす）。番号は組み合わせ表（kuji.py が書く）にあればそれ、なければ受け口のくじの番号。
+// 組み合わせ表に表がなければ、型と受け口の番号から作った表を出す（トップページ・点数入力ページの applyKuji と同じ考え方。作り方は上の roundsOf・draw）
+function applyKuji() {
+  const q = QKUJI, file = KATA && KUMI0 && KUMI0.kuji && KUMI0.kuji.date === KATA.date ? (normN4(KUMI0.kuji.n4 || '') || '') : '';
+  N4_GAS = KATA && q && typeof q === 'object' && q.date === KATA.date ? (normN4(q.n4 || '') || '') : '';
+  N4 = file || N4_GAS;
+  KUMI = KUMI0;
+  if (KATA && N4_GAS && !file && !(KUMI0 && Object.keys(KUMI0.rounds || {}).length)) KUMI = { kai: KATA.kai, from: 1, kuji: { date: KATA.date, n4: N4_GAS }, rounds: roundsOf(draw(seedOf(N4_GAS))), gas: true };
+}
+// 幹部用ページで入れ直す前の番号（同じ抽せんの日で、いまの受け口の番号と違うもの。古い順・重ねない）
+const redoN4 = () => { const q = QKUJI; return N4_GAS && q && Array.isArray(q.log) ? [...new Set(q.log.filter(x => x && x.date === q.date && /^\d{4}$/.test(String(x.n4 || '')) && String(x.n4) !== N4_GAS).map(x => String(x.n4)))] : []; };
 // 同じ組み合わせか（卓の番号・卓の人の並び・抜け番。お休みは比べない）
 const shape = r => JSON.stringify({ t: ((r && r.tables) || []).map(t => [t.no, t.p]), r: (r && r.rest) || [] });
 const sameRound = (a, b) => !!a && !!b && shape(a) === shape(b);
@@ -368,11 +382,16 @@ function renderResult() {
   // 人が開けた「半荘ごとの組み合わせ」は、名前が届いて出し直すときも開けたままにする（トップページと同じ。2026-11-14）
   const opened = !!(box.querySelector('details.kumi') || {}).open;
   if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  // 抽せんの日から後に、受け口のくじの番号をまだ読んでいない間は「読み込み中」（番号が入っていれば、読めたらすぐ表になる。「夜に出ます」を一瞬出さない）
+  if (!N4 && NAME_WAIT && KATA.date <= new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)) { box.innerHTML = '<div class="hint">くじの番号を読み込み中です…</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは、下の「くじの説明」を開くと、「4. 計算してみる」で仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   const want = roundsOf(draw(seedOf(N4))), now = (KUMI && KUMI.rounds) || {}, ks = kataKeys();
   const remade = !!KUMI && (KUMI.remade === true || KUMI.from > 1), from = remade ? Number(KUMI.from) || 1 : ks.length + 1;
   const bad = ks.filter(k => Number(k) < from && !sameRound(now[k], want[k]));
   let h = '<div class="card"><div class="big">本番の番号</div>' + esc(mdText(KATA.date)) + 'のナンバーズ4の当せん番号: <b>' + esc(N4) + '</b></div>';
+  // 組み合わせ表の番号と受け口の番号が違う（どちらかの打ち間違い）。幹部用ページで番号を入れ直したときは、前の番号も出す（前の晩に表を見た人が取り違えないように）
+  if (N4_GAS && N4_GAS !== N4) h += '<p class="warn">幹部用ページで入れた番号（' + esc(N4_GAS) + '）が、組み合わせ表の番号と違います。集計係に知らせてください。</p>';
+  else if (redoN4().length) h += '<p class="warn">幹部用ページで、番号を入れ直しました（前に入れた番号: ' + esc(redoN4().join('・')) + '）。前の表を見ていた人は、自分の卓を確かめ直してください。</p>';
   if (bad.length) h += '<p class="warn">' + bad.join('・') + '半荘目が、型と本番の番号のとおりではありません。集計係に知らせてください。</p>';
   else if (!remade) h += '<p>いまの組み合わせは、型と本番の番号のとおりです。</p>';
   else {
@@ -886,16 +905,20 @@ $('lfclear').addEventListener('click', async () => {
 // 受け口の返事を持つ（点数・名簿・年上からの順・決勝最終実況）。名前が変わったときだけ、全部を出し直す
 let PULL_AT = 0;
 function take(d) {
-  const was = JSON.stringify(ROSTER), waited = NAME_WAIT;
+  const was = JSON.stringify(ROSTER), waited = NAME_WAIT, kw = JSON.stringify(QKUJI);
   NAME_WAIT = false;
   DATA = { rounds: d.rounds || {} }; AGERANK = d.agerank || {}; LIVE = d.live || null; ROSTER = d.roster || {};
   GLOCK = Array.isArray(d.locked) ? d.locked.map(String) : [];
   $('jline').hidden = !lineOn(CFG);
+  // 受け口のくじの番号（幹部用ページで入れる）。変わったら、番号と表を出し直す
+  QKUJI = d.kuji && typeof d.kuji === 'object' ? d.kuji : null;
+  const kuji = JSON.stringify(QKUJI) !== kw;
+  if (kuji) { applyKuji(); if (N4 && !$('n4').value) $('n4').value = N4; }
   LOADED = true; rememberEnd(resultDone());
   hideRuleLinks();
   PULL_AT = Date.now();
   $('lvat').textContent = '読み直し ' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 19);
-  if (waited || JSON.stringify(ROSTER) !== was) renderAll(); else renderLive();
+  if (waited || kuji || JSON.stringify(ROSTER) !== was) renderAll(); else renderLive();
 }
 // 読み直し。開催日だけ、画面に出ているときに、決勝の最後の半荘の間は30秒ごと・ほかは2分ごと（受け口の読み取りは1日の回数に上限があるため。ほかの日は読み直さない）
 async function pull() {
@@ -979,8 +1002,8 @@ async function load() {
   if (kt && kt.date !== c.kuji) { notes.push('型の抽せんの日（' + kt.date + '）が大会設定と違うので、型を出していません。'); kt = null; }
   k = await kq;
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) k = null;
-  KATA = kt; KUMI = k;
-  N4 = KATA && k && k.kuji && k.kuji.date === KATA.date ? (normN4(k.kuji.n4 || '') || '') : '';
+  // 番号と表は applyKuji で決める（前に読んだ受け口のくじの番号も使う）
+  KATA = kt; KUMI0 = k; applyKuji();
   if (N4 && !$('n4').value) $('n4').value = N4;
   setup(notes.join(' '));
   $('main').hidden = false;

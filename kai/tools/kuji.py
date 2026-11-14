@@ -5,13 +5,18 @@
 くじ値 = SHA-256(種 + "|P" + 番号) の16進64桁（くじを引く人＝P1〜PN から、型で外した人を除いた全員）
 くじ値の小さい順に 枠1〜 を割り当て、型の枠を P番号に置き換える。型で外した人は、その後ろの枠（どの半荘もお休み）。
 
+第21回から: 幹部用ページで受け口に番号を入れれば、トップ・点数入力・対戦表が型と番号から表を作る（抽せんの夜に書かなくてよい）。
+書くのは、当日に組み直す前（kumiawase.py の組み直しは kumiawase.json の番号を使う）と、終わった後に表を残すとき。
+
 使い方:
   python kai/tools/kuji.py 0482            … 計算して表示だけ（何も書かない）
-  python kai/tools/kuji.py 0482 --write    … 本番: kumiawase.json に書く（早川研は --group hayakawa を足す）
+  python kai/tools/kuji.py                 … 受け口の番号（幹部用ページで入れたもの）で計算して表示だけ
+  python kai/tools/kuji.py --write         … 受け口の番号で kumiawase.json に書く（早川研は --group hayakawa を足す）
+  python kai/tools/kuji.py 0482 --write    … 番号を渡して書く（受け口に番号があれば、同じ番号でないと書かない）
   python kai/tools/kuji.py --check         … kumiawase.json の本番の番号で計算し直し、型のとおりか確かめる
   --redo は、本番の番号を打ち間違えて書いたときだけ（公式の番号で書き直す。組み直した表も消える）。
   --config / --out / --kata は試験用（既定は kai/g/<会>/ の taikai.json・kumiawase.json・kata.json）"""
-import argparse, re, sys
+import argparse, json, re, sys, urllib.parse, urllib.request
 from datetime import datetime
 from pathlib import Path
 import io
@@ -45,6 +50,24 @@ def check(cfg, kata, old):
               + ("（お休み: " + "・".join(outs) + "）" if outs else ""))
 
 
+def gas_n4(cfg, kata):
+    """受け口のくじの番号（幹部用ページで入れたもの）。抽せんの日が型と同じ4桁だけ返す。まだ無ければ ""、読めなければ None"""
+    api = str(cfg.get("api") or "").strip()
+    if not api:
+        return None
+    url = api + ("&" if "?" in api else "?") + "kai=" + urllib.parse.quote(cfg["kai"])
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            j = json.loads(r.read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001  通信の失敗は知らせて、呼び出し側で決める
+        print(f"※ 受け口を読めませんでした（{type(e).__name__}）")
+        return None
+    q = (j.get("data") or {}).get("kuji") if isinstance(j, dict) and j.get("ok") else None
+    if not isinstance(q, dict) or q.get("date") != kata["date"] or not re.fullmatch(r"\d{4}", str(q.get("n4") or "")):
+        return ""
+    return str(q["n4"])
+
+
 def main():
     ap = argparse.ArgumentParser(description="ナンバーズ4の当せん番号のくじで、組み合わせを決める")
     ap.add_argument("n4", nargs="?", help="ナンバーズ4の当せん番号（4桁。例 0482）")
@@ -70,9 +93,19 @@ def main():
     if a.check:
         check(cfg, kata, old)
         return
+    # 受け口の番号（幹部用ページで入れたもの）。番号を渡さないときはそれを使い、渡して書くときは同じ番号か確かめる（打ち間違いで表を変えない）
+    g = gas_n4(cfg, kata) if a.write or not a.n4 else None
     if not a.n4:
-        raise SystemExit(__doc__)
-    n4 = K.norm_n4(a.n4)
+        if g is None:
+            raise SystemExit("受け口を読めないので、くじの番号が分からない（taikai.json の api と通信を確かめる）。番号を渡すときは kuji.py <番号>（使い方は -h）")
+        if not g:
+            raise SystemExit("受け口にくじの番号がまだない（幹部用ページの「当日の操作」で入れる）。番号を渡すときは kuji.py <番号>")
+        print("受け口の番号を使います:", g)
+    n4 = K.norm_n4(a.n4 or g)
+    if a.write and g and g != n4:
+        raise SystemExit(f"受け口のくじの番号（{g}）と違うので書きません。番号を確かめる（受け口の番号が違うときは、幹部用ページで直してから）")
+    if a.write and g is None:
+        print("※ 受け口の番号と比べられませんでした（受け口が未設定か、通信できない）。渡した番号で書きます")
     if kata["players"] > cfg["players"]:
         raise SystemExit(f"型の人数（{kata['players']}）が players（{cfg['players']}）より多い。来られない人は、抽せんの後に kumiawase.py --absent で外す")
     seed = K.kuji_seed(kata, n4)

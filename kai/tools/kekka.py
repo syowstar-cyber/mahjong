@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 """普段の回の結果を、保管庫に残す形（Markdown）で出す。受け口の点数と会ごとの kai/g/<会>/taikai.json・kumiawase.json から、
 点数入力ページと同じ決まりで予選の集計と最終順位を計算する（決まりの正典は kai/README.md の「計算のきまり」）。
+くじの会で kumiawase.json に表がなければ、型（kata.json）と受け口のくじの番号（幹部用ページで入れたもの）から表を作る（ページと同じ。第21回から）。
 名前は受け口の名簿から読む＝出力には名前が入る。公開リポに置かず、保管庫へだけ書く。
 
 使い方:
   python kai/tools/kekka.py                    … 受け口から読んで、標準出力に出す
   python kai/tools/kekka.py --data 控え.json   … 受け口の返事（GET の JSON）を保存したファイルから出す（試験用）
-  --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config / --kumi は試験用（既定は kai/g/<会>/ の2つ）"""
+  --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config / --kumi / --kata は試験用（既定は kai/g/<会>/ の3つ）"""
 import argparse, functools, json, re, sys, urllib.parse, urllib.request
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import kumiawase as K  # noqa: E402  同じフォルダの組み合わせの道具（くじの表を作る lottery_rounds を使う）
 KAI = Path(__file__).resolve().parents[1]
 WINDS = ["東", "南", "西", "北"]
 pn = lambda p: int(p[1:])
@@ -241,11 +244,25 @@ def build(cfg, kumi, data):
     return "\n".join(L) + "\n", rows
 
 
+def kuji_kumi(cfg, kata_path, data):
+    """くじの会で kumiawase.json に表がないとき: 型（kata.json）と受け口のくじの番号（data の kuji。幹部用ページで入れる）から表を作る。
+    ページの applyKuji と同じ（型の回と抽せんの日・番号の抽せんの日が合い、番号が4桁のときだけ）。作れなければ None"""
+    q = data.get("kuji")
+    if not isinstance(q, dict) or not kata_path.exists():
+        return None
+    kata = json.loads(kata_path.read_text(encoding="utf-8"))
+    n4 = str(q.get("n4") or "")
+    if kata.get("kai") != cfg["kai"] or kata.get("date") != str(cfg["kuji"]) or q.get("date") != kata.get("date") or not re.fullmatch(r"\d{4}", n4):
+        return None
+    return {"kai": cfg["kai"], "kuji": {"date": kata["date"], "n4": n4}, "rounds": K.lottery_rounds(kata, n4)}
+
+
 def main():
     ap = argparse.ArgumentParser(description="普段の回の結果を保管庫に残す形で出す")
     ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
     ap.add_argument("--config")
     ap.add_argument("--kumi")
+    ap.add_argument("--kata")
     ap.add_argument("--data", help="受け口の返事（GET の JSON。data の中身か、{ok, data} のどちらでもよい）")
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z0-9-]{1,20}", a.group):
@@ -263,6 +280,8 @@ def main():
         data = fetch(cfg)
     if data.get("kai") not in (None, cfg["kai"]):
         raise SystemExit(f"受け口の回（{data.get('kai')}）が大会設定（{cfg['kai']}）と違う")
+    if cfg.get("kuji") and not (kumi or {}).get("rounds"):
+        kumi = kuji_kumi(cfg, Path(a.kata or gdir / "kata.json"), data) or kumi
     text, _ = build(cfg, kumi, data)
     sys.stdout.write(text)
 

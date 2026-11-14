@@ -572,6 +572,12 @@ def main():
     if set(absent) & set(back):
         raise SystemExit(f"同じ人が --absent と --back の両方にいる {sorted(set(absent) & set(back), key=pnum)}")
     if cfg.get("kuji") and not done:
+        # 抽せんの日の夕方から後に、kumiawase.json に本番の番号がない＝番号は受け口だけにある（第21回から。幹部用ページで入れる）。
+        # 型は作り直さない。組み直すときは、先に kuji.py --write で抽せんの表を書く（組み直しは、くじで決まった枠を保つため本番の番号を使う）
+        if datetime.now(JST) >= datetime.strptime(f"{cfg['kuji']} {KUJI_CUT}", "%Y-%m-%d %H:%M").replace(tzinfo=JST):
+            raise SystemExit(f"抽せんの日（{cfg['kuji']}）の{KUJI_CUT}を過ぎたので、型は作り直さない。kumiawase.json に本番の番号がまだない（番号は受け口だけにある）。\n"
+                             "組み直すときは、先に kuji.py --write（受け口の番号で書く）。そのあと kumiawase.py --from <半荘> --absent <番号> --write。\n"
+                             "抽せんを延ばすときは、taikai.json の kuji を次の抽せんの日にしてから作る")
         # くじの会の抽せんの前: 型（枠1〜枠N）を作る。前の表を出さないよう、表が空の kumiawase.json も書く
         if a.start != 1 or back:
             raise SystemExit("くじの会は、抽せんの前に --from・--back を使わない（表はまだない）。"

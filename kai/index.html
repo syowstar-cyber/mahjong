@@ -259,6 +259,8 @@ function setTitle(t, end) { const s = t + (end ? ' 結果' : ' トップペー�
 // 全部の半荘が確定した回は、切り替えボタンの並び（上と下）を出さない（点数入力＝対戦結果のページはトップへ移り、ルール・早見表・対戦表は結果の後は出さないため、トップだけが残る。2026-11-15 主催「1ページにまとめる」）
 const navShow = on => document.querySelectorAll('.pnav').forEach(n => { n.hidden = !on; });
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
+// くじの会の型（kata.json）と、組み合わせ表（kumiawase.json）そのもの。KUMI は出す表（組み合わせ表に表がなければ、型と受け口のくじの番号から作った表。applyKuji）
+let KATA = null, KUMI0 = null;
 // 決勝ラインの計算に使う（load() で大会設定から入れる。点数入力ページと同じ名前）。DATA_ST＝受け口を読めたか（wait＝はじめの読み込み中・ok・ng）
 let MODE = 4, TOTAL = 100000, OKA = 0, PRELIM = [], FINALS = [], LOCKED = [], AGERANK = {}, DATA_ST = 'wait';
 // 当日の操作（幹部用ページから受け口に入れる）。SHIFT＝時刻ずらし（taikai.json の tojitsu が true の会だけ時間割に足す）、GLOCK＝受け口で確定した半荘（大会設定の locked と同じに扱う。allFixed には数えない）。
@@ -374,8 +376,9 @@ function render() {
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
   const rm = $('remade');
-  rm.hidden = !(KUMI && (KUMI.from > 1 || KUMI.remade === true));
-  if (!rm.hidden) rm.textContent = (KUMI.from > 1 ? KUMI.from + '半荘目から' : '組み合わせを') + '組み直しました（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
+  // 型と受け口のくじの番号から作った表で、幹部用ページで番号を入れ直した後（redo）も知らせる
+  rm.hidden = !(KUMI && (KUMI.from > 1 || KUMI.remade === true || KUMI.redo === true));
+  if (!rm.hidden) rm.textContent = (KUMI.redo === true ? 'くじの番号を入れ直したので、組み合わせが変わりました' : (KUMI.from > 1 ? KUMI.from + '半荘目から' : '組み合わせを') + '組み直しました') + '（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
   $('mineh').textContent = bakime() ? '自分の卓' : '自分の席';
   const junni = c.final.tables > 0 && c.final.junni === 1;
   $('seatnote').textContent = bakime() ? '席は、予選も決勝も' + (junni ? '順位決定戦も、' : '') + '半荘ごとに牌を引いて決めます。起家はサイコロで決めます。表の並び順は、席ではありません。' : '東が起家です。';
@@ -964,6 +967,74 @@ $('usend').addEventListener('click', () => sendUchi());
 $('udel').addEventListener('click', () => { if (confirm('打ち上げの回答を消しますか？')) sendUchi(''); });
 
 // ---- くじ（taikai.json の kuji＝抽せんの日。その日のナンバーズ4の当せん番号で、誰がどの枠に入るかを決める。kai/tools/kuji.py） ----
+// ---- くじの会の組み合わせを、型と受け口のくじの番号から作る（第21回から。抽せんの夜の push を無くす） ----
+// 抽せんの後、組み合わせ表（kumiawase.json）に表がまだなければ、型（kata.json）と、幹部用ページで受け口に入れた当せん番号（受け口の kuji）から表を作って出す。
+// 組み合わせ表に表があれば、そちらを出す（当日の組み直しは kumiawase.py が書く）。
+// 計算は対戦表ページの sha256hex・seedOf・kataOut・kataPresent・outSlots・draw・roundsOf と、kai/tools/kumiawase.py の lottery_rounds と同じ。
+// 点数入力ページの SHA_K・sha256hex・kataOk・kujiRounds・gasN4・n4Redone・kujiKumi・applyKuji とも同じ（どれかを直したら、ほかも直す）
+const SHA_K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+function sha256hex(str) {
+  const bytes = new TextEncoder().encode(str), len = bytes.length, nblk = (len + 72) >> 6;
+  const m = new Uint8Array(nblk * 64); m.set(bytes); m[len] = 0x80;
+  const dv = new DataView(m.buffer), bits = len * 8;
+  dv.setUint32(m.length - 8, Math.floor(bits / 4294967296)); dv.setUint32(m.length - 4, bits >>> 0);
+  const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]), W = new Uint32Array(64);
+  const rot = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let blk = 0; blk < nblk; blk++) {
+    for (let t = 0; t < 16; t++) W[t] = dv.getUint32(blk * 64 + t * 4);
+    for (let t = 16; t < 64; t++) {
+      const s0 = rot(W[t - 15], 7) ^ rot(W[t - 15], 18) ^ (W[t - 15] >>> 3), s1 = rot(W[t - 2], 17) ^ rot(W[t - 2], 19) ^ (W[t - 2] >>> 10);
+      W[t] = (W[t - 16] + s0 + W[t - 7] + s1) >>> 0;
+    }
+    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    for (let t = 0; t < 64; t++) {
+      const t1 = (h + (rot(e, 6) ^ rot(e, 11) ^ rot(e, 25)) + ((e & f) ^ (~e & g)) + SHA_K[t] + W[t]) >>> 0;
+      const t2 = ((rot(a, 2) ^ rot(a, 13) ^ rot(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    H[0] += a; H[1] += b; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+  }
+  return [...H].map(x => x.toString(16).padStart(8, '0')).join('');
+}
+// 型の形を確かめる（対戦表ページの load と同じ）。合わなければ null
+const kataOk = (kt, c) => kt && kt.kai === c.kai && kt.date === c.kuji && kt.rounds && typeof kt.rounds === 'object' && Number.isInteger(kt.players)
+  && (kt.out === undefined || (Array.isArray(kt.out) && kt.out.every(p => /^P[1-9]\d?$/.test(p) && Number(p.slice(1)) <= kt.players))) ? kt : null;
+// 型と当せん番号から、組み合わせ表の rounds（kumiawase.json と同じ形・同じ並び）。くじを引く人のくじ値（種＋「|P番号」の SHA-256）の小さい順に枠1〜。
+// 型で外した人は、その後ろの枠（どの半荘もお休み）。型の枠に当てる人がいなければ null
+function kujiRounds(kt, n4) {
+  const pn = p => Number(String(p).slice(1)), out = (Array.isArray(kt.out) ? kt.out : []).slice().sort((a, b) => pn(a) - pn(b));
+  const seed = kt.kai + '|' + kt.date + '|N4=' + n4, slot = {};
+  Array.from({ length: kt.players }, (_, i) => 'P' + (i + 1)).filter(p => !out.includes(p))
+    .map(p => ({ p, h: sha256hex(seed + '|' + p) })).sort((x, y) => (x.h < y.h ? -1 : x.h > y.h ? 1 : pn(x.p) - pn(y.p)))
+    .forEach((x, i) => { slot[i + 1] = x.p; });
+  const os = out.map((_, i) => kt.players - out.length + 1 + i);
+  out.forEach((p, i) => { slot[os[i]] = p; });
+  let bad = false;
+  const f = w => { if (!slot[w]) bad = true; return slot[w]; }, o = os.map(f), res = {};
+  Object.keys(kt.rounds).filter(k => /^\d+$/.test(k)).sort((a, b) => a - b).forEach(k => {
+    const r = kt.rounds[k] || {};
+    res[k] = { tables: (r.tables || []).map(t => ({ no: t.no, p: (t.w || []).map(f) })), rest: (r.rest || []).map(f) };
+    if (o.length) res[k].out = o;
+  });
+  return bad || !Object.keys(res).length ? null : res;
+}
+// 受け口のくじの番号（{n4, date, ts, log}）のうち、型の抽せんの日と同じ日の4桁。なければ ''
+const gasN4 = (q, kt) => q && typeof q === 'object' && kt && q.date === kt.date && /^\d{4}$/.test(String(q.n4 || '')) ? String(q.n4) : '';
+// 同じ抽せんの日に、いまと違う番号を前に入れていたか（入れ直した。前の晩に表を見た人へ知らせる）
+const n4Redone = (q, n4) => !!q && Array.isArray(q.log) && q.log.some(x => x && x.date === q.date && /^\d{4}$/.test(String(x.n4 || '')) && String(x.n4) !== n4);
+// 型と受け口のくじの番号から作った組み合わせ表（kumiawase.json と同じ形。gas は作った印）。作れなければ null
+function kujiKumi(c, kt, q) {
+  const n4 = kataOk(kt, c) ? gasN4(q, kt) : '', rs = n4 ? kujiRounds(kt, n4) : null;
+  if (!rs) return null;
+  const k = { kai: c.kai, made: String(q.ts || '').slice(0, 16), from: 1, kuji: { date: kt.date, n4 }, rounds: rs, gas: true };
+  if (n4Redone(q, n4)) k.redo = true;
+  return k;
+}
+// 出す表を決める。組み合わせ表に表がなく、型と受け口のくじの番号がそろえば、作った表。ほかは組み合わせ表のまま
+function applyKuji() {
+  const g = CFG && KATA && !(KUMI0 && Object.keys(KUMI0.rounds || {}).length) && DATA && DATA.kai === CFG.kai ? kujiKumi(CFG, KATA, DATA.kuji) : null;
+  KUMI = g || KUMI0;
+}
 const kujiDay = () => /^\d{4}-\d{2}-\d{2}$/.test(CFG.kuji || '') ? CFG.kuji : '';
 function renderKuji() {
   // 結果が出たら出さない（組み合わせの欄が卓ごとの結果になる）
@@ -1113,6 +1184,8 @@ function useData(d) {
   // 当日の操作（時刻ずらし・受け口の確定）。古い受け口は返さないので空
   SHIFT = Array.isArray(d.shift) ? d.shift.filter(x => x && T_RE.test(String(x.from)) && Number.isInteger(x.min)) : [];
   GLOCK = Array.isArray(d.locked) ? d.locked.map(String) : [];
+  // くじの会で組み合わせ表が空なら、受け口のくじの番号と型から表を作る
+  applyKuji();
   // 打ち上げの回答（古い受け口は uchiage を返さない）
   const u = d.uchiage;
   UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
@@ -1131,8 +1204,9 @@ function jumpToHash() {
 async function load() {
   LAST_LOAD = Date.now();
   if (!G_OK) { setup('会の名前（URL の ?g=）の形が違います。'); return; }
-  // 大会設定と組み合わせは、同時に取りに行く（順に待つと、スマホの回線で本文が出るのが遅れる）
+  // 大会設定と組み合わせは、同時に取りに行く（順に待つと、スマホの回線で本文が出るのが遅れる）。くじの型は、前に読んだ設定がくじの会のときだけ一緒に取りに行く（ほかのときは、要るとわかってから）
   const cp = getJson(CONF + 'taikai.json'), kp = getJson(CONF + 'kumiawase.json').catch(() => null);
+  const pv = CFG || SH, tp = pv && /^\d{4}-\d{2}-\d{2}$/.test(pv.kuji || '') ? getJson(CONF + 'kata.json').catch(() => null) : null;
   let c;
   try { c = await cp; }
   catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
@@ -1141,7 +1215,9 @@ async function load() {
   const notes = [];
   let k = await kp;
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
-  CFG = c; KUMI = k;
+  // くじの会で組み合わせ表に表がまだないときは、型も読む（受け口にくじの番号が入っていれば、型から表を作る。applyKuji。前に読んだ受け口の番号で、すぐ作る）
+  const kt = /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') && !(k && Object.keys(k.rounds).length) ? await (tp || getJson(CONF + 'kata.json').catch(() => null)) : null;
+  CFG = c; KUMI0 = k; KATA = kataOk(kt, c); applyKuji();
   MODE = c.mode; TOTAL = c.start * MODE; OKA = (c.return - c.start) * MODE / 100;
   PRELIM = Array.from({ length: c.prelim }, (_, i) => String(i + 1));
   FINALS = c.final.tables > 0 ? Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1)) : [];
@@ -1164,7 +1240,8 @@ async function load() {
   // 待つ間は、切り替えボタンのルール・早見表・対戦表と点数入力も出さない（結果が出ていたら出さないボタンと、呼び名が「対戦結果」に変わるボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
   // 受け口の返事が4秒たっても来なければ、待たずに出す。確定した結果の写しで出せるときは待たない。
   // 待つ間は、見出しの下を「読み込み中…」にする（写しのある回は、開いた瞬間に消しているため）。ページの名前は、全部の半荘が確定した決勝のある回なら、待つ間から「結果」
-  const hold = $('main').hidden && !!api && !snap && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
+  // くじの会で型から表を作る回（組み合わせ表が空）は、抽せんの日から後も同じに待つ（受け口のくじの番号を読む前の「まだ決まっていません」を一瞬出さない）
+  const hold = $('main').hidden && !!api && !snap && !endSeen() && ((/^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today()) || (!!KATA && KUMI === KUMI0 && c.kuji <= today()));
   const timer = hold ? setTimeout(open, 4000) : 0;
   if (hold) { setTitle(c.title, allFixed(c) && c.final.tables > 0); $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); } else open();
   if (!api) return;
