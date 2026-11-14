@@ -39,6 +39,11 @@ button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:point
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
 #main[hidden]~.pnav{display:none}
+/* 一番下の QR コード（このページのアドレス）。読み込みが終わるまでは、下の切り替えボタンと同じく出さない */
+#main[hidden]~#qrbox{display:none}
+.qr{text-align:center}
+.qr svg{display:block;width:min(220px,64vw);height:auto;margin:0 auto}
+.qr p{margin:8px 0 0;overflow-wrap:anywhere}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--card);table-layout:fixed}
 th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top;word-break:keep-all;overflow-wrap:anywhere}
@@ -154,6 +159,15 @@ details[open]>summary{margin-bottom:8px}
   </details>
   </div>
   <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
+
+  <section id="qrbox" hidden>
+  <h2>このページのQRコード</h2>
+  <div class="card qr">
+    <div id="qrimg"></div>
+    <p id="qrurl"></p>
+    <p class="small">スマホのカメラで読むと、このページが開きます。</p>
+  </div>
+  </section>
 </div>
 
 <script>
@@ -652,6 +666,116 @@ function renderKuji() {
     : '卓' + (hasNuke() ? 'と抜け番' : '') + 'の並び（型）は決めてあります。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'));
   const a = document.createElement('a'); a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : ''); a.textContent = '対戦表のページ（くじの決まり・型・検算）';
   box.appendChild(document.createElement('br')); box.appendChild(a);
+}
+
+// ---- 一番下の QR コード（このページのアドレス）。外のライブラリは使わず、ここで作る ----
+// アドレスは README の配る形（halu は ?g= を付けない）。index.html と、# や ?t= などの後ろは付けない
+const TOP_URL = location.origin + location.pathname.replace(/index\.html$/, '') + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '');
+// JIS X 0510 の QR コードの0/1の表（黒＝1）。8ビットバイトのモード・誤り訂正 M・型番1〜6（106バイトまで）。入らなければ null
+function qrMatrix(text) {
+  const EC = [0, 10, 16, 26, 18, 24, 16], NB = [0, 1, 1, 1, 2, 2, 4];  // 型番ごとの、ブロック1つの誤り訂正の語数と、ブロックの数（M）
+  const raw = v => (16 * v + 128) * v + 64 - (v >= 2 ? 25 : 0);  // データを置けるモジュールの数（型番2〜6は位置合わせパターンが1つ）
+  const bytes = Array.from(new TextEncoder().encode(text));
+  let v = 1;
+  while (v <= 6 && 12 + bytes.length * 8 > (Math.floor(raw(v) / 8) - EC[v] * NB[v]) * 8) v++;
+  if (v > 6) return null;
+  const n = 4 * v + 17, total = Math.floor(raw(v) / 8), ec = EC[v], nb = NB[v], dlen = total - ec * nb;
+  // データの語（モード 0100・文字数8ビット・本文・終端の0を4つまで・8の区切りまで0・埋め草 0xEC と 0x11 を交互に）
+  const bits = [], put = (x, len) => { for (let i = len - 1; i >= 0; i--) bits.push((x >>> i) & 1); };
+  put(4, 4); put(bytes.length, 8); bytes.forEach(b => put(b, 8));
+  put(0, Math.min(4, dlen * 8 - bits.length)); put(0, (8 - bits.length % 8) % 8);
+  const data = [];
+  for (let i = 0; i < bits.length; i += 8) data.push(bits.slice(i, i + 8).reduce((a, b) => a * 2 + b, 0));
+  for (let p = 0xec; data.length < dlen; p ^= 0xec ^ 0x11) data.push(p);
+  // 誤り訂正の語（リード・ソロモン。GF(256)・原始多項式 0x11D・生成多項式の根は 2 の 0〜ec-1 乗）
+  const mul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11d); z ^= ((y >>> i) & 1) * x; } return z; };
+  const gen = new Array(ec).fill(0); gen[ec - 1] = 1;
+  for (let i = 0, r = 1; i < ec; i++, r = mul(r, 2)) for (let j = 0; j < ec; j++) { gen[j] = mul(gen[j], r); if (j + 1 < ec) gen[j] ^= gen[j + 1]; }
+  // ブロックに分けて誤り訂正の語を付け、各ブロックの語を1つずつ交互に並べる（データの語、次に誤り訂正の語）
+  const short = Math.floor(total / nb), nshort = nb - total % nb, blocks = [];
+  for (let i = 0, k = 0; i < nb; i++) {
+    const len = short - ec + (i < nshort ? 0 : 1), d = data.slice(k, k + len), e = new Array(ec).fill(0);
+    k += len;
+    d.forEach(b => { const f = b ^ e.shift(); e.push(0); gen.forEach((g, j) => { e[j] ^= mul(g, f); }); });
+    blocks.push([d, e]);
+  }
+  const cw = [];
+  for (let i = 0; i <= short - ec; i++) blocks.forEach(([d]) => { if (i < d.length) cw.push(d[i]); });
+  for (let i = 0; i < ec; i++) blocks.forEach(([, e]) => cw.push(e[i]));
+  // 機能パターン（タイミング・位置検出と分離・位置合わせ）。fn＝データを置かないモジュール
+  const m = Array.from({ length: n }, () => new Array(n).fill(0)), fn = m.map(r => r.map(() => false));
+  const set = (mm, x, y, d) => { mm[y][x] = d ? 1 : 0; fn[y][x] = true; };
+  for (let i = 0; i < n; i++) { set(m, 6, i, i % 2 === 0); set(m, i, 6, i % 2 === 0); }
+  const box = (cx, cy, r, dark) => {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (x >= 0 && y >= 0 && x < n && y < n) set(m, x, y, dark(Math.max(Math.abs(dx), Math.abs(dy))));
+    }
+  };
+  [[3, 3], [n - 4, 3], [3, n - 4]].forEach(([x, y]) => box(x, y, 4, d => d !== 2 && d !== 4));
+  if (v >= 2) box(n - 7, n - 7, 2, d => d !== 1);
+  // 形式情報（誤り訂正 M＝00 とマスクの番号。BCH 符号＋0x5412）。左上と、右上・左下の2か所。左下の暗モジュールも
+  const fmt = (mm, mask) => {
+    let r = mask;
+    for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+    const b = ((mask << 10) | r) ^ 0x5412, bit = i => (b >>> i) & 1;
+    for (let i = 0; i <= 5; i++) set(mm, 8, i, bit(i));
+    set(mm, 8, 7, bit(6)); set(mm, 8, 8, bit(7)); set(mm, 7, 8, bit(8));
+    for (let i = 9; i < 15; i++) set(mm, 14 - i, 8, bit(i));
+    for (let i = 0; i < 8; i++) set(mm, n - 1 - i, 8, bit(i));
+    for (let i = 8; i < 15; i++) set(mm, 8, n - 15 + i, bit(i));
+    set(mm, 8, n - 8, 1);
+  };
+  fmt(m, 0);
+  // データの置き方（右下から2列ずつ、上へ・下へと折り返す。縦のタイミングの列は飛ばす。余りのビットは0のまま）
+  for (let right = n - 1, i = 0; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < n; vert++) for (let j = 0; j < 2; j++) {
+      const x = right - j, y = ((right + 1) & 2) === 0 ? n - 1 - vert : vert;
+      if (!fn[y][x] && i < cw.length * 8) { m[y][x] = (cw[i >>> 3] >>> (7 - (i & 7))) & 1; i++; }
+    }
+  }
+  // マスクは8通りを試し、失点のいちばん少ないものにする（x＝列・y＝行）
+  const MASK = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, x => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0,
+    (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+  let best = null, bestP = Infinity;
+  MASK.forEach((f, k) => {
+    const mm = m.map((row, y) => row.map((c, x) => fn[y][x] || !f(x, y) ? c : c ^ 1));
+    fmt(mm, k);
+    const p = qrPenalty(mm);
+    if (p < bestP) { bestP = p; best = mm; }
+  });
+  return best;
+}
+// マスクの失点（JIS X 0510。同じ色が5つ以上続く・2×2の同じ色・位置検出パターンに似た並び・黒の割合が50%から離れる）
+function qrPenalty(m) {
+  const n = m.length;
+  let p = 0;
+  for (let i = 0; i < n; i++) [m[i], m.map(r => r[i])].forEach(L => {
+    for (let j = 0; j < n;) { let k = j; while (k < n && L[k] === L[j]) k++; if (k - j >= 5) p += k - j - 2; j = k; }
+    const s = L.join('');
+    ['10111010000', '00001011101'].forEach(t => { for (let k = s.indexOf(t); k >= 0; k = s.indexOf(t, k + 1)) p += 40; });
+  });
+  for (let y = 0; y < n - 1; y++) for (let x = 0; x < n - 1; x++) { const c = m[y][x]; if (c === m[y][x + 1] && c === m[y + 1][x] && c === m[y + 1][x + 1]) p += 3; }
+  const dark = m.reduce((a, r) => a + r.reduce((b, c) => b + c, 0), 0);
+  return p + Math.floor(Math.abs(dark * 20 - n * n * 10) / (n * n)) * 10;
+}
+// SVG にする（まわりに白を4モジュール）。黒の横の並びは1つの四角にまとめる
+function qrSvg(text) {
+  const m = qrMatrix(text);
+  if (!m) return '';
+  const n = m.length, w = n + 8;
+  let d = '';
+  m.forEach((r, y) => {
+    for (let x = 0; x < n; x++) if (r[x]) { let e = x; while (e + 1 < n && r[e + 1]) e++; d += 'M' + (x + 4) + ' ' + (y + 4) + 'h' + (e - x + 1) + 'v1h-' + (e - x + 1) + 'z'; x = e; }
+  });
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + w + '" shape-rendering="crispEdges" role="img" aria-label="このページのアドレスのQRコード"><rect width="' + w + '" height="' + w + '" fill="#fff"/><path fill="#000" d="' + d + '"/></svg>';
+}
+// 会の名前の形が違うときと、アドレスが長すぎて入らないときは出さない
+if (G_OK) {
+  const svg = qrSvg(TOP_URL);
+  if (svg) { $('qrimg').innerHTML = svg; $('qrurl').textContent = TOP_URL; $('qrbox').hidden = false; }
 }
 
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
