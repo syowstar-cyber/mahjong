@@ -55,6 +55,12 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 #mine th:nth-child(2),#mine td:nth-child(2),#mine th:nth-child(3),#mine td:nth-child(3){width:3.4em}
 #mine.noseat th:nth-child(3),#mine.noseat td:nth-child(3){width:auto}
 #sched th:first-child,#sched td:first-child{width:4.2em;white-space:nowrap}
+/* 卓ごとの結果（結果が出たら、組み合わせの欄の代わり）。名前の列を広く、数の列は右に寄せる */
+table.tres th,table.tres td{width:auto}
+table.tres .s{width:2.6em}
+table.tres .r{width:3.4em}
+table.tres .n{width:5.2em;text-align:right}
+td.neg{color:var(--ng)}
 tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
 /* 一番上の「次は」（名前を選んでいて、受け口が読めたときだけ）。自分の席の表では、点数が入った半荘を薄く、次の半荘に色をつける */
 .next{background:var(--soft);border:2px solid var(--accent);border-radius:12px;padding:10px 14px;margin:10px 0}
@@ -163,13 +169,15 @@ details[open]>summary{margin-bottom:8px}
   </details>
   </div>
 
-  <h2>半荘ごとの組み合わせ</h2>
+  <div id="rbox">
+  <h2 id="rh">半荘ごとの組み合わせ</h2>
   <p class="hint" id="kujibox" hidden></p>
   <p id="rnone" hidden></p>
   <details id="rfold" hidden>
     <summary id="rsum"></summary>
     <div id="rounds"></div>
   </details>
+  </div>
   </div>
   <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 
@@ -184,7 +192,7 @@ details[open]>summary{margin-bottom:8px}
 </div>
 
 <script>
-// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・決勝ライン・当日の流れ・打ち上げ・組み合わせ）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
+// 普段の回のトップページ（参加者向け。日時と場所・自分の卓・決勝ライン・当日の流れ・打ち上げ・組み合わせ。結果が出たら、結果と卓ごとの結果）。会ごとの taikai.json（大会設定）と kumiawase.json（組み合わせ。kai/tools/kumiawase.py と kuji.py が書く）を読んで出す。
 // 受け口からは名前（名簿）・入力済みの卓と点数・打ち上げの回答を読む。送るのは打ち上げの回答だけ。当日に組み直して push したら、開き直すか「最新に更新」で出る（開催日は2分ごとに読み直す）
 const $ = id => document.getElementById(id);
 const WINDS = ['東', '南', '西', '北'];
@@ -218,7 +226,7 @@ function pageLinks(c) {
 }
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーは会ごとで、ほかのページとルール・点数早見表も同じキー）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
-const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
 function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
 function readShell() {
   try {
@@ -327,7 +335,6 @@ function render() {
   const c = CFG;
   setTitle(c.title);
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
-  const rs = rounds();
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
   const rm = $('remade');
   rm.hidden = !(KUMI && (KUMI.from > 1 || KUMI.remade === true));
@@ -366,8 +373,25 @@ function render() {
   renderSched();
   renderUchi();
   renderKuji();
-  // 半荘ごと（全部の卓）。名前を選んだ人は自分の席の表で足りるので、たたんで出す（名前を選んでいない間は開く）
-  const box = $('rounds'); box.innerHTML = '';
+  renderRounds(end);
+  // 決勝の決まりは1文だけ（観戦と順位決定戦の時間は当日の流れに、決勝の卓の出る所は「次は」に出る）
+  const fn = $('finnote');
+  fn.hidden = !(c.final.tables > 0);
+  if (!fn.hidden) fn.textContent = '決勝は予選の上位' + c.final.tables * c.mode + '人' + (junni ? 'で、ほかの人は順位決定戦です。' : 'です。') + (bakime() ? '' : '決勝の席は自動卓のサイコロで決めます。');
+}
+// 一番下の欄。半荘ごと（全部の卓）の組み合わせ。名前を選んだ人は自分の席の表で足りるので、たたんで出す（名前を選んでいない間は開く）。
+// 結果が出たら、組み合わせの代わりに卓ごとの結果をたたんで出す（2026-11-14 主催）。受け口をまだ読めていない間は、欄ごと出さない
+function renderRounds(end) {
+  const c = CFG, rs = rounds(), box = $('rounds'); box.innerHTML = '';
+  $('rh').textContent = end ? '卓ごとの結果' : '半荘ごとの組み合わせ';
+  if (end) {
+    const n = DATA ? renderTres(box) : 0;
+    $('rnone').hidden = true; $('rbox').hidden = !n; $('rfold').hidden = !n;
+    $('rsum').textContent = '全部の卓（予選' + PRELIM.length + '半荘' + (FINALS.length ? '・決勝' + (FINALS.length > 1 ? FINALS.length + '半荘' : '') : '') + '）';
+    autoOpen('rfold', 'end', false);
+    return;
+  }
+  $('rbox').hidden = false;
   $('rnone').hidden = !!rs.length; $('rfold').hidden = !rs.length;
   if (!rs.length) $('rnone').innerHTML = '<b>組み合わせはまだ決まっていません。' + (kujiDay() ? dayText(kujiDay()) + 'の夜に、くじで決まります。' : '前日に出ます。') + '</b>';
   $('rsum').textContent = '全部の卓（予選' + rs.length + '半荘）';
@@ -395,10 +419,51 @@ function render() {
     if ((r.out || []).length) extra.push('お休み: ' + r.out.map(dn).join('・'));
     if (extra.length) { const p = document.createElement('p'); p.className = 'small'; p.style.margin = '4px 0'; p.textContent = extra.join('　'); box.appendChild(p); }
   });
-  // 決勝の決まりは1文だけ（観戦と順位決定戦の時間は当日の流れに、決勝の卓の出る所は「次は」に出る）
-  const fn = $('finnote');
-  fn.hidden = !(c.final.tables > 0);
-  if (!fn.hidden) fn.textContent = '決勝は予選の上位' + c.final.tables * c.mode + '人' + (junni ? 'で、ほかの人は順位決定戦です。' : 'です。') + (bakime() ? '' : '決勝の席は自動卓のサイコロで決めます。');
+}
+// ---- 卓ごとの結果（結果が出たら、組み合わせの欄の代わりに出す。2026-11-14 主催） ----
+// 点数入力ページの renderResults・roundLabel・tableLabel・rankOnly と同じ中身（どちらかを直したら、もう片方も直す）。
+// 入った卓ごとに、打った人・点棒・順位・ポイント。順位決定戦の卓は順位だけ。名前を選んだ人は自分の名前に色。返すのは出した半荘の数
+const roundLabel = r => String(r).startsWith('F') ? (FINALS.length > 1 ? '決勝 ' + r.slice(1) + '半荘目' : '決勝') + (String(r) === 'F1' && junniOn() ? '・順位決定戦' : '') : '予選 ' + r + '半荘目';
+// 順位決定戦の卓は点棒の多い順（同じ点棒は予選の順位が上の方）。ポイントはつけない。全員そろっていなければ null。pr は予選の順位（P番号 → 順位）
+function rankOnly(raws, ps, pr) {
+  if (!Array.isArray(raws) || raws.some(v => v === null || v === undefined || Number.isNaN(v))) return (raws || []).map(() => null);
+  const prk = i => pr[(ps || [])[i]] || 9999;
+  return raws.map((v, i) => ({ raw: v, rank: 1 + raws.filter((w, j) => w > v || (w === v && prk(j) < prk(i))).length, pts: null }));
+}
+function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; if (typeof text === 'string' && text.startsWith('−')) td.classList.add('neg'); tr.appendChild(td); return td; }
+function renderTres(box) {
+  const jn = junniOn() ? finalMembers().junni : [], pr = {};
+  prelimStats().forEach(x => { pr[x.p] = x.rank; });
+  const label = (r, t) => {
+    if (isJunniT(r, t)) { const j = jn.find(x => String(x.no) === String(t)); return j ? '順位決定戦 ' + j.from + '〜' + (j.from + j.p.length - 1) + '位' : '順位決定戦 ' + t + '卓'; }
+    return String(r).startsWith('F') ? (CFG.final.tables > 1 ? '決勝 ' + t + '卓' : '決勝卓') : t + '卓';
+  };
+  let n = 0;
+  PRELIM.concat(FINALS).forEach(r => {
+    const recs = recsOf(r), keys = Object.keys(recs).sort((a, b) => Number(a) - Number(b));
+    if (!keys.length) return;
+    n++;
+    const h = document.createElement('h3'); h.textContent = roundLabel(r); box.appendChild(h);
+    keys.forEach(k => {
+      const rec = recs[k], ps = rec.p || [], raws = rec.raw || [], res = isJunniT(r, k) ? rankOnly(raws, ps, pr) : calcTable(raws);
+      const cap = document.createElement('div'); cap.className = 'small'; cap.textContent = label(r, k); box.appendChild(cap);
+      const tw = document.createElement('div'); tw.className = 'tw'; tw.style.marginBottom = '8px';
+      const tbl = document.createElement('table'); tbl.className = 'tres';
+      tbl.innerHTML = '<thead><tr>' + (bakime() ? '' : '<th class="s">席</th>') + '<th>名前</th><th class="n">点棒</th><th class="r">順位</th><th class="n">pt</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      ps.forEach((p, i) => {
+        const tr = document.createElement('tr'), v = res[i];
+        if (!bakime()) cell(tr, WINDS[i] || '', 's');
+        cell(tr, dn(p), p === ME ? 'me' : '');
+        cell(tr, fmt(raws[i]), 'n' + (raws[i] < 0 ? ' neg' : ''));
+        cell(tr, v ? v.rank + '位' : '', 'r');
+        cell(tr, v && v.pts !== null ? fpt(v.pts) : '', 'n');
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb); tw.appendChild(tbl); box.appendChild(tw);
+    });
+  });
+  return n;
 }
 // ---- 結果（決勝の最後の半荘の決勝の卓がぜんぶ入ったら、ページの一番上に優勝と最終順位を出す。2026-11-14 主催） ----
 // 最終順位の計算は score/index.html の junniSplit・finalMembers・finalRanking と同じ（どちらかを直したら、もう片方も直す）
@@ -409,7 +474,8 @@ const resultDone = () => { const f = FINALS[FINALS.length - 1]; return !!(DATA &
 // 結果が出たことを、この端末に覚える（覚えるのは回の名前だけ。名前・点数は覚えない。キーは点数入力・対戦表・幹部用と同じ）。
 // 受け口をまだ読めていない間と、読めなかったときも、前に結果を見た端末では結果の後の形で出す（2026-11-14 主催「元に戻ってる」）。受け口を読めたら resultDone だけで決める
 const END_KEY = 'halukai:end:' + G;
-const endSeen = () => { try { return !!CFG && localStorage.getItem(END_KEY) === CFG.kai; } catch (e) { return false; } };
+const seenKai = k => { try { return !!k && localStorage.getItem(END_KEY) === k; } catch (e) { return false; } };
+const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (DATA_ST !== 'ok' && endSeen());
 function junniSplit(n, mode) {
@@ -819,7 +885,8 @@ $('udel').addEventListener('click', () => { if (confirm('打ち上げの回答�
 // ---- くじ（taikai.json の kuji＝抽せんの日。その日のナンバーズ4の当せん番号で、誰がどの枠に入るかを決める。kai/tools/kuji.py） ----
 const kujiDay = () => /^\d{4}-\d{2}-\d{2}$/.test(CFG.kuji || '') ? CFG.kuji : '';
 function renderKuji() {
-  const d = kujiDay(), box = $('kujibox');
+  // 結果が出たら出さない（組み合わせの欄が卓ごとの結果になる）
+  const d = endView() ? '' : kujiDay(), box = $('kujibox');
   box.hidden = !d; box.innerHTML = '';
   if (!d) return;
   const n4 = KUMI && KUMI.kuji && /^\d{4}$/.test(KUMI.kuji.n4 || '') ? KUMI.kuji.n4 : '';
@@ -992,13 +1059,17 @@ async function load() {
   saveShell(c);
   const api = String(c.api || '').trim();
   if (!api) UCHI_ST = 'none';
-  // 受け口（名前・入力済みの卓・打ち上げ）を待たずに、設定と組み合わせ表で先に出す。はじめは、受け口が返るまで名前が番号のまま
-  setup(notes.join(' '));
-  $('main').hidden = false;
-  render();
+  // 受け口（名前・入力済みの卓・打ち上げ）を待たずに、設定と組み合わせ表で先に出す。はじめは、受け口が返るまで名前が番号のまま。
   // # の場所へは、はじめの読み込みだけ。受け口の返事で上の欄の高さが変わるので、その間に画面を動かしていなければ、返事の後にもう一度
-  const jy = JUMPED ? null : jumpToHash();
-  JUMPED = true;
+  setup(notes.join(' '));
+  let jy = null;
+  const open = () => { pageLinks(CFG); $('main').hidden = false; render(); if (!JUMPED) { jy = jumpToHash(); JUMPED = true; } };
+  // ただし開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから出す（結果の前の形が一瞬出ないように。2026-11-14 主催「下のページが一瞬表示される」）。
+  // 待つ間は、切り替えボタンのルールと早見表も出さない（結果が出ていたら出さないボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
+  // 受け口の返事が4秒たっても来なければ、待たずに出す
+  const hold = $('main').hidden && !!api && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
+  const timer = hold ? setTimeout(open, 4000) : 0;
+  if (hold) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); else open();
   if (!api) return;
   try {
     const j = await getApi(api + '?kai=' + encodeURIComponent(c.kai));
@@ -1012,14 +1083,17 @@ async function load() {
   }
   // 読み直しで通信が切れたときは、前に読めた名前と点数のまま出す
   catch (e) { if (!DATA) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); DATA_ST = 'ng'; } if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
+  clearTimeout(timer);
   setup(notes.join(' '));
-  render();
+  if ($('main').hidden) open(); else render();
   if (jy !== null && jy === Math.round(scrollY)) jumpToHash();
 }
 $('reload').addEventListener('click', load);
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが2つだけの画面を出さない）
 const SH = G_OK ? readShell() : null;
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); }
+// 前に結果を見た回（写しの kai）と、開催日（写しの date）から後で結果が出たかをまだ確かめていない間は、ルールと早見表のボタンを開いた瞬間から出さない
+// （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);

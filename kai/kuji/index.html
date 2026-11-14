@@ -208,13 +208,14 @@ const resultDone = () => !!(CFG && CFG.final && CFG.final.tables > 0 && Number.i
 // 受け口をまだ読めていない間と読めなかったときは、前に結果を見た端末なら結果の後の形で出す（2026-11-14 主催「元に戻ってる」）
 let LOADED = false;   // 受け口を一度でも読めたか
 const END_KEY = 'halukai:end:' + G;
-const endSeen = () => { try { return !!CFG && localStorage.getItem(END_KEY) === CFG.kai; } catch (e) { return false; } };
+const seenKai = k => { try { return !!k && localStorage.getItem(END_KEY) === k; } catch (e) { return false; } };
+const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (!LOADED && endSeen());
 const hideRuleLinks = () => { if (endView()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); };
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。型・組み合わせ・点数は覚えない（いつも新しく読む）
-const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
 function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
 function readShell() {
   try {
@@ -987,7 +988,8 @@ async function load() {
 }
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが足りない画面を出さない）
 const SH = G_OK ? readShell() : null;
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); }
+// 前に結果を見た回（写しの kai）なら、ルールと早見表のボタンは開いた瞬間から出さない（大会設定を読むまでの間に一瞬出ないように。2026-11-14 主催）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); }
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

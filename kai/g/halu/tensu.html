@@ -302,7 +302,7 @@ calc();
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じで、会はこのページのフォルダ g/<会>/）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする
 const G = (location.pathname.match(/\/g\/([a-z0-9-]{1,20})\/[^/]*$/) || [])[1] || '';
-const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji'];
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
 function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
 function readShell() {
   try {
