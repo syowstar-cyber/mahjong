@@ -672,6 +672,41 @@ function condHtml(st, ctx, S, d, oras) {
   });
   return h + '<p class="small">自分がアガったときの条件です。ほかの人どうしのアガリ・ダブロン・この局に出たリーチ棒・トリプル役満は入れていません。点は早見表の点で、本場と供託は計算に入れてあります。総合の同点は、予選の順位が上の方が上位です。</p>';
 }
+// 優勝の条件（この半荘の終わりの点棒の差。着順ごと。2026-11-14 主催）。総合の差＝前の半荘までのポイントの差＋点棒の差/100＋順位点の差（0.1 単位。calcTable と同じ）。
+// 総合の同点は予選の順位が上の方。同じ点棒（着順が割れる）は数えない。order は出す順の席
+function lineHtml(seats, raw, ctx, order) {
+  const bonus = umaFor(raw).map((x, r) => Math.round(x * 10) + (r === 0 ? OKA : 0));
+  const perms = a => a.length <= 1 ? [a] : a.flatMap((x, k) => perms(a.slice(0, k).concat(a.slice(k + 1))).map(r => [x].concat(r)));
+  const orders = perms(seats.map((_, i) => i));   // o[r]＝r+1 着の席
+  let h = '<h3>優勝の条件（この半荘の終わりの点棒）</h3><p class="small">着順ごとに、総合1位になるのに要る点棒の差です。書いていない着順では、優勝に届きません。</p>';
+  order.forEach(i => {
+    const p = seats[i], li = [];
+    for (let r = 0; r < seats.length; r++) {
+      const at = orders.filter(o => o[r] === i);
+      const rows = at.map(o => {
+        const req = [];
+        for (let k = 0; k < o.length; k++) {
+          const j = o[k];
+          if (j === i) continue;
+          const q = seats[j], D = ctx.prev[p] - ctx.prev[q] + bonus[r] - bonus[k];
+          // 総合の差は D＋(自分の点棒−その人の点棒)/100。正なら上、0 なら予選の順位で決まる。点棒の差は need 以上が要る
+          const need = -D * 100 + (ctx.prk[p] < ctx.prk[q] ? 0 : 100);
+          if (k > r) { if (need > 100) req.push(esc(dn(q)) + 'より ' + fmt(need) + '点以上多い'); }
+          else if (need > -100) return null;
+          else req.push(esc(dn(q)) + 'との差が ' + fmt(-need) + '点まで');
+        }
+        return { o, req };
+      }).filter(Boolean);
+      if (!rows.length) continue;
+      if (rows.length === at.length && rows.every(x => !x.req.length)) { li.push('<li><b>' + (r + 1) + '着</b>　なら優勝</li>'); continue; }
+      rows.forEach(({ o, req }) => li.push('<li><b>' + (r + 1) + '着</b>（' + o.map((s, k) => s === i ? '' : (k + 1) + '着 ' + esc(dn(seats[s]))).filter(Boolean).join('・') + '）　' + (req.length ? req.join('、') : 'なら優勝') + '</li>'));
+    }
+    h += '<div class="card lvc"><div class="who">' + esc(dn(p)) + '</div><ul>' + (li.length ? li.join('') : '<li>この半荘では、優勝に届きません</li>') + '</ul></div>';
+  });
+  return h + '<p class="small">点棒は、この半荘が終わったときの点棒（供託はトップに入れた後）です。総合の同点は、予選の順位が上の方が上位です。</p>';
+}
+// 優勝の条件で何か起きても、ほかの実況は出す
+const lineSafe = (seats, raw, ctx, order) => { try { return lineHtml(seats, raw, ctx, order); } catch (e) { return ''; } };
 function renderLive() {
   const on = liveOn();
   $('livesec').hidden = !on; $('jlive').hidden = !on;
@@ -698,7 +733,8 @@ function renderLive() {
   const st = liveState(ctx);
   if (!st) {
     box.innerHTML = '<p>決勝' + n + '半荘目が始まると、局ごとの点棒と、優勝に要るアガリがここに出ます。</p>'
-      + '<h3>いまの総合（' + prevLabel() + '）</h3>' + standHtml(ctx.mem.map(p => ({ p, i: -1, raw: null, total: ctx.prev[p] })), ctx, -1);
+      + '<h3>いまの総合（' + prevLabel() + '）</h3>' + standHtml(ctx.mem.map(p => ({ p, i: -1, raw: null, total: ctx.prev[p] })), ctx, -1)
+      + lineSafe(ctx.mem, ctx.mem.map(() => CFG.start), ctx, byTotal(ctx.mem.map((p, i) => ({ p, i, total: ctx.prev[p] })), ctx.prk).map(x => x.i));
     return;
   }
   if (st.bad) { box.innerHTML = '<p class="warn">運営の入力が、決勝の人と合いません。運営の入力で、席を選び直してください。</p>'; return; }
@@ -708,7 +744,7 @@ function renderLive() {
   if (fin) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、点数入力ページの最終順位です。</p>';
   h += '<h3>' + (fin ? '総合の順位' : '総合の順位（いまの点棒で終わったら）') + '</h3>' + standHtml(T, ctx, fin ? -1 : d);
   if (!fin && st.kyotaku) h += '<p class="small">供託の' + st.kyotaku + '本は、順位に入れていません。</p>';
-  if (!fin) h += condHtml(st, ctx, S, d, oras);
+  if (!fin) h += lineSafe(st.seats, st.raw, ctx, S.map(x => x.i)) + condHtml(st, ctx, S, d, oras);
   box.innerHTML = h;
 }
 // 決勝の最後の半荘の点数が入った後。優勝と総合の順位は、点数入力ページに入れた1卓の点数から（点数入力ページの最終順位と同じ計算）。
