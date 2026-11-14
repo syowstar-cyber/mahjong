@@ -95,6 +95,9 @@ details[open]>summary{margin-bottom:8px}
 .result .pod{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
 .result .pod>div{flex:1 1 0;min-width:8em;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
 .result h3{margin-top:14px}
+/* 結果の表は、順位の列を細く、成績の列を広く（スマホで「順位決定戦（10〜12位）」が2行に収まる幅） */
+.result th:first-child,.result td:first-child{width:3em}
+.result th:nth-child(3),.result td:nth-child(3){width:48%}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 </head>
@@ -449,7 +452,7 @@ function finalRanking() {
       const same = i > 0 && cj(list[i - 1], p) === 0;
       if (same) rows[rows.length - 1].tie = true;
       // 順位決定戦は卓ごとに決める順位（卓をまたいで入れ替わらない）ので、その卓で決める順位の幅を添える
-      rows.push({ p, rank: same ? rows[rows.length - 1].rank : base + i + 1, tie: same, how: '順位決定戦（' + j.from + '〜' + (j.from + j.p.length - 1) + '位の卓）', val: raw(p) === null ? '' : fmt(raw(p)) + '点' });
+      rows.push({ p, rank: same ? rows[rows.length - 1].rank : base + i + 1, tie: same, how: '順位決定戦（' + j.from + '〜' + (j.from + j.p.length - 1) + '位）', val: raw(p) === null ? '' : fmt(raw(p)) + '点' });
       placed.add(p);
     });
   });
@@ -476,9 +479,35 @@ function renderResult() {
   const mine = ME ? rows.find(x => x.p === ME) : null;
   if (mine) h += '<p style="margin:10px 0 0">自分（' + esc(dn(ME)) + '）は <b>' + mine.rank + '位</b>' + (mine.tie ? '（同点）' : '') + 'です。</p>';
   h += '<h3>最終順位</h3><div class="tw"><table><thead><tr><th>順位</th><th>名前</th><th>成績</th></tr></thead><tbody>'
-    + rows.map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td' + (x.p === ME ? ' class="me"' : '') + '>' + esc(dn(x.p)) + '</td><td><span class="small">' + esc(x.how).replace('（', '<wbr>（') + '</span><br>' + esc(x.val) + '</td></tr>').join('')
+    + rows.map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td' + (x.p === ME ? ' class="me"' : '') + '>' + esc(dn(x.p)) + '</td><td><span class="small">' + esc(x.how).replace('（', '<br>（') + '</span><br>' + esc(x.val) + '</td></tr>').join('')
     + '</tbody></table></div><p class="small" style="margin:6px 0 0">点数入力ページの最終順位と同じです。' + (all ? '' : '集計係が確定するまでは、変わることがあります。') + '</p>';
+  // 最終順位の後ろに、トータルの順位（決勝が2半荘以上の会だけ）。何か起きても、上の結果は出す
+  if (FINALS.length >= 2) { try { h += totalHtml(); } catch (e) {} }
   box.innerHTML = h;
+}
+// トータルの順位（決勝2半荘目から後を除く＝全員が打った分。予選と、決勝1半荘目・順位決定戦のポイントの合計。2026-11-14 主催）。
+// 同じ合計は同じ順位の数字（参考の順位なので、会の決まりでは分けない）
+function totalRows() {
+  const st = {};
+  prelimStats().forEach(x => { st[x.p] = { p: x.p, pre: x.total, f1: null, how: '' }; });
+  Object.entries(recsOf('F1')).forEach(([t, rec]) => {
+    const res = calcTable(rec.raw);
+    (rec.p || []).forEach((p, i) => {
+      if (!res[i]) return;
+      const x = st[p] || (st[p] = { p, pre: 0, f1: null, how: '' });
+      x.f1 = res[i].pts; x.how = isJunniT('F1', t) ? '順位決定戦' : '決勝1半荘目';
+    });
+  });
+  const list = Object.values(st).map(x => Object.assign(x, { total: x.pre + (x.f1 || 0) })).sort((a, b) => b.total - a.total || pnum(a.p) - pnum(b.p));
+  list.forEach(x => { x.rank = 1 + list.filter(y => y.total > x.total).length; x.tie = list.some(y => y !== x && y.total === x.total); });
+  return list;
+}
+function totalHtml() {
+  const ex = FINALS.length === 2 ? '決勝2半荘目' : '決勝2半荘目から後';
+  return '<h3>トータルの順位（' + ex + 'を除く）</h3><div class="tw"><table><thead><tr><th>順位</th><th>名前</th><th>トータル</th></tr></thead><tbody>'
+    + totalRows().map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td' + (x.p === ME ? ' class="me"' : '') + '>' + esc(dn(x.p)) + '</td><td><b>' + fpt(x.total) + '</b>'
+      + '<div class="small">予選 ' + fpt(x.pre) + (x.f1 === null ? '' : '<br>' + x.how + ' ' + fpt(x.f1)) + '</div></td></tr>').join('')
+    + '</tbody></table></div><p class="small" style="margin:6px 0 0">予選と、決勝1半荘目・順位決定戦のポイントを足した順位です。' + ex + 'は決勝の人だけが打つため、入れていません。最終順位とは別の、参考の順位です。</p>';
 }
 // たたむ箱の開け閉め。key が変わった時だけ決める（人が開け閉めしたものは、読み直しで戻さない）
 const FOLD = {};
