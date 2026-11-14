@@ -96,10 +96,10 @@ summary{cursor:pointer;font-weight:700}
 <body>
 <div class="wrap">
   <header>
-    <h1 id="ttl">🀄 点数入力</h1>
+    <h1 id="ttl">🀄</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a class="score" href="./" aria-current="page" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -159,7 +159,7 @@ summary{cursor:pointer;font-weight:700}
     <div id="results"></div>
   </details>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="./" aria-current="page">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a class="score" href="./" aria-current="page" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" hidden>対戦表</a></nav>
 </div>
 
 <script>
@@ -197,7 +197,16 @@ function pageLinks(c) {
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u || end; if (u) a.setAttribute('href', u); });
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') || end; });
+  scoreLink(end);
 }
+// 点数入力のボタンとこのページの呼び名。結果が出たら「対戦結果」にする（点数はすべて入って、見るだけのページになる。2026-11-14 主催「点数入力を対戦結果として確定させて」）。
+// end が null の間（結果が出たかを確かめている間）はボタンを出さない（呼び名が後から変わるのを見せない。見出しにも呼び名を付けない）。ボタンは HTML では隠しておき、ここで出す（開いた瞬間に「点数入力」が一瞬出ないように。見出しも HTML では呼び名なし）。4ページとも同じ。どれかを直したら、ほかも直す
+let PNAME = '点数入力', TTL = '';
+const scoreLink = end => {
+  document.querySelectorAll('.pnav a.score').forEach(a => { a.hidden = end === null; a.textContent = end ? '対戦結果' : '点数入力'; });
+  const n = end === null ? '' : end ? '対戦結果' : '点数入力';
+  if (n !== PNAME) { PNAME = n; setTitle(TTL); }
+};
 // 結果が出たか（トップページの resultDone と同じ）。点数を読み直すたびに見る
 const resultDone = () => !!(CFG && CFG.final && CFG.final.tables > 0 && FINALS.length) && Array.from({ length: CFG.final.tables }, (_, i) => recOf(FINALS[FINALS.length - 1], i + 1)).every(Boolean);
 // 結果が出たことを、この端末に覚える（回の名前だけ。キーと考え方はトップページの endSeen・rememberEnd・endView と同じ。どちらかを直したら、もう片方も直す）。
@@ -208,7 +217,7 @@ const seenKai = k => { try { return !!k && localStorage.getItem(END_KEY) === k; 
 const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (!LOADED && endSeen());
-const hideRuleLinks = () => { if (endView()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); };
+const hideRuleLinks = () => { const end = endView(); if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(end); };
 // 報告の欄と、上の1文。全部の半荘が確定したら出さない（第20回と同じ）。
 // 結果が出て、全部の卓の点数がそろったら、確定の前でも出さない（2026-11-14 主催「点数の報告を削除して」）。入力中は消さない。
 // 直すときは ?unei=1 を付けて開くと出る（幹部用。確定した後は、これまでどおり出さない）。大会設定を作り直したときと、点数を読み直すたびに見る
@@ -232,7 +241,7 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-function setTitle(t) { document.title = t + ' 点数入力'; $('ttl').textContent = '🀄 ' + t + ' 点数入力'; }
+function setTitle(t) { TTL = t || ''; const h = [TTL, PNAME].filter(Boolean).join(' '); document.title = h; $('ttl').textContent = '🀄' + (h ? ' ' + h : ''); }
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
@@ -1069,11 +1078,11 @@ async function load() {
   applyCfg(c, k, kt);
   // 開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから本文を出す（点数の報告の欄が一瞬出ないように。トップページと同じ。2026-11-14 主催）。
   // 前に結果を見た端末と ?unei=1 は待たない。受け口の返事が4秒たっても来なければ、待たずに出す
-  // 待つ間は、上の1文も「読み込み中…」のまま（報告を頼む1文を出さない）。切り替えボタンのルール・早見表・対戦表も出さない（結果が出ていたら出さないボタン）
+  // 待つ間は、上の1文も「読み込み中…」のまま（報告を頼む1文を出さない）。切り替えボタンのルール・早見表・対戦表と点数入力も出さない（結果が出ていたら出さないボタンと、呼び名が「対戦結果」に変わるボタン）
   const hold = $('main').hidden && !!API && !UNEI && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
   const show = () => { pageLinks(CFG); $('main').hidden = false; entryState(); };
   const timer = hold ? setTimeout(show, 4000) : 0;
-  if (hold) { $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
+  if (hold) { $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); }
   else $('main').hidden = false;
   if (!API) notes.push('点数の受け口（API）がまだ設定されていません。送信はできません。');
   setup(notes.join(' '));
@@ -1102,7 +1111,8 @@ $('reload').addEventListener('click', load);
 const SH = G_OK ? readShell() : null;
 // 前に結果を見た回（写しの kai）と、開催日（写しの date）から後で結果が出たかをまだ確かめていない間は、ルール・早見表・対戦表のボタンを開いた瞬間から出さない
 // （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
+// 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出し、結果が出たかを確かめていない間は出さない（scoreLink）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(seenKai(SH.kai) || null); } }
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

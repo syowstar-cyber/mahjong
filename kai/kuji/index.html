@@ -91,7 +91,7 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
     <h1 id="ttl">🀄 対戦表</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="./" aria-current="page" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a class="score" href="../score/" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="./" aria-current="page" hidden>対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -161,7 +161,7 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
   </details>
   </div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a href="../score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="./" aria-current="page" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a class="score" href="../score/" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="./" aria-current="page" hidden>対戦表</a></nav>
 </div>
 
 <script>
@@ -204,7 +204,11 @@ function pageLinks(c) {
   // このページ（対戦表）のボタンも、結果が出たら出さない（どのページも同じボタン。2026-11-14 主催「対戦表を消して」）。
   // HTML では隠しておき、ここで出す（前に結果を見た端末で、開いた瞬間に一瞬出ないように）
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = end; });
+  scoreLink(end);
 }
+// 点数入力のボタンの呼び名。結果が出たら「対戦結果」にする（点数はすべて入って、見るだけのページになる。2026-11-14 主催「点数入力を対戦結果として確定させて」）。
+// end が null の間（結果が出たかを確かめている間）は出さない（呼び名が後から変わるのを見せない）。ボタンは HTML では隠しておき、ここで出す（開いた瞬間に「点数入力」が一瞬出ないように）。4ページとも同じ。どれかを直したら、ほかも直す
+const scoreLink = end => document.querySelectorAll('.pnav a.score').forEach(a => { a.hidden = end === null; a.textContent = end ? '対戦結果' : '点数入力'; });
 // 結果が出たか（トップページの resultDone と同じ）。受け口を読み直すたびに見る
 const resultDone = () => !!(CFG && CFG.final && CFG.final.tables > 0 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan > 0) && Array.from({ length: CFG.final.tables }, (_, i) => recsOf('F' + CFG.final.hanchan)[String(i + 1)]).every(Boolean);
 // 結果が出たことを、この端末に覚える（回の名前だけ。キーと考え方はトップページの endSeen・rememberEnd・endView と同じ。どちらかを直したら、もう片方も直す）。
@@ -215,7 +219,7 @@ const seenKai = k => { try { return !!k && localStorage.getItem(END_KEY) === k; 
 const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (!LOADED && endSeen());
-const hideRuleLinks = () => { if (endView()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); };
+const hideRuleLinks = () => { const end = endView(); if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(end); };
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。型・組み合わせ・点数は覚えない（いつも新しく読む）
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
@@ -758,7 +762,7 @@ function renderLive() {
   const d = st.kyoku % MODE, oras = st.kyoku === ORAS, fin = !!st.end, T = totalsOf(st.raw, st.seats, ctx), S = byTotal(T, ctx.prk);
   let h = '<div class="card"><div class="big">' + (fin ? '終局' : KYOKU[st.kyoku] + (oras ? '（オーラス）' : '') + '　' + st.honba + '本場' + (st.kyotaku ? '・供託' + st.kyotaku + '本' : '')) + '</div>'
     + '<div class="small">' + (fin ? '' : '親は ' + esc(dn(st.seats[d])) + '。') + '運営の入力 ' + esc(String(st.ts || '').slice(11, 16)) + '</div></div>';
-  if (fin) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、点数入力ページの最終順位です。</p>';
+  if (fin) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、' + (endView() ? '対戦結果' : '点数入力') + 'ページの最終順位です。</p>';
   h += '<h3>' + (fin ? '総合の順位' : '総合の順位（いまの点棒で終わったら）') + '</h3>' + standHtml(T, ctx, fin ? -1 : d);
   if (!fin && st.kyotaku) h += '<p class="small">供託の' + st.kyotaku + '本は、順位に入れていません。</p>';
   if (!fin) h += lineSafe(st.seats, st.raw, ctx, S.map(x => x.i)) + condHtml(st, ctx, S, d, oras);
@@ -992,7 +996,8 @@ async function load() {
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが足りない画面を出さない）
 const SH = G_OK ? readShell() : null;
 // 前に結果を見た回（写しの kai）なら、ルール・早見表・対戦表のボタンは開いた瞬間から出さない（大会設定を読むまでの間に一瞬出ないように。2026-11-14 主催）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
+// 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出す（scoreLink）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(true); } }
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

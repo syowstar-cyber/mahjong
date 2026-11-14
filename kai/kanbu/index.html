@@ -69,7 +69,7 @@ details.card[open]>summary{margin-bottom:8px}
     <h1 id="ttl">🀄 幹部用</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップ</a><a class="score" href="../score/" data-g hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -130,7 +130,7 @@ details.card[open]>summary{margin-bottom:8px}
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップ</a><a href="../score/" data-g>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../" data-g>トップ</a><a class="score" href="../score/" data-g hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../kuji/" data-g hidden>対戦表</a><a href="./" data-g aria-current="page">幹部用</a></nav>
 </div>
 
 <script>
@@ -167,7 +167,11 @@ function pageLinks(c) {
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u || endNow(); if (u) a.setAttribute('href', u); });
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') || endNow(); });
+  scoreLink(endNow());
 }
+// 点数入力のボタンの呼び名。結果が出たら「対戦結果」にする（点数はすべて入って、見るだけのページになる。2026-11-14 主催「点数入力を対戦結果として確定させて」）。
+// end が null の間（結果が出たかを確かめている間）は出さない（呼び名が後から変わるのを見せない）。ボタンは HTML では隠しておき、ここで出す（開いた瞬間に「点数入力」が一瞬出ないように）。4ページとも同じ。どれかを直したら、ほかも直す
+const scoreLink = end => document.querySelectorAll('.pnav a.score').forEach(a => { a.hidden = end === null; a.textContent = end ? '対戦結果' : '点数入力'; });
 // 結果が出たか（決勝の最後の半荘の決勝の卓がぜんぶ入った）。出たら、切り替えボタンのルール・早見表・対戦表を出さない（トップ・点数入力・対戦表の resultDone と同じ。どちらかを直したら、もう片方も直す。2026-11-14 主催）。
 // 受け口が読めなかった読み直しでは、前に読めたときの答えのまま
 let END = false;
@@ -317,7 +321,7 @@ async function sendBirth(p, date, btn) {
     AGERANK = (j.data && j.data.agerank) || {};
     delete BDRAFT[p];
     renderAttend();
-    sayB(dnf(p) + (date ? ' の生年月日を入れました。' : ' の生年月日を消しました。') + '点数入力ページの順位は、開き直すか2分ほどで変わります。', true);
+    sayB(dnf(p) + (date ? ' の生年月日を入れました。' : ' の生年月日を消しました。') + (endNow() ? '対戦結果' : '点数入力') + 'ページの順位は、開き直すか2分ほどで変わります。', true);
   } catch (e) {
     sayB(e.message === 'date' ? '生年月日が正しくありません（1900年〜今日まで）'
       : e.message === 'closed' ? 'この回は、生年月日の受け付けを締め切りました'
@@ -439,6 +443,7 @@ async function load() {
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
   if (endNow()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
+  scoreLink(endNow());
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
@@ -453,7 +458,8 @@ $('clear').addEventListener('click', () => {
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが足りない画面を出さない）
 const SH = G_OK ? readShell() : null;
 // 前に結果を見た回（写しの kai）なら、ルール・早見表・対戦表のボタンは開いた瞬間から出さない（大会設定を読むまでの間に一瞬出ないように。2026-11-14 主催）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
+// 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出す（scoreLink）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(true); } }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);

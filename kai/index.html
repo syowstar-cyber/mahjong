@@ -115,7 +115,7 @@ details[open]>summary{margin-bottom:8px}
     <h1 id="ttl">🀄 トップページ</h1>
     <div class="sub" id="sub">読み込み中…</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a class="score" href="score/" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 
   <div id="setup" class="hint" hidden></div>
 
@@ -179,7 +179,7 @@ details[open]>summary{margin-bottom:8px}
   </details>
   </div>
   </div>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a href="score/">点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="./" aria-current="page">トップ</a><a class="score" href="score/" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="kuji/" hidden>対戦表</a></nav>
 
   <section id="qrbox" hidden>
   <h2>このページのQRコード</h2>
@@ -224,6 +224,9 @@ function pageLinks(c) {
   });
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
 }
+// 点数入力のボタンの呼び名。結果が出たら「対戦結果」にする（点数はすべて入って、見るだけのページになる。2026-11-14 主催「点数入力を対戦結果として確定させて」）。
+// end が null の間（結果が出たかを確かめている間）は出さない（呼び名が後から変わるのを見せない）。ボタンは HTML では隠しておき、ここで出す（開いた瞬間に「点数入力」が一瞬出ないように）。4ページとも同じ。どれかを直したら、ほかも直す
+const scoreLink = end => document.querySelectorAll('.pnav a.score').forEach(a => { a.hidden = end === null; a.textContent = end ? '対戦結果' : '点数入力'; });
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーは会ごとで、ほかのページとルール・点数早見表も同じキー）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
@@ -359,11 +362,12 @@ function render() {
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
   if (DATA_ST === 'ok') rememberEnd(resultDone());
-  // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルール・早見表・対戦表は出さない（pageLinks は render より先に呼ばれる）。
+  // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルール・早見表・対戦表は出さず、点数入力は「対戦結果」と呼ぶ（pageLinks は render より先に呼ばれる）。
   // 自分の卓の欄は、名前の選択も含めて出さない（見出し・名前の選択・自分の表・最新に更新・席の決まり。2026-11-14 主催「トップの名前の選択を外して」）。一番下の QR コードも出さない。
   // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView）
   const end = endView();
   if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
+  scoreLink(end);
   ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
   $('qrbox').hidden = end || !$('qrimg').innerHTML;
   renderNext();
@@ -571,7 +575,7 @@ function renderResult() {
   if (mine) h += '<p style="margin:10px 0 0">自分（' + esc(dn(ME)) + '）は <b>' + mine.rank + '位</b>' + (mine.tie ? '（同点）' : '') + 'です。</p>';
   h += '<h3>最終順位</h3><div class="tw"><table><thead><tr><th>順位</th><th>名前</th><th>成績</th></tr></thead><tbody>'
     + rows.map(x => '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td' + (x.p === ME ? ' class="me"' : '') + '>' + esc(dn(x.p)) + '</td><td><span class="small">' + esc(x.how).replace('（', '<br>（') + '</span><br>' + esc(x.val) + '</td></tr>').join('')
-    + '</tbody></table></div><p class="small" style="margin:6px 0 0">点数入力ページの最終順位と同じです。' + (all ? '' : '集計係が確定するまでは、変わることがあります。') + '</p>';
+    + '</tbody></table></div><p class="small" style="margin:6px 0 0">対戦結果ページの最終順位と同じです。' + (all ? '' : '集計係が確定するまでは、変わることがあります。') + '</p>';
   // 最終順位の後ろに、トータルの順位（決勝が2半荘以上の会だけ）。何か起きても、上の結果は出す
   if (FINALS.length >= 2) { try { h += totalHtml(); } catch (e) {} }
   box.innerHTML = h;
@@ -1067,11 +1071,11 @@ async function load() {
   let jy = null;
   const open = () => { pageLinks(CFG); $('main').hidden = false; render(); if (!JUMPED) { jy = jumpToHash(); JUMPED = true; } };
   // ただし開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから出す（結果の前の形が一瞬出ないように。2026-11-14 主催「下のページが一瞬表示される」）。
-  // 待つ間は、切り替えボタンのルール・早見表・対戦表も出さない（結果が出ていたら出さないボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
+  // 待つ間は、切り替えボタンのルール・早見表・対戦表と点数入力も出さない（結果が出ていたら出さないボタンと、呼び名が「対戦結果」に変わるボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
   // 受け口の返事が4秒たっても来なければ、待たずに出す
   const hold = $('main').hidden && !!api && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
   const timer = hold ? setTimeout(open, 4000) : 0;
-  if (hold) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); else open();
+  if (hold) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); } else open();
   if (!api) return;
   try {
     const j = await getApi(api + '?kai=' + encodeURIComponent(c.kai));
@@ -1095,7 +1099,8 @@ $('reload').addEventListener('click', load);
 const SH = G_OK ? readShell() : null;
 // 前に結果を見た回（写しの kai）と、開催日（写しの date）から後で結果が出たかをまだ確かめていない間は、ルール・早見表・対戦表のボタンを開いた瞬間から出さない
 // （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
+// 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出し、結果が出たかを確かめていない間は出さない（scoreLink）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); const seen = seenKai(SH.kai), wait = !seen && (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today()); if (seen || wait) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(seen ? true : wait ? null : false); }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);
