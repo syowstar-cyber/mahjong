@@ -10,20 +10,31 @@
 //   K_<kai> = {"P3": {choice:'yes', ts:'…'}, …}   打ち上げの出欠（yes＝参加・no＝不参加。参加者ページで本人が答える。第20回の PARTY を P番号で持つ形。2026-11-01）
 //   L_<kai> = {seats:['P3','P7','P1'], kyoku:5, honba:1, kyotaku:2, raw:[41000,35000,27000], end:false, ts:'…'}   決勝最終実況（決勝の最後の半荘。対戦表のページで運営が局ごとに入れる。2026-11-02）
 //     seats と raw は席の順（東1局の東＝起家から）。kyoku は東1局が 0。end は終局。点数ではないので最終更新（U_）は動かさない
+//   T_<kai> = [{from:'15:00', min:-10, ts:'…'}, …]   当日の時刻ずらし（幹部用ページで送る。2026-11-15）。大会設定の schedule の時刻が from 以上の行に min 分を足す。
+//     何度でも足せて、全部が重なって効く。reset で全部消す。点数ではないので最終更新（U_）は動かさない
+//   X_<kai> = ['1', '2', 'F1']   幹部用ページで確定した半荘（2026-11-15）。この半荘への score と clear は error:'locked' で断る。
+//     大会設定の locked（push で入れる確定）とは別の置き場。ページは両方を確定として扱うが、受け口が断るのはこちらだけ。点数ではないので最終更新（U_）は動かさない
+//   N_<kai> = {n4:'0482', date:'2026-12-18', ts:'…', log:[{n4:'1234', date:'…', ts:'…'}, …]}   くじの番号（ナンバーズ4の当せん番号。幹部用ページで主催か幹部が入れる。2026-11-15）。
+//     date は抽せんの日。その日の18:00（JST）より前は error:'early' で断る（型を作り直せるのは18:00まで＝kumiawase.py の KUJI_CUT と同じ）。
+//     直すと前の番号を log に残す（直した時刻を対戦表に出すため。直近 KUJI_LOG_MAX 件）。n4 '' は取り消し。点数ではないので最終更新（U_）は動かさない
 //   LOG = 送信履歴の直近 LOG_MAX 件（1件＝'MMDDHHmmss|kai|操作|半荘|卓'）
 // 回を替えても消す作業は要らない（kai が違えば置き場が別）。古い回を消すのはエディタの purgeKai。
 //
 // 受け口（URL は1つ。キーなし＝第20回と同じ。範囲だけ検査し、送信履歴に時刻を残す）:
-//   GET  ?kai=<kai>                                          … その回の点数・名簿・最終更新・年上からの順・打ち上げの出欠・決勝最終実況
+//   GET  ?kai=<kai>                                          … その回の点数・名簿・最終更新・年上からの順・打ち上げの出欠・決勝最終実況・時刻ずらし・確定・くじの番号
 //   POST {action:'score', kai, round, table, p:[…], raw:[…]} … 1卓ぶん（3人か4人）。同じ卓は上書き
 //   POST {action:'clear', kai, round, table}                 … 1卓ぶんを消す
 //   POST {action:'roster', kai, names:{P1:'名前', …}}        … 名簿（渡したキーだけ直す。'' で消す）
 //   POST {action:'birth', kai, player:'P3', date:'YYYY-MM-DD'|''} … 生年月日（'' で消す。締め切った回は error:'closed'）
 //   POST {action:'uchiage', kai, player:'P3', choice:'yes'|'no'|''} … 打ち上げの出欠（同じ人は上書き。'' で消す）
 //   POST {action:'live', kai, live:{seats:[…], kyoku, honba, kyotaku, raw:[…], end}|null} … 決勝最終実況（上書き。null で消す）
+//   POST {action:'shift', kai, from:'HH:MM', min:N}          … 当日の時刻ずらしを1つ足す（N は −SHIFT_MIN_MAX〜SHIFT_MIN_MAX の0でない整数・分。SHIFT_MAX 件まで）
+//   POST {action:'shift', kai, reset:true}                   … 当日の時刻ずらしを全部消す
+//   POST {action:'lock', kai, rounds:['1', …], on:true|false} … 半荘の確定を付ける（true）・外す（false）
+//   POST {action:'kuji', kai, date:'YYYY-MM-DD', n4:'0482'|''} … くじの番号（全角の数字は半角にする。'' で取り消し。同じ番号を送り直しても変えない）
 //   round は予選 '1'〜'20'・決勝 'F1'〜'F9'、table は 1〜TABLE_MAX。
-//   返事は {ok:true, data:{kai, rounds, roster, updated, agerank, uchiage, live}} か {ok:false, error:'…'}。
-//   同じ半荘のほかの卓に入っている人を送ると error:'dup'（players に該当者）で断る（卓の取り違え）
+//   返事は {ok:true, data:{kai, rounds, roster, updated, agerank, uchiage, live, shift, locked, kuji}} か {ok:false, error:'…'}。
+//   同じ半荘のほかの卓に入っている人を送ると error:'dup'（players に該当者）で断る（卓の取り違え）。確定した半荘（X_）への score・clear は error:'locked'（data 付き）で断る
 
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;   // '_' は置き場の名前の区切りに使うので入れない
 const ROUND_RE = /^([1-9]|1[0-9]|20|F[1-9])$/;
@@ -32,6 +43,9 @@ const TABLE_MAX = 40;
 const RAW_MIN = -200000, RAW_MAX = 999900;   // 第20回と同じ（トビ終了なし・箱下あり）
 const NAME_MAX = 20;
 const LOG_MAX = 100;
+const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+const SHIFT_MAX = 20, SHIFT_MIN_MAX = 180;   // 当日の時刻ずらしは20件まで・1件で前後180分まで
+const KUJI_LOG_MAX = 10;
 
 // スクリプト プロパティは1日の読み書きの回数に上限がある（無料アカウントは1日5万回）。
 // 1回の実行では getProperties() を1回だけ呼んで写し（SNAP）を作り、読むのはそこから（第20回 2026-10-24 の学び）。
@@ -60,7 +74,8 @@ function data_(kai) {
     const r = k.slice(pre.length);
     if (ROUND_RE.test(r)) rounds[r] = json_(k, {});
   });
-  return { kai: kai, rounds: rounds, roster: json_('R_' + kai, {}), updated: get_('U_' + kai), agerank: ageRankOut_(kai), uchiage: json_('K_' + kai, {}), live: json_('L_' + kai, null) };
+  return { kai: kai, rounds: rounds, roster: json_('R_' + kai, {}), updated: get_('U_' + kai), agerank: ageRankOut_(kai), uchiage: json_('K_' + kai, {}), live: json_('L_' + kai, null),
+    shift: json_('T_' + kai, []), locked: json_('X_' + kai, []), kuji: json_('N_' + kai, null) };
 }
 
 // 入れた人どうしの年上からの順。早く生まれた人ほど小さい数（1 が最年長）。同じ日は同じ数（第20回と同じ）
@@ -73,14 +88,19 @@ function ageRank_(birth) {
 function ageRankOut_(kai) {
   return get_('A_' + kai) !== null ? json_('A_' + kai, {}) : ageRank_(json_('B_' + kai, {}));
 }
-// 'YYYY-MM-DD' で、実在する日付で、1900-01-01〜今日（JST）
-function validBirth_(s) {
+// 'YYYY-MM-DD' で、実在する日付
+function realDate_(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
   const dt = new Date(Date.UTC(y, m - 1, d));
-  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return false;
-  return s >= '1900-01-01' && s <= now_().slice(0, 10);
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 }
+// 実在する日付で、1900-01-01〜今日（JST）
+function validBirth_(s) {
+  return realDate_(s) && s >= '1900-01-01' && s <= now_().slice(0, 10);
+}
+// 半荘の並びの順（予選の '1'〜'20' の後に決勝の 'F1'〜'F9'）
+function roundKey_(r) { return r.charAt(0) === 'F' ? 100 + Number(r.slice(1)) : Number(r); }
 
 function log_(kai, act, round, table) {
   const log = json_('LOG', []);
@@ -124,6 +144,9 @@ function doPost(e) {
   if (b.action === 'birth') return birth_(kai, b.player, b.date);
   if (b.action === 'uchiage') return uchiage_(kai, b.player, b.choice);
   if (b.action === 'live') return live_(kai, b.live);
+  if (b.action === 'shift') return shift_(kai, b);
+  if (b.action === 'lock') return lock_(kai, b.rounds, b.on);
+  if (b.action === 'kuji') return kuji_(kai, b.date, b.n4);
   if (b.action !== 'score' && b.action !== 'clear') return out_({ ok: false, error: 'action' });
 
   const round = String(b.round || ''), table = Number(b.table);
@@ -144,6 +167,7 @@ function doPost(e) {
   }
 
   return withLock_(function () {
+    if (json_('X_' + kai, []).indexOf(round) >= 0) return out_({ ok: false, error: 'locked', data: data_(kai) });
     const key = 'S_' + kai + '_' + round, t = String(table);
     const cur = json_(key, {});
     if (b.action === 'score') {
@@ -236,6 +260,65 @@ function live_(kai, v) {
   });
 }
 
+// 当日の時刻ずらし（幹部用ページで送る）。b = {from:'HH:MM', min:N} で1つ足す・{reset:true} で全部消す。点数ではないので、最終更新（U_）は動かさない
+function shift_(kai, b) {
+  let o = null;
+  if (b.reset !== true) {
+    const from = String(b.from || ''), min = b.min;
+    if (!TIME_RE.test(from)) return out_({ ok: false, error: 'from' });
+    if (!Number.isInteger(min) || min === 0 || Math.abs(min) > SHIFT_MIN_MAX) return out_({ ok: false, error: 'min' });
+    o = { from: from, min: min };
+  }
+  return withLock_(function () {
+    const s = json_('T_' + kai, []);
+    if (o) {
+      if (s.length >= SHIFT_MAX) return out_({ ok: false, error: 'full', data: data_(kai) });
+      o.ts = now_();
+      s.push(o);
+      set_('T_' + kai, JSON.stringify(s));
+    } else if (get_('T_' + kai) !== null) del_('T_' + kai);
+    log_(kai, 'shift', '', o ? o.from + (o.min > 0 ? '+' : '') + o.min : 'reset');
+    return out_({ ok: true, data: data_(kai) });
+  });
+}
+
+// 半荘の確定（幹部用ページで付ける・外す）。rounds = ['1', 'F1', …]、on は true で付ける・false で外す。確定した半荘への score と clear は doPost が断る。点数ではないので、最終更新（U_）は動かさない
+function lock_(kai, rounds, on) {
+  if (!Array.isArray(rounds) || !rounds.length || rounds.length > 30) return out_({ ok: false, error: 'round' });
+  const rs = rounds.map(String);
+  if (rs.some(function (r) { return !ROUND_RE.test(r); })) return out_({ ok: false, error: 'round' });
+  if (on !== true && on !== false) return out_({ ok: false, error: 'on' });
+  return withLock_(function () {
+    const cur = json_('X_' + kai, []).map(String).filter(function (r) { return ROUND_RE.test(r); });
+    const next = (on ? cur.concat(rs) : cur.filter(function (r) { return rs.indexOf(r) < 0; }))
+      .filter(function (r, i, a) { return a.indexOf(r) === i; })
+      .sort(function (x, y) { return roundKey_(x) - roundKey_(y); });
+    if (next.length) set_('X_' + kai, JSON.stringify(next)); else if (get_('X_' + kai) !== null) del_('X_' + kai);
+    log_(kai, on ? 'lock' : 'unlock', rs.join(','), '');
+    return out_({ ok: true, data: data_(kai) });
+  });
+}
+
+// くじの番号（ナンバーズ4の当せん番号。幹部用ページで主催か幹部が入れる）。date は抽せんの日（大会設定の kuji）、n4 は4桁（全角の数字は半角に）。'' で取り消し。
+// 抽せんの日の18:00（JST）より前は断る。直すと前の番号を log に残す。同じ番号を送り直しても変えない。点数ではないので、最終更新（U_）は動かさない
+function kuji_(kai, date, n4) {
+  date = String(date || '');
+  n4 = String(n4 === null || n4 === undefined ? '' : n4).trim()
+    .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+  if (!realDate_(date) || date < '2020-01-01') return out_({ ok: false, error: 'date' });
+  if (n4 !== '' && !/^[0-9]{4}$/.test(n4)) return out_({ ok: false, error: 'n4' });
+  if (now_() < date + ' 18:00:00') return out_({ ok: false, error: 'early' });
+  return withLock_(function () {
+    const cur = json_('N_' + kai, null);
+    if (cur ? cur.n4 === n4 && cur.date === date : n4 === '') return out_({ ok: true, data: data_(kai) });   // 同じ番号の送り直しと、まだ無いときの取り消しは何もしない
+    const log = cur && Array.isArray(cur.log) ? cur.log : [];
+    if (cur) log.push({ n4: cur.n4, date: cur.date, ts: cur.ts });
+    set_('N_' + kai, JSON.stringify({ n4: n4, date: date, ts: now_(), log: log.slice(-KUJI_LOG_MAX) }));
+    log_(kai, 'kuji', '', n4 || 'clear');
+    return out_({ ok: true, data: data_(kai) });
+  });
+}
+
 // ---- ここから下はエディタで動かす（受け口からは呼べない） ----
 
 // 置いてある回の一覧（点数の卓数・名簿の人数・最終更新）をログに出す
@@ -244,9 +327,12 @@ function listKai() {
   try {
     const kais = {};
     Object.keys(SNAP).forEach(function (k) {
-      const m = /^([SRUBAKL])_([0-9A-Za-z-]+)(?:_(.+))?$/.exec(k);
+      const m = /^([SRUBAKLTXN])_([0-9A-Za-z-]+)(?:_(.+))?$/.exec(k);
       if (!m) return;
-      const o = kais[m[2]] || (kais[m[2]] = { tables: 0, names: 0, births: 0, uchiage: 0, closed: false, live: false, updated: '' });
+      const o = kais[m[2]] || (kais[m[2]] = { tables: 0, names: 0, births: 0, uchiage: 0, closed: false, live: false, shift: 0, locked: [], kuji: '', updated: '' });
+      if (m[1] === 'T') o.shift = json_(k, []).length;
+      if (m[1] === 'X') o.locked = json_(k, []);
+      if (m[1] === 'N') o.kuji = (json_(k, null) || {}).n4 || '';
       if (m[1] === 'S') o.tables += Object.keys(json_(k, {})).length;
       if (m[1] === 'R') o.names = Object.keys(json_(k, {})).length;
       if (m[1] === 'B') o.births = Object.keys(json_(k, {})).length;
@@ -262,13 +348,14 @@ function listKai() {
   }
 }
 
-// PURGE に回の名前を入れて動かすと、その回の点数・名簿・生年月日・打ち上げの出欠・決勝最終実況・最終更新を消す（終わったら '' に戻す）
+// PURGE に回の名前を入れて動かすと、その回の点数・名簿・生年月日・打ち上げの出欠・決勝最終実況・時刻ずらし・確定・くじの番号・最終更新を消す（終わったら '' に戻す）
 const PURGE = '';
 function purgeKai() {
   if (!KAI_RE.test(PURGE)) { Logger.log('PURGE に回の名前を入れてください'); return; }
   const props = PropertiesService.getScriptProperties();
   const keys = Object.keys(props.getProperties()).filter(function (k) {
-    return k === 'R_' + PURGE || k === 'U_' + PURGE || k === 'B_' + PURGE || k === 'A_' + PURGE || k === 'K_' + PURGE || k === 'L_' + PURGE || k.indexOf('S_' + PURGE + '_') === 0;
+    return k === 'R_' + PURGE || k === 'U_' + PURGE || k === 'B_' + PURGE || k === 'A_' + PURGE || k === 'K_' + PURGE || k === 'L_' + PURGE
+      || k === 'T_' + PURGE || k === 'X_' + PURGE || k === 'N_' + PURGE || k.indexOf('S_' + PURGE + '_') === 0;
   });
   keys.forEach(function (k) { props.deleteProperty(k); });
   Logger.log(PURGE + ' を消しました（' + keys.length + '項目）');
