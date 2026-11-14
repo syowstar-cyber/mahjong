@@ -184,6 +184,12 @@ const seenKai = k => { try { return !!k && localStorage.getItem(END_KEY) === k; 
 const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endNow = () => END || (!GOT && endSeen());
+// 大会設定の locked に全部の半荘が入ったか（トップページ・点数入力の allFixed と同じ。どれかを直したら、ほかも直す）
+const allFixed = c => {
+  const f = c.final || {}, ls = (c.locked || []).map(String);
+  const rs = Array.from({ length: Number(c.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []);
+  return rs.length > 0 && rs.every(r => ls.includes(r));
+};
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
 // 開いた瞬間に出して、大会設定を読んだら新しくする。名前（名簿）と出席は覚えない
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
@@ -417,6 +423,9 @@ async function load() {
   try { c = await getJson(CONF + 'taikai.json'); }
   catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。少し待ってから開き直してください。'); return; }
   if (!c || !KAI_RE.test(String(c.kai || '')) || !Number.isInteger(c.players) || c.players < 3 || c.players > 99) { setup('大会設定（taikai.json）の書き方が違います。'); $('main').hidden = true; return; }
+  // 全部の半荘が確定した回は、幹部用ページを出さずにトップページ（結果）へ移る（2026-11-15 主催「幹部用もなくしていい。結果のみのページのみでOK」）。
+  // 本文は出さない（受け口も読まない）。locked から半荘を外すと、また出る。ほかの回（次の回）は今までどおり
+  if (allFixed(c)) { location.replace('../' + (G === 'halu' ? '' : '?g=' + encodeURIComponent(G))); return; }
   CFG = c;
   applyTheme(c);
   pageLinks(c);

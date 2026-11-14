@@ -209,7 +209,7 @@ const scoreLink = end => {
 };
 // 結果が出たか（トップページの resultDone と同じ）。点数を読み直すたびに見る
 const resultDone = () => !!(CFG && CFG.final && CFG.final.tables > 0 && FINALS.length) && Array.from({ length: CFG.final.tables }, (_, i) => recOf(FINALS[FINALS.length - 1], i + 1)).every(Boolean);
-// 結果が出たことを、この端末に覚える（回の名前だけ。キーと考え方はトップページの endSeen・rememberEnd・endView と同じ。どちらかを直したら、もう片方も直す）。
+// 結果が出たことを、この端末に覚える（ここでは回の名前だけ。名前と点数は、全部の半荘が確定した回だけ下の FINAL_KEY に覚える。キーと考え方はトップページの endSeen・rememberEnd・endView と同じ。どちらかを直したら、もう片方も直す）。
 // 受け口をまだ読めていない間と読めなかったときは、前に結果を見た端末なら結果の後の形で出す（2026-11-14 主催「元に戻ってる」）
 let LOADED = false;   // 受け口を一度でも読めたか
 const END_KEY = 'halukai:end:' + G;
@@ -218,6 +218,26 @@ const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (!LOADED && endSeen());
 const hideRuleLinks = () => { const end = endView(); if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(end); };
+// 確定した結果の写し（2026-11-15 主催「読み込まずにそのまま表示されるようにして」）。大会設定の locked に全部の半荘が入った回は、受け口の中身をこの端末に覚え、
+// 次に開いたときは受け口を待たずに出す。受け口は後ろで読み直し、中身が変わっていたときだけ出し直して覚え直す。トップページの FINAL_KEY・allFixed・readFinal・saveFinal・hasFinal・canon と同じ（allFixed は幹部用にもある。どれかを直したら、ほかも直す）
+const FINAL_KEY = 'halukai:final:' + G;
+const allFixed = c => {
+  const f = c.final || {}, ls = (c.locked || []).map(String);
+  const rs = Array.from({ length: Number(c.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []);
+  return rs.length > 0 && rs.every(r => ls.includes(r));
+};
+function readFinal(c) {
+  try {
+    const s = JSON.parse(localStorage.getItem(FINAL_KEY));
+    if (!s) return null;
+    if (s.kai === c.kai && allFixed(c) && s.data && s.data.kai === c.kai && s.data.rounds && typeof s.data.rounds === 'object') return s.data;
+    localStorage.removeItem(FINAL_KEY);
+  } catch (e) {}
+  return null;
+}
+function saveFinal(c, d) { try { if (allFixed(c)) localStorage.setItem(FINAL_KEY, JSON.stringify({ kai: c.kai, data: d })); else localStorage.removeItem(FINAL_KEY); } catch (e) {} }
+const hasFinal = kai => { try { const s = JSON.parse(localStorage.getItem(FINAL_KEY)); return !!kai && !!s && s.kai === kai; } catch (e) { return false; } };
+const canon = v => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v);
 // 報告の欄と、上の1文。全部の半荘が確定したら出さない（第20回と同じ）。
 // 結果が出て、全部の卓の点数がそろったら、確定の前でも出さない（2026-11-14 主催「点数の報告を削除して」）。入力中は消さない。
 // 直すときは ?unei=1 を付けて開くと出る（幹部用。確定した後は、これまでどおり出さない）。大会設定を作り直したときと、点数を読み直すたびに見る
@@ -231,7 +251,7 @@ function entryState() {
   $('sub').textContent = allLocked ? '点数はすべて確定しました。集計と順位を見られます。' : end ? '結果が出ました。集計と順位を見られます。' : '半荘が終わったら、卓の代表が' + MODE + '人分の点棒を送ってください。ポイントは自動で計算します。';
 }
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じ）。
-// 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
+// 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む。全部の半荘が確定した回の点数だけは FINAL_KEY に覚える）
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
 function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
 function readShell() {
@@ -1076,10 +1096,13 @@ async function load() {
     if (kt && (kt.kai !== c.kai || kt.date !== c.kuji || !kt.rounds || typeof kt.rounds !== 'object')) kt = null;
   }
   applyCfg(c, k, kt);
+  // 全部の半荘が確定した回は、この端末の写し（確定した結果。上の FINAL_KEY）で、受け口を待たずに名前と点数まで出す（はじめの読み込みだけ。トップページと同じ）
+  const snap = LOADED || !API ? null : readFinal(CFG);
+  if (snap) render(snap);
   // 開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから本文を出す（点数の報告の欄が一瞬出ないように。トップページと同じ。2026-11-14 主催）。
-  // 前に結果を見た端末と ?unei=1 は待たない。受け口の返事が4秒たっても来なければ、待たずに出す
+  // 前に結果を見た端末と ?unei=1 と、確定した結果の写しで出せるときは待たない。受け口の返事が4秒たっても来なければ、待たずに出す
   // 待つ間は、上の1文も「読み込み中…」のまま（報告を頼む1文を出さない）。切り替えボタンのルール・早見表・対戦表と点数入力も出さない（結果が出ていたら出さないボタンと、呼び名が「対戦結果」に変わるボタン）
-  const hold = $('main').hidden && !!API && !UNEI && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
+  const hold = $('main').hidden && !!API && !UNEI && !snap && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
   const show = () => { pageLinks(CFG); $('main').hidden = false; entryState(); };
   const timer = hold ? setTimeout(show, 4000) : 0;
   if (hold) { $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); }
@@ -1087,11 +1110,13 @@ async function load() {
   if (!API) notes.push('点数の受け口（API）がまだ設定されていません。送信はできません。');
   setup(notes.join(' '));
   if (!API) { render(null); jumpOnce(); return; }
+  if (snap) jumpOnce();
+  // 写しで出した後は、受け口の中身が写しと同じなら出し直さない（画面を動かさない）。受け口を読めなかったときも、写しのまま（失敗の1文を出さない）
   try {
     const j = await getApi(API + '?kai=' + encodeURIComponent(CFG.kai));
-    if (j.ok && j.data && j.data.kai === CFG.kai) render(j.data);
-    else $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）';
-  } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; }
+    if (j.ok && j.data && j.data.kai === CFG.kai) { if (!snap || canon(j.data) !== canon(snap)) render(j.data); saveFinal(CFG, j.data); }
+    else if (!snap) $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）';
+  } catch (e) { if (!snap) $('updated').textContent = '読み込みに失敗しました（通信）'; }
   clearTimeout(timer);
   if ($('main').hidden) show();
   jumpOnce();
@@ -1113,6 +1138,8 @@ const SH = G_OK ? readShell() : null;
 // （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
 // 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出し、結果が出たかを確かめていない間は出さない（scoreLink）
 if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(seenKai(SH.kai) || null); } }
+// 確定した結果の写しがある回は、大会設定を読むまでの短い間も「読み込み中…」を出さない（大会設定を読んだら、すぐ結果が出るため。トップページと同じ）
+if (SH && hasFinal(SH.kai)) $('sub').textContent = '';
 load();
 // ホーム画面のアプリ用の読み込みの手伝い（kai/sw.js）。試験の写しでは使わない
 if ('serviceWorker' in navigator && window.KAI_CONF_DIR === undefined) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

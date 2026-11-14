@@ -228,7 +228,7 @@ function pageLinks(c) {
 // end が null の間（結果が出たかを確かめている間）は出さない（呼び名が後から変わるのを見せない）。ボタンは HTML では隠しておき、ここで出す（開いた瞬間に「点数入力」が一瞬出ないように）。4ページとも同じ。どれかを直したら、ほかも直す
 const scoreLink = end => document.querySelectorAll('.pnav a.score').forEach(a => { a.hidden = end === null; a.textContent = end ? '対戦結果' : '点数入力'; });
 // 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーは会ごとで、ほかのページとルール・点数早見表も同じキー）。
-// 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む）
+// 開いた瞬間に出して、大会設定を読んだら新しくする。組み合わせと点数は覚えない（いつも新しく読む。全部の半荘が確定した回の点数だけは FINAL_KEY に覚える）
 const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
 function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
 function readShell() {
@@ -476,13 +476,37 @@ const junniOn = () => !!(CFG && CFG.final.tables > 0 && CFG.final.junni === 1);
 const isJunniT = (r, t) => junniOn() && String(r) === 'F1' && Number(t) > CFG.final.tables;
 const recOf = (r, t) => recsOf(r)[String(t)] || null;
 const resultDone = () => { const f = FINALS[FINALS.length - 1]; return !!(DATA && f && CFG.final.tables > 0) && Array.from({ length: CFG.final.tables }, (_, i) => recOf(f, i + 1)).every(Boolean); };
-// 結果が出たことを、この端末に覚える（覚えるのは回の名前だけ。名前・点数は覚えない。キーは点数入力・対戦表・幹部用と同じ）。
+// 結果が出たことを、この端末に覚える（ここで覚えるのは回の名前だけ。名前と点数は、全部の半荘が確定した回だけ下の FINAL_KEY に覚える。キーは点数入力・対戦表・幹部用と同じ）。
 // 受け口をまだ読めていない間と、読めなかったときも、前に結果を見た端末では結果の後の形で出す（2026-11-14 主催「元に戻ってる」）。受け口を読めたら resultDone だけで決める
 const END_KEY = 'halukai:end:' + G;
 const seenKai = k => { try { return !!k && localStorage.getItem(END_KEY) === k; } catch (e) { return false; } };
 const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (DATA_ST !== 'ok' && endSeen());
+// 確定した結果の写し（2026-11-15 主催「読み込まずにそのまま表示されるようにして」）。大会設定の locked に全部の半荘が入った回は、受け口の中身（名前と点数など、受け口が返すものそのまま）を
+// この端末に覚え、次に開いたときは受け口を待たずに出す（確定の後は点数が変わらないため）。受け口は後ろで読み直し、中身が変わっていたときだけ出し直して覚え直す。
+// 使うのは、大会設定を読んで同じ回で全部の半荘が確定しているときだけ（ほかの回の写しと、確定を外した回の写しは消す）。名前はファイルに置かない決まりのまま（覚えるのは見た人の端末の中だけ）。
+// キーと形は点数入力（対戦結果）と同じ（allFixed は幹部用にもある。確定した回の幹部用はトップへ移るので、写しは使わない）。どれかを直したら、ほかも直す
+const FINAL_KEY = 'halukai:final:' + G;
+const allFixed = c => {
+  const f = c.final || {}, ls = (c.locked || []).map(String);
+  const rs = Array.from({ length: Number(c.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []);
+  return rs.length > 0 && rs.every(r => ls.includes(r));
+};
+function readFinal(c) {
+  try {
+    const s = JSON.parse(localStorage.getItem(FINAL_KEY));
+    if (!s) return null;
+    if (s.kai === c.kai && allFixed(c) && s.data && s.data.kai === c.kai && s.data.rounds && typeof s.data.rounds === 'object') return s.data;
+    localStorage.removeItem(FINAL_KEY);
+  } catch (e) {}
+  return null;
+}
+function saveFinal(c, d) { try { if (allFixed(c)) localStorage.setItem(FINAL_KEY, JSON.stringify({ kai: c.kai, data: d })); else localStorage.removeItem(FINAL_KEY); } catch (e) {} }
+// 開いた瞬間（大会設定を読む前）は、前に読んだ回（写しの kai）に写しがあるかだけを見る
+const hasFinal = kai => { try { const s = JSON.parse(localStorage.getItem(FINAL_KEY)); return !!kai && !!s && s.kai === kai; } catch (e) { return false; } };
+// 写しと受け口の中身を比べる形。受け口は読むたびに半荘の並び（F1・F2 など）の順が変わるので、キーを並べ替えてから比べる
+const canon = v => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v);
 function junniSplit(n, mode) {
   const k = Math.floor(n / mode), add = mode === 3 ? Math.min(n - k * mode, k) : 0;
   return Array.from({ length: k }, (_, i) => mode + (i >= k - add ? 1 : 0));
@@ -1031,6 +1055,14 @@ async function getApi(u) {
   }
 }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+// 受け口の中身（名前・入力済みの卓と点数・生年月日の順・打ち上げの回答）を、ページの変数に入れる（受け口の返事と、確定した結果の写しで同じ）
+function useData(d) {
+  ROSTER = d.roster || {}; DATA = d; DATA_ST = 'ok';
+  AGERANK = (d.agerank && typeof d.agerank === 'object') ? d.agerank : {};
+  // 打ち上げの回答（古い受け口は uchiage を返さない）
+  const u = d.uchiage;
+  UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
+}
 // URL の # の場所へ（対戦表の「決勝ライン」から来たとき。#lineh）。本文は読み込みの後に出るので、ブラウザが自分では飛べない。
 // 飛んだ後の画面の位置を返す（その場所がなければ null）
 let JUMPED = false;
@@ -1065,6 +1097,9 @@ async function load() {
   saveShell(c);
   const api = String(c.api || '').trim();
   if (!api) UCHI_ST = 'none';
+  // 全部の半荘が確定した回は、この端末の写し（確定した結果。上の FINAL_KEY）で、受け口を待たずに名前と点数まで出す（はじめの読み込みだけ）
+  const snap = DATA ? null : readFinal(c);
+  if (snap) useData(snap);
   // 受け口（名前・入力済みの卓・打ち上げ）を待たずに、設定と組み合わせ表で先に出す。はじめは、受け口が返るまで名前が番号のまま。
   // # の場所へは、はじめの読み込みだけ。受け口の返事で上の欄の高さが変わるので、その間に画面を動かしていなければ、返事の後にもう一度
   setup(notes.join(' '));
@@ -1072,26 +1107,27 @@ async function load() {
   const open = () => { pageLinks(CFG); $('main').hidden = false; render(); if (!JUMPED) { jy = jumpToHash(); JUMPED = true; } };
   // ただし開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから出す（結果の前の形が一瞬出ないように。2026-11-14 主催「下のページが一瞬表示される」）。
   // 待つ間は、切り替えボタンのルール・早見表・対戦表と点数入力も出さない（結果が出ていたら出さないボタンと、呼び名が「対戦結果」に変わるボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
-  // 受け口の返事が4秒たっても来なければ、待たずに出す
-  const hold = $('main').hidden && !!api && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
+  // 受け口の返事が4秒たっても来なければ、待たずに出す。確定した結果の写しで出せるときは待たない。
+  // 待つ間は、見出しの下を「読み込み中…」にする（写しのある回は、開いた瞬間に消しているため）
+  const hold = $('main').hidden && !!api && !snap && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
   const timer = hold ? setTimeout(open, 4000) : 0;
-  if (hold) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); } else open();
+  if (hold) { $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); } else open();
   if (!api) return;
+  // 写しで出した後は、受け口の中身が写しと同じなら出し直さない（画面を動かさない）。受け口を読めなかったときも、写しのまま
+  let same = false;
   try {
     const j = await getApi(api + '?kai=' + encodeURIComponent(c.kai));
     if (j.ok && j.data && j.data.kai === c.kai) {
-      ROSTER = j.data.roster || {}; DATA = j.data; DATA_ST = 'ok';
-      AGERANK = (j.data.agerank && typeof j.data.agerank === 'object') ? j.data.agerank : {};
-      // 打ち上げの回答（古い受け口は uchiage を返さない）
-      const u = j.data.uchiage;
-      UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
-    } else { if (UCHI_ST === 'wait') UCHI_ST = 'none'; if (!DATA) DATA_ST = 'ng'; }
+      same = !!snap && canon(j.data) === canon(snap);
+      useData(j.data);
+      saveFinal(c, j.data);
+    } else { same = !!snap; if (UCHI_ST === 'wait') UCHI_ST = 'none'; if (!DATA) DATA_ST = 'ng'; }
   }
   // 読み直しで通信が切れたときは、前に読めた名前と点数のまま出す
-  catch (e) { if (!DATA) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); DATA_ST = 'ng'; } if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
+  catch (e) { same = !!snap; if (!DATA) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); DATA_ST = 'ng'; } if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   clearTimeout(timer);
   setup(notes.join(' '));
-  if ($('main').hidden) open(); else render();
+  if ($('main').hidden) open(); else if (!same) render();
   if (jy !== null && jy === Math.round(scrollY)) jumpToHash();
 }
 $('reload').addEventListener('click', load);
@@ -1101,6 +1137,8 @@ const SH = G_OK ? readShell() : null;
 // （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
 // 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出し、結果が出たかを確かめていない間は出さない（scoreLink）
 if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); const seen = seenKai(SH.kai), wait = !seen && (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today()); if (seen || wait) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(seen ? true : wait ? null : false); }
+// 確定した結果の写しがある回は、大会設定を読むまでの短い間も「読み込み中…」を出さない（大会設定を読んだら、すぐ結果が出るため）
+if (SH && hasFinal(SH.kai)) $('sub').textContent = '';
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);
