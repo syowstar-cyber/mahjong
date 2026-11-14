@@ -348,6 +348,8 @@ function render() {
   renderInfo();
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
+  // 結果が出たら、切り替えボタンのルールと早見表も出さない（2026-11-14 主催）。pageLinks は render より先に呼ばれる
+  if (resultDone()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
   renderNext();
   renderMine();
   renderUpdated();
