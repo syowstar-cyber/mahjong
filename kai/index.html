@@ -359,11 +359,11 @@ function render() {
   // 結果で何か起きても、ほかの欄は出す
   try { renderResult(); } catch (e) { $('result').hidden = true; }
   if (DATA_ST === 'ok') rememberEnd(resultDone());
-  // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルールと早見表は出さない（pageLinks は render より先に呼ばれる）。
+  // 結果が出たら（2026-11-14 主催）: 切り替えボタンのルール・早見表・対戦表は出さない（pageLinks は render より先に呼ばれる）。
   // 自分の卓の欄は、名前の選択も含めて出さない（見出し・名前の選択・自分の表・最新に更新・席の決まり。2026-11-14 主催「トップの名前の選択を外して」）。一番下の QR コードも出さない。
   // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView）
   const end = endView();
-  if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
+  if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
   ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
   $('qrbox').hidden = end || !$('qrimg').innerHTML;
   renderNext();
@@ -1067,11 +1067,11 @@ async function load() {
   let jy = null;
   const open = () => { pageLinks(CFG); $('main').hidden = false; render(); if (!JUMPED) { jy = jumpToHash(); JUMPED = true; } };
   // ただし開催日から後に、この端末ではじめて開いたときは、結果が出ているかを受け口で確かめてから出す（結果の前の形が一瞬出ないように。2026-11-14 主催「下のページが一瞬表示される」）。
-  // 待つ間は、切り替えボタンのルールと早見表も出さない（結果が出ていたら出さないボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
+  // 待つ間は、切り替えボタンのルール・早見表・対戦表も出さない（結果が出ていたら出さないボタン）。前に結果を見た端末は、結果の形ですぐ出す（endView）。
   // 受け口の返事が4秒たっても来なければ、待たずに出す
   const hold = $('main').hidden && !!api && !endSeen() && /^\d{4}-\d{2}-\d{2}$/.test(c.date || '') && c.date <= today();
   const timer = hold ? setTimeout(open, 4000) : 0;
-  if (hold) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); else open();
+  if (hold) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); else open();
   if (!api) return;
   try {
     const j = await getApi(api + '?kai=' + encodeURIComponent(c.kai));
@@ -1093,9 +1093,9 @@ async function load() {
 $('reload').addEventListener('click', load);
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが2つだけの画面を出さない）
 const SH = G_OK ? readShell() : null;
-// 前に結果を見た回（写しの kai）と、開催日（写しの date）から後で結果が出たかをまだ確かめていない間は、ルールと早見表のボタンを開いた瞬間から出さない
+// 前に結果を見た回（写しの kai）と、開催日（写しの date）から後で結果が出たかをまだ確かめていない間は、ルール・早見表・対戦表のボタンを開いた瞬間から出さない
 // （大会設定を読むまでの間に一瞬出ないように。開催日から後は、受け口の返事を待ってから出し分ける。2026-11-14 主催）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); }
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai) || (/^\d{4}-\d{2}-\d{2}$/.test(SH.date || '') && SH.date <= today())) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);

@@ -166,9 +166,9 @@ function pageLinks(c) {
     const u = /^[a-z0-9-]{1,30}\.html$/.test(c[k] || '') ? CONF + c[k] : '';
     document.querySelectorAll('.pnav a.' + k).forEach(a => { a.hidden = !u || endNow(); if (u) a.setAttribute('href', u); });
   });
-  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') || endNow(); });
 }
-// 結果が出たか（決勝の最後の半荘の決勝の卓がぜんぶ入った）。出たら、切り替えボタンのルールと早見表を出さない（トップ・点数入力・対戦表の resultDone と同じ。どちらかを直したら、もう片方も直す。2026-11-14 主催）。
+// 結果が出たか（決勝の最後の半荘の決勝の卓がぜんぶ入った）。出たら、切り替えボタンのルール・早見表・対戦表を出さない（トップ・点数入力・対戦表の resultDone と同じ。どちらかを直したら、もう片方も直す。2026-11-14 主催）。
 // 受け口が読めなかった読み直しでは、前に読めたときの答えのまま
 let END = false;
 const resultDone = (c, rounds) => { const f = c.final || {}, r = (rounds && rounds['F' + f.hanchan]) || {}; return f.tables > 0 && Number.isInteger(f.hanchan) && f.hanchan > 0 && Array.from({ length: f.tables }, (_, i) => r[String(i + 1)]).every(Boolean); };
@@ -359,7 +359,8 @@ function renderUchi() {
 const liveOn = c => !!(c.jikkyo === true && c.mode === 3 && c.final && c.final.tables === 1 && Number.isInteger(c.final.hanchan) && c.final.hanchan >= 2
   && Number.isInteger(c.start) && Number.isInteger(c.return) && Number.isInteger(c.prelim) && !!c.uma && typeof c.uma === 'object') && /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '');
 function renderJikkyo() {
-  const c = CFG, on = liveOn(c);
+  // 結果が出たら出さない（実況は終わっていて、入れる先の対戦表のボタンも出さない。2026-11-14 主催「対戦表を消して」）
+  const c = CFG, on = liveOn(c) && !endNow();
   $('jikkyobox').hidden = !on;
   if (!on) return;
   $('jikkyolink').setAttribute('href', '../kuji/?' + (G !== 'halu' ? 'g=' + encodeURIComponent(G) + '&' : '') + 'unei=1#live');
@@ -437,7 +438,7 @@ async function load() {
     }
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
-  if (endNow()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; });
+  if (endNow()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
@@ -451,8 +452,8 @@ $('clear').addEventListener('click', () => {
 });
 // 前に読んだ名前・色・切り替えボタンを、大会設定を待たずに出す（切り替えた直後に、ボタンが足りない画面を出さない）
 const SH = G_OK ? readShell() : null;
-// 前に結果を見た回（写しの kai）なら、ルールと早見表のボタンは開いた瞬間から出さない（大会設定を読むまでの間に一瞬出ないように。2026-11-14 主催）
-if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) document.querySelectorAll('.pnav a.rule, .pnav a.tensu').forEach(a => { a.hidden = true; }); }
+// 前に結果を見た回（写しの kai）なら、ルール・早見表・対戦表のボタンは開いた瞬間から出さない（大会設定を読むまでの間に一瞬出ないように。2026-11-14 主催）
+if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); }
 load();
 // 当日は、いまの行の色を1分ごとに動かす
 setInterval(() => { if (CFG) renderSched(); }, 60000);
