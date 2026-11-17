@@ -269,6 +269,9 @@ def main():
         raise SystemExit("--group は英小文字・数字・- で20字まで")
     gdir = KAI / "g" / a.group
     cfg = json.loads(Path(a.config or gdir / "taikai.json").read_text(encoding="utf-8"))
+    # 人数未定の会（players を書かない。2026-11-17）は、まだ結果を作れない
+    if cfg.get("players") is None:
+        raise SystemExit("大会設定に players がない（人数未定）。人数が決まって点数が入ってから使う")
     kp = Path(a.kumi or gdir / "kumiawase.json")
     kumi = json.loads(kp.read_text(encoding="utf-8")) if kp.exists() else None
     if kumi and kumi.get("kai") != cfg["kai"]:

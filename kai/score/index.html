@@ -377,18 +377,20 @@ function applyKuji() {
 }
 
 // ---- 大会設定 ----
+// 人数未定の会（taikai.json に players を書かない。トップの miteiOf と同じ。2026-11-17）。点数の報告の欄は、人数と組み合わせが決まってから出す
+const miteiOf = c => !!c && typeof c === 'object' && (c.players === undefined || c.players === null);
 const umaOk = (a, mode) => Array.isArray(a) && a.length === mode && a.every(x => typeof x === 'number' && Number.isFinite(x)) && Math.abs(a.reduce((s, x) => s + x, 0)) < 1e-9;
 function checkCfg(c) {
   const e = [];
   if (!c || typeof c !== 'object') return ['中身が読めません'];
   if (!KAI_RE.test(String(c.kai || ''))) e.push('kai は英数字と - で24字まで');
   if (c.mode !== 3 && c.mode !== 4) e.push('mode は 3 か 4');
-  if (!Number.isInteger(c.players) || c.players < 3 || c.players > 99) e.push('players は 3〜99');
+  if (!miteiOf(c) && (!Number.isInteger(c.players) || c.players < 3 || c.players > 99)) e.push('players は 3〜99（人数未定なら書かない）');
   if (!Number.isInteger(c.prelim) || c.prelim < 1 || c.prelim > 20) e.push('prelim は 1〜20');
   const f = c.final || {};
   if (!Number.isInteger(f.tables) || f.tables < 0 || f.tables > 9) e.push('final.tables は 0〜9');
   else if (f.tables > 0 && (!Number.isInteger(f.hanchan) || f.hanchan < 1 || f.hanchan > 9)) e.push('final.hanchan は 1〜9');
-  else if (f.tables * c.mode > c.players) e.push('決勝の人数（final.tables×mode）が players より多い');
+  else if (!miteiOf(c) && f.tables * c.mode > c.players) e.push('決勝の人数（final.tables×mode）が players より多い');
   if (f.junni !== undefined && f.junni !== 0 && f.junni !== 1) e.push('final.junni は 0 か 1');
   if (!Number.isInteger(c.start) || c.start <= 0 || c.start % 100) e.push('start は100点単位');
   if (!Number.isInteger(c.return) || c.return < c.start || c.return % 100) e.push('return は100点単位で start 以上');
@@ -1163,6 +1165,8 @@ async function load() {
   // 全部の半荘が確定した回は、トップページ（結果）へ移る（結果はトップの1ページにまとめた。2026-11-15 主催「1ページにまとめる」）。
   // 本文を出さず、受け口も読まない。幹部用と同じ。locked を外すと、また出る
   if (allFixed(c)) { location.replace('../' + (G === 'halu' ? '' : '?g=' + encodeURIComponent(G))); return; }
+  // 人数未定の会は、報告の欄も集計も出さない（2026-11-17）。名前・色・切り替えボタンだけ大会設定に合わせる
+  if (miteiOf(c)) { CFG = c; applyTheme(c); pageLinks(c); saveShell(c); setTitle(c.title); $('sub').textContent = ''; $('main').hidden = true; setup('人数がまだ決まっていません。点数入力は、人数と組み合わせが決まってから使えます。'); return; }
   let k = await kp; const notes = [];
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので使っていません。'); k = null; }
   // くじの会で組み合わせ表がまだ空なら、型（kata.json）を読む。抽せんの前は報告の欄を枠の番号で仮置きし、受け口にくじの番号が入れば型から表を作る（applyKuji）

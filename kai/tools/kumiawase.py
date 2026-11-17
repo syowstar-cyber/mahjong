@@ -307,6 +307,9 @@ def dump(obj, head=("kai", "made", "from", "remade", "kuji")):
 def check_cfg(cfg):
     if not cfg:
         raise SystemExit("大会設定（taikai.json）が読めない")
+    # 人数未定の会（players を書かない。2026-11-17）は、組み合わせも型も作れない
+    if cfg.get("players") is None:
+        raise SystemExit("大会設定に players がない（人数未定）。出席が決まって players を書いてから使う")
     for k in ("kai", "mode", "players", "prelim"):
         if k not in cfg:
             raise SystemExit(f"大会設定に {k} がない")

@@ -142,6 +142,7 @@ table.pre td.sum{font-weight:700}
   <div class="card" id="info" hidden>
     <div class="info" id="whenrow"><span class="k">日時</span><span class="v" id="when"></span></div>
     <div class="info" id="whererow"><span class="k">場所</span><span class="v" id="where"></span></div>
+    <div class="info" id="ninrow"><span class="k">人数</span><span class="v" id="nin"></span></div>
   </div>
   <h2 id="mineh">自分の席</h2>
   <div class="card" id="mecard">
@@ -274,21 +275,25 @@ const pnum = p => Number(String(p).slice(1));
 let SAVED = '', ME = '';
 try { SAVED = localStorage.getItem('halukai:me:' + G) || ''; } catch (e) {}
 
+// 人数未定の会（taikai.json に players を書かない。出席が決まってから書く。2026-11-17 主催「トップは人数未定で作成」）。
+// 自分の卓・決勝ライン・打ち上げの欄と、くじの型は出さない。対戦表・点数入力・幹部用ページも同じ見方（どれかを直したら、ほかも直す）
+const miteiOf = c => !!c && typeof c === 'object' && (c.players === undefined || c.players === null);
+const mitei = () => miteiOf(CFG);
 function checkCfg(c) {
   const e = [];
   if (!c || typeof c !== 'object') return ['中身が読めません'];
   if (!KAI_RE.test(String(c.kai || ''))) e.push('kai');
   if (c.mode !== 3 && c.mode !== 4) e.push('mode');
-  if (!Number.isInteger(c.players) || c.players < 3 || c.players > 99) e.push('players');
+  if (!miteiOf(c) && (!Number.isInteger(c.players) || c.players < 3 || c.players > 99)) e.push('players');
   if (!Number.isInteger(c.prelim) || c.prelim < 1 || c.prelim > 20) e.push('prelim');
   if (!c.final || !Number.isInteger(c.final.tables)) e.push('final');
   return e;
 }
 const rounds = () => (KUMI && KUMI.rounds) ? Object.keys(KUMI.rounds).filter(k => /^\d+$/.test(k)).sort((a, b) => a - b) : [];
 // 抜け番が1つでもあるか（組み合わせ表。くじの前で表が空なら、人数が卓で割り切れないか）。ない回は抜け番の言葉を出さない（2026-11-07 主催）
-const hasNuke = () => { const ks = rounds(); return ks.length ? ks.some(k => (KUMI.rounds[k].rest || []).length) : CFG.players % MODE !== 0; };
+const hasNuke = () => { const ks = rounds(); return ks.length ? ks.some(k => (KUMI.rounds[k].rest || []).length) : !mitei() && CFG.players % MODE !== 0; };
 function players() {
-  const s = new Set(Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1)));
+  const s = new Set(Array.from({ length: mitei() ? 0 : CFG.players }, (_, i) => 'P' + (i + 1)));
   rounds().forEach(k => { const r = KUMI.rounds[k]; (r.tables || []).forEach(t => (t.p || []).forEach(p => s.add(p))); (r.rest || []).forEach(p => s.add(p)); (r.out || []).forEach(p => s.add(p)); });
   return [...s].sort((a, b) => pnum(a) - pnum(b));
 }
@@ -356,8 +361,10 @@ function renderInfo() {
   $('whenrow').hidden = !day;
   $('whererow').hidden = !place;
   renderPlace(place, str(CFG.address));
-  // 結果が出たら出さない（2026-11-14 主催）
-  $('info').hidden = (!day && !place) || endView();
+  // 人数。人数未定の会は「未定」（2026-11-17 主催「トップは人数未定で作成」）
+  $('nin').textContent = mitei() ? '未定（出席が決まってから決めます）' : CFG.players + '人';
+  // 結果が出たら出さない（2026-11-14 主催）。人数の行はいつもあるので、ほかの時は出す
+  $('info').hidden = endView();
 }
 function renderPlace(place, addr) {
   const box = $('where'); box.innerHTML = '';
@@ -404,7 +411,8 @@ function render() {
   // 受け口を読む前と読めなかったときは、前に結果を見た端末なら同じ形（endView。上の end）
   if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
   scoreLink(end);
-  ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end; });
+  // 人数未定の会も出さない（名前も卓もまだ無い。2026-11-17）
+  ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end || mitei(); });
   $('qrbox').hidden = end || !$('qrimg').innerHTML;
   renderNext();
   renderMine();
@@ -881,8 +889,8 @@ function needRaw(r, need) {
 // 自分の名前（ME）の、いまの予選の順位・K位ラインまでの差・次の半荘の順位ごとに要る点棒の目安。読み直すたびに出し直す
 function renderLine() {
   const box = $('linebox'), out = $('line'), K = lineK(), p = ME;
-  // 結果が出たら出さない（2026-11-14 主催）
-  box.hidden = !lineShow() || !String(CFG.api || '').trim() || endView();
+  // 結果が出たら出さない（2026-11-14 主催）。人数未定の会も出さない（名前を選べない）
+  box.hidden = !lineShow() || !String(CFG.api || '').trim() || endView() || mitei();
   if (box.hidden) return;
   $('lineh').textContent = K + '位ライン（決勝に行ける目安）';
   if (!p) { out.innerHTML = '<p class="small">上の「自分の名前」を選ぶと、' + K + '位ラインまでの差と、次の半荘で要る点棒の目安が出ます。</p>'; return; }
@@ -936,8 +944,8 @@ document.querySelectorAll('input[name=uch]').forEach(x => x.addEventListener('ch
 const uts = ts => ts ? String(ts).slice(5, 16).replace('-', '/') : '';
 function sayU(t, cls) { const m = $('ust'); m.textContent = t; m.className = 'st' + (cls ? ' ' + cls : ''); }
 function renderUchi() {
-  // 結果が出たら出さない（名前の選択を外したので、答えられない。2026-11-14 主催）
-  $('uchibox').hidden = !(CFG.uchiage === true) || endView();
+  // 結果が出たら出さない（名前の選択を外したので、答えられない。2026-11-14 主催）。人数未定の会も同じ（名前を選べない）
+  $('uchibox').hidden = !(CFG.uchiage === true) || endView() || mitei();
   if ($('uchibox').hidden) return;
   const ok = UCHI_ST === 'ok', mine = ME && UCHI[ME] && UCH_LABEL[UCHI[ME].choice] ? UCHI[ME] : null;
   document.querySelectorAll('input[name=uch]').forEach(x => { if (!UCHI_PICKED) x.checked = !!(mine && mine.choice === x.value); x.disabled = !ok || !ME; });
@@ -1044,6 +1052,7 @@ function renderKuji() {
   const n4 = KUMI && KUMI.kuji && /^\d{4}$/.test(KUMI.kuji.n4 || '') ? KUMI.kuji.n4 : '';
   box.appendChild(document.createTextNode(n4
     ? '組み合わせは、' + dayText(d) + 'のナンバーズ4の当せん番号「' + n4 + '」で、くじで決めました。'
+    : mitei() ? '人数が決まったら、卓の並び（型）を決めます。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'
     : '卓' + (hasNuke() ? 'と抜け番' : '') + 'の並び（型）は決めてあります。誰がどの枠に入るかは、' + dayText(d) + 'のナンバーズ4の当せん番号で、くじで決めます。'));
   const a = document.createElement('a'); a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : ''); a.textContent = '対戦表のページ（くじの決まり・型・検算）';
   box.appendChild(document.createElement('br')); box.appendChild(a);
@@ -1216,7 +1225,8 @@ async function load() {
   let k = await kp;
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) { if (k.kai !== c.kai && Object.keys(k.rounds || {}).length) notes.push('組み合わせ表（kumiawase.json）が前の回のままなので出していません。'); k = null; }
   // くじの会で組み合わせ表に表がまだないときは、型も読む（受け口にくじの番号が入っていれば、型から表を作る。applyKuji。前に読んだ受け口の番号で、すぐ作る）
-  const kt = /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') && !(k && Object.keys(k.rounds).length) ? await (tp || getJson(CONF + 'kata.json').catch(() => null)) : null;
+  // 人数未定の会は、型を読まない（型は人数が決まってから作る）
+  const kt = !miteiOf(c) && /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '') && !(k && Object.keys(k.rounds).length) ? await (tp || getJson(CONF + 'kata.json').catch(() => null)) : null;
   CFG = c; KUMI0 = k; KATA = kataOk(kt, c); applyKuji();
   MODE = c.mode; TOTAL = c.start * MODE; OKA = (c.return - c.start) * MODE / 100;
   PRELIM = Array.from({ length: c.prelim }, (_, i) => String(i + 1));

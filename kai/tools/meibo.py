@@ -68,7 +68,8 @@ def nums(ps):
 
 
 def send(api, names, players):
-    over = [p for p in names if int(p[1:]) > players]
+    # 人数未定の会（players を書かない。2026-11-17）は、番号の上限を見ない
+    over = [p for p in names if players is not None and int(p[1:]) > players]
     if over:
         print(f"注意: taikai.json の players（{players}）より大きい番号がある {nums(over)}")
     j = api.post({"action": "roster", "kai": api.kai, "names": names})
@@ -144,7 +145,7 @@ def main():
     elif a.show:
         show(api)
     elif a.file:
-        send(api, read_names(a.file), cfg["players"])
+        send(api, read_names(a.file), cfg.get("players"))
     else:
         ap.print_help()
 

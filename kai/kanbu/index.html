@@ -346,8 +346,12 @@ function loadHere() {
   catch (e) { HERE = new Set(); }
 }
 function saveHere() { try { localStorage.setItem(key(), JSON.stringify([...HERE])); } catch (e) {} }
-const people = () => Array.from({ length: CFG.players }, (_, i) => 'P' + (i + 1));
+// 人数未定の会（taikai.json に players を書かない。トップの miteiOf と同じ。2026-11-17）。受付の一覧は、人数が決まってから出す
+const miteiOf = c => !!c && typeof c === 'object' && (c.players === undefined || c.players === null);
+const mitei = () => miteiOf(CFG);
+const people = () => Array.from({ length: mitei() ? 0 : CFG.players }, (_, i) => 'P' + (i + 1));
 function summary() {
+  if (mitei()) { $('count').textContent = '人数はまだ未定です'; $('notyet').textContent = '人数と名簿が決まると、ここに出ます。'; return; }
   const ps = people(), rest = ps.filter(p => !HERE.has(p));
   $('count').textContent = '来た人 ' + (ps.length - rest.length) + ' / ' + ps.length + '人';
   $('notyet').textContent = rest.length ? rest.map(dnf).join('・') : '全員そろいました。';
@@ -646,7 +650,7 @@ function renderCfg() {
     ['開催日', c.date || '―'],
     ['会場', typeof c.place === 'string' && c.place ? c.place + (typeof c.address === 'string' && c.address ? '（' + c.address + '）' : '') : '―'],
     ['種類', c.mode + '麻'],
-    ['人数', c.players + '人'],
+    ['人数', miteiOf(c) ? '未定' : c.players + '人'],
     ['予選', c.prelim + '半荘'],
     ['決勝', n ? '予選の上位' + n + '人・' + c.final.hanchan + '半荘' : 'なし'],
     ...(n ? [['順位決定戦', c.final.junni === 1 ? '決勝に出ない人が、決勝1半荘目の時間に1半荘' : 'なし']] : []),
@@ -683,7 +687,7 @@ async function load() {
   let c;
   try { c = await getJson(CONF + 'taikai.json'); }
   catch (e) { if (!CFG) setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。少し待ってから開き直してください。'); return; }
-  if (!c || !KAI_RE.test(String(c.kai || '')) || !Number.isInteger(c.players) || c.players < 3 || c.players > 99) { setup('大会設定（taikai.json）の書き方が違います。'); $('main').hidden = true; return; }
+  if (!c || !KAI_RE.test(String(c.kai || '')) || (!miteiOf(c) && (!Number.isInteger(c.players) || c.players < 3 || c.players > 99))) { setup('大会設定（taikai.json）の書き方が違います。'); $('main').hidden = true; return; }
   // 全部の半荘が確定した回は、幹部用ページを出さずにトップページ（結果）へ移る（2026-11-15 主催「幹部用もなくしていい。結果のみのページのみでOK」）。
   // 本文は出さない（受け口も読まない）。locked から半荘を外すと、また出る。ほかの回（次の回）は今までどおり
   if (allFixed(c)) { location.replace('../' + (G === 'halu' ? '' : '?g=' + encodeURIComponent(G))); return; }
@@ -692,7 +696,7 @@ async function load() {
   pageLinks(c);
   saveShell(c);
   setTitle(c.title || '');
-  $('sub').textContent = [c.date, c.mode + '麻', c.players + '人'].filter(Boolean).join('・');
+  $('sub').textContent = [c.date, c.mode + '麻', miteiOf(c) ? '人数未定' : c.players + '人'].filter(Boolean).join('・');
   const notes = [];
   API = String(c.api || '').trim();
   BIRTH_OK = false;

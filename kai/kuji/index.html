@@ -233,6 +233,9 @@ function readShell() {
 }
 function setTitle(t) { document.title = t + ' 対戦表'; $('ttl').textContent = '🀄 ' + t + ' 対戦表'; }
 let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
+// 人数未定の会（taikai.json に players を書かない。トップの miteiOf と同じ。2026-11-17）。型と出席者一覧は、人数が決まってから出す
+const miteiOf = c => !!c && typeof c === 'object' && (c.players === undefined || c.players === null);
+const mitei = () => miteiOf(CFG);
 // 受け口から読むもの（点数・年上からの順・決勝最終実況）と、受け口の URL
 let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
 // 受け口で確定した半荘（当日の操作で幹部用ページから付ける。古い受け口は返さないので空）。上の「決勝ライン」のボタンを出すかに使う（トップと同じ考え方）
@@ -364,7 +367,7 @@ const restOrOut = rounds => Object.values(rounds || {}).some(r => (r.rest || [])
 // 型・いまの組み合わせに抜け番が1つでもあるか。どちらもまだなければ、人数が卓で割り切れないか
 function hasNuke() {
   const rs = [KATA && KATA.rounds, KUMI && KUMI.rounds].filter(x => x && Object.keys(x).length);
-  return rs.length ? rs.some(restIn) : CFG.players % CFG.mode !== 0;
+  return rs.length ? rs.some(restIn) : !mitei() && CFG.players % CFG.mode !== 0;
 }
 // 種の文字列と、くじ値の表（枠・No.・名前・くじ値の先頭12桁。全部の桁は行に指を置くか、マウスを重ねると出る）
 function lotteryHtml(seed, tag) {
@@ -381,7 +384,7 @@ function renderResult() {
   const box = $('result'), lot = $('lottery');
   // 人が開けた「半荘ごとの組み合わせ」は、名前が届いて出し直すときも開けたままにする（トップページと同じ。2026-11-14）
   const opened = !!(box.querySelector('details.kumi') || {}).open;
-  if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + (mitei() ? '人数が決まってから型を作り、' : '') + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   // 抽せんの日から後に、受け口のくじの番号をまだ読んでいない間は「読み込み中」（番号が入っていれば、読めたらすぐ表になる。「夜に出ます」を一瞬出さない）
   if (!N4 && NAME_WAIT && KATA.date <= new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)) { box.innerHTML = '<div class="hint">くじの番号を読み込み中です…</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは、下の「くじの説明」を開くと、「4. 計算してみる」で仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
@@ -457,6 +460,8 @@ function renderKata() {
 }
 // ---- 6章・7章 ----
 function renderRoster() {
+  // 人数未定の会は、出席者一覧をまだ出さない（2026-11-17）
+  if (!KATA && mitei()) { $('rosterlead').textContent = '出席者一覧は、人数が決まってから出ます。'; $('roster').innerHTML = ''; return; }
   const N = KATA ? KATA.players : CFG.players, more = KATA && CFG.players > KATA.players, ko = KATA ? kataOut() : [];
   $('rosterlead').textContent = 'くじは、このNo.で引きます（P1〜P' + N + (ko.length ? '。' + ko.join('・') + ' は来られなくなったため、くじに入りません' : '') + '）。'
     + (more ? 'P' + (N + 1) + '〜P' + CFG.players + ' は、型を作った後に増えた人です（くじには入らず、番号のまま組み直しで入ります）。' : '');
@@ -465,12 +470,13 @@ function renderRoster() {
   $('roster').innerHTML = h + '</tbody>';
 }
 function renderHow() {
-  const kai = KATA ? KATA.kai : CFG.kai, d = KATA ? KATA.date : CFG.kuji, N = KATA ? KATA.players : CFG.players, ex = kai + '|' + d + '|N4=0482';
+  // 人数未定の会（型がまだ無い）は、人数の所を「出席する人」の言い方にする（N＝0）
+  const kai = KATA ? KATA.kai : CFG.kai, d = KATA ? KATA.date : CFG.kuji, N = KATA ? KATA.players : mitei() ? 0 : CFG.players, ex = kai + '|' + d + '|N4=0482';
   const ko = KATA ? kataOut() : [], os = KATA ? outSlots() : [], NP = N - ko.length;
   $('how').innerHTML = [
     '種の文字列を作ります。<br><span class="mono">' + esc(kai + '|' + d) + '|N4=当せん番号</span><br>回の名前・抽せんの日・ナンバーズ4の当せん番号です。当せん番号は、先頭の0も残して4桁で書きます（例 <span class="mono">' + esc(ex) + '</span>）。',
-    'P1〜P' + N + (ko.length ? '（' + esc(ko.join('・')) + ' を除く）' : ' ') + 'それぞれ、種の後ろに「|P番号」を付けて SHA-256 で計算します（例 <span class="mono">' + esc(ex) + '|P7</span>）。出てきた64桁の英数字が、その人のくじ値です。',
-    'くじ値の小さい順に、枠1・枠2…枠' + NP + ' を割り当てます（0〜9、a〜f の順で比べます）。' + (ko.length ? esc(ko.join('・')) + ' は、その後ろの枠' + os.join('・枠') + ' です。' : ''),
+    (N ? 'P1〜P' + N + (ko.length ? '（' + esc(ko.join('・')) + ' を除く）' : ' ') : '出席する人（P番号）') + 'それぞれ、種の後ろに「|P番号」を付けて SHA-256 で計算します（例 <span class="mono">' + esc(ex) + '|P7</span>）。出てきた64桁の英数字が、その人のくじ値です。',
+    'くじ値の小さい順に、枠1・枠2…' + (NP > 0 ? '枠' + NP + ' ' : '') + 'を割り当てます（0〜9、a〜f の順で比べます）。' + (ko.length ? esc(ko.join('・')) + ' は、その後ろの枠' + os.join('・枠') + ' です。' : ''),
     '5章の型のとおりに、卓' + (bakime() ? '' : 'と席') + (hasNuke() ? 'と抜け番' : '') + 'が決まります。'
   ].map(t => '<li>' + t + '</li>').join('');
   $('calclead').textContent = KATA ? (N4 ? 'ナンバーズ4の当せん番号（' + N4 + '）を入れて「計算する」を押すと、' + (restOrOut((KUMI && KUMI.rounds) || {}) ? '1章の抜け番・' : '') + '8章のくじ値・トップページの組み合わせと同じになることを確かめられます。' : '好きな4桁の数字を入れて「計算する」を押すと、くじの決まり方を試せます（本番の結果ではありません）。') : '型ができると、ここで計算を試せます。';
@@ -967,7 +973,8 @@ function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 // 出すのは、トップにその欄が出る会だけ（決勝と受け口があり、まだ全部の半荘が確定していない。確定は大会設定の locked と受け口の確定。index.html の renderLine と同じ条件）
 const topUrl = id => '../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '#' + id;
 const lineOn = c => {
-  if (!(c.final && c.final.tables > 0) || !String(c.api || '').trim()) return false;
+  // 人数未定の会は、トップに K位ラインの欄が出ない（2026-11-17）
+  if (miteiOf(c) || !(c.final && c.final.tables > 0) || !String(c.api || '').trim()) return false;
   const lk = (c.locked || []).map(String).concat(GLOCK);
   return !Array.from({ length: c.prelim }, (_, i) => String(i + 1)).concat(Array.from({ length: c.final.hanchan }, (_, i) => 'F' + (i + 1))).every(r => lk.includes(r));
 };
@@ -981,7 +988,7 @@ async function load() {
   let c;
   try { c = await cp; }
   catch (e) { setup('この会（' + G + '）の大会設定（taikai.json）を読めませんでした。URL の ?g= を確かめて、少し待ってから開き直してください。'); return; }
-  if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || !Number.isInteger(c.players)) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
+  if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || (!miteiOf(c) && !Number.isInteger(c.players))) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
   CFG = c;
   MODE = c.mode; OKA = Number.isInteger(c.start) && Number.isInteger(c.return) ? (c.return - c.start) * c.mode / 100 : 0;
   applyTheme(c);
@@ -1002,8 +1009,8 @@ async function load() {
   if (kt && kt.date !== c.kuji) { notes.push('型の抽せんの日（' + kt.date + '）が大会設定と違うので、型を出していません。'); kt = null; }
   k = await kq;
   if (k && (k.kai !== c.kai || !k.rounds || typeof k.rounds !== 'object')) k = null;
-  // 番号と表は applyKuji で決める（前に読んだ受け口のくじの番号も使う）
-  KATA = kt; KUMI0 = k; applyKuji();
+  // 番号と表は applyKuji で決める（前に読んだ受け口のくじの番号も使う）。人数未定の会は、型を出さない（型は人数が決まってから作る）
+  KATA = miteiOf(c) ? null : kt; KUMI0 = k; applyKuji();
   if (N4 && !$('n4').value) $('n4').value = N4;
   setup(notes.join(' '));
   $('main').hidden = false;
