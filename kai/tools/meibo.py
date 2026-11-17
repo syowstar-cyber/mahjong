@@ -9,14 +9,21 @@
   python kai/tools/meibo.py --shukketsu <名簿ファイル> … 出席確認の一覧（受け口の回 <kai>-s。人数未定の間に、幹部用ページで参加のチェックを付ける一覧）へ送る。
                                                番号は一覧の中だけのもの。受け口に入っている番号へ別の名前は上書きしない（チェックは番号に付いているため）
   python kai/tools/meibo.py --shukketsu --show … 出席確認の一覧の人数と、参加のチェックの人数を出す
+  python kai/tools/meibo.py --kakutei         … 締め切り: 出席確認の一覧の参加のチェックから、大会の名簿（P1〜。一覧の番号の順）を作って受け口へ送る。
+                                               大会の名簿に別の中身が入っていたら送らない。続けて taikai.json に players を書き、kumiawase.py --write で型を作る
+  python kai/tools/meibo.py --kakutei --redo  … 抽せんの前に大会の名簿を作り直す（直前の欠席など）。点数の入った半荘があるときと、
+                                               抽せんの日の KUJI_CUT（kumiawase.py）から後は、--redo でも送らない
   python kai/tools/meibo.py --test            … 初回のテスト送信。回 setup-test に決勝最終実況と名簿と1卓を送り、読み直し、消して空に戻るかを見る
   --group で会を選ぶ（既定は halu）。--config は試験用（既定は kai/g/<会>/taikai.json）
 成功は1行目が OK で始まる。失敗は NG で始まり、終了コード 1"""
-import argparse, json, re, sys, urllib.parse, urllib.request
+import argparse, json, re, sys, unicodedata, urllib.parse, urllib.request
+from datetime import datetime
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import kumiawase as K  # noqa: E402  同じフォルダの組み合わせの道具（抽せんの日の締めの時刻 KUJI_CUT と JST を共通に使う）
 KAI = Path(__file__).resolve().parents[1]
 P_RE = re.compile(r"^P([1-9]|[1-9][0-9])$")
 TEST_KAI = "setup-test"
@@ -98,6 +105,56 @@ def show(api, checks=False):
     print(f"OK show 回 {api.kai}・名簿 {len(r)}人（{nums(r) if r else 'なし'}）・点数の入った半荘 {len(j['data']['rounds'])}・最終更新 {j['data']['updated'] or '―'}")
 
 
+def kakutei(api, cfg, redo=False, now=None):
+    """締め切り: 出席確認の一覧（<kai>-s）で参加のチェックが付いた人を、一覧の番号の順に P1〜 として大会の名簿（<kai>）へ送る。
+    大会の名簿がもう同じ中身なら送り直さない。別の中身が入っていたら送らない（番号と名前の組は、くじの前に公開して固定するため）。
+    抽せんの前に作り直すときだけ redo（--redo）で、前の名簿を置き換える。
+    どちらも、点数の入った半荘があるときと、抽せんの日（kuji）の KUJI_CUT から後は送らない（当せん番号が分かった後に番号と名前の組を変えないように）"""
+    j = api.get(api.kai + "-s")
+    if not j.get("ok"):
+        raise SystemExit(f"NG 受け口がエラーを返した: {j.get('error')}")
+    r, u = j["data"].get("roster") or {}, j["data"].get("uchiage") or {}
+    yes = sorted((p for p in r if P_RE.match(p) and r[p] and (u.get(p) or {}).get("choice") == "yes"), key=lambda p: int(p[1:]))
+    mode = cfg.get("mode")
+    if mode not in (3, 4):
+        raise SystemExit("NG taikai.json の mode が 3 か 4 でない")
+    if len(yes) < mode:
+        raise SystemExit(f"NG 参加のチェックが {len(yes)}人で、{mode}人より少ない（組み合わせを作れない）")
+    if len(yes) > 99:
+        raise SystemExit(f"NG 参加のチェックが {len(yes)}人で、99人を超える")
+    names = {f"P{i}": r[p] for i, p in enumerate(yes, 1)}
+    if len({re.sub(r"\s", "", unicodedata.normalize("NFKC", n)) for n in names.values()}) != len(names):
+        raise SystemExit("NG 参加のチェックの中に、同じ名前の人が2人いる（幹部用ページの一覧で直してから）")
+    j = api.get()
+    if not j.get("ok"):
+        raise SystemExit(f"NG 受け口がエラーを返した: {j.get('error')}")
+    got = j["data"].get("roster") or {}
+    if got == names:
+        print(f"OK kakutei 大会の名簿は、もう参加のチェックと同じ {len(names)}人（{nums(names)}）が入っている（送り直さない）")
+    else:
+        if got and not redo:
+            raise SystemExit(f"NG 大会の名簿（{api.kai}）に、もう {len(got)}人（{nums(got)}）が入っていて、参加のチェックと中身が違う（送らなかった）。"
+                             "抽せんの前に作り直すなら --kakutei --redo")
+        if j["data"].get("rounds"):
+            raise SystemExit("NG 点数の入った半荘があるので、大会の名簿を送らない")
+        if cfg.get("kuji") and (now or datetime.now(K.JST)) >= datetime.strptime(f"{cfg['kuji']} {K.KUJI_CUT}", "%Y-%m-%d %H:%M").replace(tzinfo=K.JST):
+            raise SystemExit(f"NG 抽せんの日（{cfg['kuji']}）の{K.KUJI_CUT}を過ぎたので、大会の名簿を送らない（番号と名前の組は、当せん番号が分かる前に固定する）")
+        # 前の名簿にだけある番号は空で送って消す（受け口の roster は番号ごとに上書きし、空は消す）
+        j = api.post({"action": "roster", "kai": api.kai, "names": dict(names, **{p: "" for p in got if p not in names})})
+        if not j.get("ok"):
+            raise SystemExit(f"NG 受け口が断った: {j.get('error')}")
+        if j["data"]["roster"] != names:
+            raise SystemExit(f"NG 送った後の大会の名簿（{len(j['data']['roster'])}人）が、参加のチェックと合わない")
+        print(f"OK kakutei 参加のチェック {len(names)}人を、大会の名簿 {nums(names)} として送った" + (f"（前の {len(got)}人の名簿を置き換えた）" if got else ""))
+    pl = cfg.get("players")
+    if pl is None:
+        print(f"次: taikai.json に \"players\": {len(names)} を書き、kumiawase.py --write で型を作る")
+    elif pl == len(names):
+        print(f"taikai.json の players は {pl}（同じ）")
+    else:
+        print(f"次: taikai.json の players（{pl}）を {len(names)} に直し、kumiawase.py --write で型を作り直す")
+
+
 def keep_numbers(api, names):
     """出席確認の一覧では、受け口に入っている番号へ別の名前を上書きしない（参加のチェックは番号に付いているので、別の人に付いてしまう）"""
     j = api.get()
@@ -154,6 +211,8 @@ def main():
     ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
     ap.add_argument("--config")
     ap.add_argument("--shukketsu", action="store_true", help="出席確認の一覧（受け口の回 <kai>-s）へ送る・見る")
+    ap.add_argument("--kakutei", action="store_true", help="締め切り: 参加のチェックから大会の名簿を作って送る")
+    ap.add_argument("--redo", action="store_true", help="--kakutei で、抽せんの前に大会の名簿を作り直す")
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z0-9-]{1,20}", a.group):
         raise SystemExit("--group は英小文字・数字・- で20字まで")
@@ -161,10 +220,15 @@ def main():
     cfg = json.loads(Path(a.config or gdir / "taikai.json").read_text(encoding="utf-8"))
     api = Api(cfg)
     # 出席確認の一覧は、幹部用ページの skai と同じ回の名前（<kai>-s）
+    if (a.shukketsu or a.kakutei) and not re.fullmatch(r"[0-9A-Za-z-]{1,24}", str(cfg["kai"]) + "-s"):
+        raise SystemExit("NG 回の名前が長すぎて、出席確認の一覧（<kai>-s）を作れない（kai は22字まで）")
+    if a.redo and not a.kakutei:
+        raise SystemExit("NG --redo は --kakutei と使う")
+    if a.kakutei:
+        kakutei(api, cfg, a.redo)
+        return
     if a.shukketsu:
         api.kai = str(cfg["kai"]) + "-s"
-        if not re.fullmatch(r"[0-9A-Za-z-]{1,24}", api.kai):
-            raise SystemExit("NG 回の名前が長すぎて、出席確認の一覧（<kai>-s）を作れない（kai は22字まで）")
     if a.test:
         test(api)
     elif a.show:
