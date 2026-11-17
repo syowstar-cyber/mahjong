@@ -11,7 +11,7 @@
 使い方:
   python kai/tools/kuji.py 0482            … 計算して表示だけ（何も書かない）
   python kai/tools/kuji.py                 … 受け口の番号（幹部用ページで入れたもの）で計算して表示だけ
-  python kai/tools/kuji.py --write         … 受け口の番号で kumiawase.json に書く（早川研は --group hayakawa を足す）
+  python kai/tools/kuji.py --write         … 受け口の番号で kumiawase.json に書く（ほかの会は --group <会> を足す）
   python kai/tools/kuji.py 0482 --write    … 番号を渡して書く（受け口に番号があれば、同じ番号でないと書かない）
   python kai/tools/kuji.py --check         … kumiawase.json の本番の番号で計算し直し、型のとおりか確かめる
   --redo は、本番の番号を打ち間違えて書いたときだけ（公式の番号で書き直す。組み直した表も消える）。

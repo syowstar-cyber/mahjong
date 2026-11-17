@@ -7,7 +7,7 @@
 使い方:
   python kai/tools/kekka.py                    … 受け口から読んで、標準出力に出す
   python kai/tools/kekka.py --data 控え.json   … 受け口の返事（GET の JSON）を保存したファイルから出す（試験用）
-  --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config / --kumi / --kata は試験用（既定は kai/g/<会>/ の3つ）"""
+  --group で会を選ぶ（既定は halu）。--config / --kumi / --kata は試験用（既定は kai/g/<会>/ の3つ）"""
 import argparse, functools, json, re, sys, urllib.parse, urllib.request
 from pathlib import Path
 

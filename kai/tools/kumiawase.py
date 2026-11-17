@@ -10,7 +10,7 @@
 
 使い方:
   python kai/tools/kumiawase.py                      … 作って成績を出すだけ（何も書かない）
-  python kai/tools/kumiawase.py --write              … 前日: kumiawase.json に書く（早川研は --group hayakawa を足す）
+  python kai/tools/kumiawase.py --write              … 前日: kumiawase.json に書く（ほかの会は --group <会> を足す）
                                                        くじの会の抽せんの前は、kata.json（型）と、表が空の kumiawase.json を書く
                                                        （来られなくなった人は --absent P5 でくじから外す。抽せんの日の18時から後は書かない）
   python kai/tools/kumiawase.py --from 3 --absent P5 --write

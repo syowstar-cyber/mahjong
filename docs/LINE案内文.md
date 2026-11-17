@@ -14,15 +14,3 @@ https://syowstar-cyber.github.io/mahjong/kai/?openExternalBrowser=1
 ・Android: 右上の「︙」→「ホーム画面に追加」または「アプリをインストール」
 はじめに「自分の名前」を選ぶと、自分の卓と席が出ます。
 ```
-
-## 早川麻雀研究会
-
-```
-【早川麻雀研究会】参加者ページです（組み合わせと点数）。前のページから引っ越しました。
-https://syowstar-cyber.github.io/mahjong/kai/?g=hayakawa&openExternalBrowser=1
-
-ホーム画面に入れると、アプリのように開けます（入れなくても使えます）。
-・iPhone: 開いたページで共有ボタン（四角に上向きの矢印。見当たらなければ「…」の中）→「ホーム画面に追加」
-・Android: 右上の「︙」→「ホーム画面に追加」または「アプリをインストール」
-はじめに「自分の名前」を選ぶと、自分の卓と席が出ます。
-```

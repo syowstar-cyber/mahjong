@@ -7,7 +7,7 @@
                                                渡した番号だけ直す（直したい人の行だけ送ってもよい）
   python kai/tools/meibo.py --show            … 受け口の名簿の人数と番号を出す
   python kai/tools/meibo.py --test            … 初回のテスト送信。回 setup-test に決勝最終実況と名簿と1卓を送り、読み直し、消して空に戻るかを見る
-  --group で会を選ぶ（既定は halu。早川研は --group hayakawa）。--config は試験用（既定は kai/g/<会>/taikai.json）
+  --group で会を選ぶ（既定は halu）。--config は試験用（既定は kai/g/<会>/taikai.json）
 成功は1行目が OK で始まる。失敗は NG で始まり、終了コード 1"""
 import argparse, json, re, sys, urllib.parse, urllib.request
 from pathlib import Path

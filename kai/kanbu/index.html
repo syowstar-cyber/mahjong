@@ -465,7 +465,7 @@ function renderJikkyo() {
 }
 
 // ---- 当日の操作（taikai.json の tojitsu が true の会。2026-11-15 第21回の準備） ----
-// 当日の push を無くすため、時刻ずらし・半荘の確定・くじの番号を、このページから受け口へ送る。tojitsu の無い会（早川研など）には出さない（今までどおり）。
+// 当日の push を無くすため、時刻ずらし・半荘の確定・くじの番号を、このページから受け口へ送る。tojitsu の無い会には出さない（今までどおり）。
 // 受け口が古い（shift・locked・kuji を返さない）ときは、欄を出さずに知らせだけ出す。送った後は、返事の data（断られたときも付く）で欄を新しくする
 const opsOk = d => !!d && Array.isArray(d.shift) && Array.isArray(d.locked) && 'kuji' in d;
 function takeOps(d) {

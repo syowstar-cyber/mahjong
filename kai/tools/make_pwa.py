@@ -5,7 +5,7 @@
 
 使い方:
   python kai/tools/make_pwa.py            … すべての会（kai/g/*/）を作り直す
-  python kai/tools/make_pwa.py hayakawa   … 1つの会だけ"""
+  python kai/tools/make_pwa.py halu       … 1つの会だけ"""
 import json, re, sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
