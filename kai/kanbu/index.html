@@ -74,6 +74,9 @@ details.card[open]>summary{margin-bottom:8px}
 .lk.on{background:var(--ok-bg)}
 .lk.on .st{color:var(--ok);font-weight:700}
 .sl{margin:4px 0 8px;padding-left:1.3em;font-size:.95rem}
+/* 出席確認（人数未定の間）。名前が多いので、広い画面では2〜3列にする。名前の欄は、くじの番号の欄の形にしない */
+#sklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(13em,1fr));column-gap:14px}
+.op input.name{width:11em;letter-spacing:normal;font-family:inherit}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
@@ -98,6 +101,32 @@ details.card[open]>summary{margin-bottom:8px}
   </div>
   </div>
 
+  <div id="skbox" hidden>
+  <h2>出席確認</h2>
+  <p class="hint" id="sknote" hidden></p>
+  <div id="skmain">
+  <div class="card">
+    <div class="big" id="skcount"></div>
+    <p class="small" style="margin:0 0 6px">参加する人にチェックを付けます。チェックは受け口に入り、幹部のどの端末にも出ます。</p>
+    <div id="sklist"></div>
+    <div id="skmsg" class="msg" aria-live="polite"></div>
+  </div>
+  <details class="card" id="skedit">
+    <summary>名前を足す・消す</summary>
+    <div class="op"><label for="skname">初めての人</label><input type="text" class="name" id="skname" maxlength="20" autocomplete="off" placeholder="呼び名"><button class="act" type="button" id="skadd">足す</button></div>
+    <p class="small" style="margin:0">足した人には、参加のチェックが付きます。</p>
+    <div class="op"><label for="skdelsel">消す名前</label><select id="skdelsel"></select><button class="ghost" type="button" id="skdel">消す</button></div>
+    <p class="small" style="margin:0">打ち間違えた名前を消します。</p>
+    <div id="skemsg" class="msg" aria-live="polite"></div>
+  </details>
+  <h3>参加する人</h3>
+  <p id="sknames"></p>
+  </div>
+  <div class="tools"><button class="ghost" type="button" id="skreload">読み直す</button></div>
+  <p class="small">締め切りの後に、チェックの付いた人で名簿と組み合わせを作ります。人数が決まると、この欄は当日の受付の表に替わります。</p>
+  </div>
+
+  <div id="herebox">
   <h2>出席確認</h2>
   <div class="card">
     <div class="big" id="count"></div>
@@ -114,6 +143,7 @@ details.card[open]>summary{margin-bottom:8px}
   <h3>まだ来ていない人</h3>
   <p id="notyet"></p>
   <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を伝えます。push してから1〜2分でページに出ます。</p>
+  </div>
 
   <div id="opsbox" hidden>
   <h2>当日の操作</h2>
@@ -194,6 +224,7 @@ details.card[open]>summary{margin-bottom:8px}
 <script>
 // 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から準備（junbi）・時間割（schedule）と設定を出し、受け口からは名前（名簿）・年上からの順（agerank）・打ち上げの回答（uchiage）を読む。
 // 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない。
+// ただし人数未定の間の出席確認（これまでの参加者に、参加する人のチェックを付ける）は、受け口の出欠用の回（<回>-s）に置いて共有する（2026-11-17）。
 // 送るのは生年月日（taikai.json の nenrei が true の会。予選の合計が同点のときだけ、その人たちの分を入れる）と、
 // 当日の操作（tojitsu が true の会。時刻ずらし・半荘の確定・くじの番号。当日に push しなくて済むように。2026-11-15）
 const $ = id => document.getElementById(id);
@@ -424,6 +455,116 @@ async function sendBirth(p, date, btn) {
       : e.message === 'action' ? '受け口が古いため、生年月日を受け付けません。受け口を新しいバージョンでデプロイしてください'
       : '送れませんでした。通信を確かめて、もう一度押してください', false);
   } finally { btn.disabled = false; }
+}
+
+// ---- 出席確認（人数未定の間。2026-11-17 主催「幹部用ページに出席確認のチェック表を作って／これまで参加した人の名前の一覧にチェックをつける形で」） ----
+// これまでの参加者の名前の一覧に、参加する人のチェックを付ける。名前とチェックは受け口の出欠用の回（<回>-s）に置く＝幹部のどの端末にも同じものが出る。
+// 受け口の作りは変えずに使い回す（名前＝名簿 roster、チェック＝打ち上げの出欠 uchiage の yes。外すと消す）＝デプロイは要らない。
+// この一覧の P番号は一覧の中だけのもの（大会の P番号とは別）なので、画面には名前だけを出す。
+// 締め切りの後に、チェックの付いた人で大会の名簿と players を作る（Claude）。players を書くと、この欄は当日の受付の表（herebox）に替わる
+const skai = () => CFG.kai + '-s';
+// 読めたか（ok・old＝受け口が古い・net＝通信・none＝受け口なし・long＝回の名前が長すぎて -s を付けられない）
+let SK_ROSTER = {}, SK_CHECK = {}, SK_ST = 'none';
+// 送っている間のチェック（P番号 → 付けるか）。返事を待つ間に表を作り直しても、押した形のまま出す（押し直せないようにする）
+const SK_PEND = new Map();
+const skPeople = () => Object.keys(SK_ROSTER).filter(p => /^P\d{1,2}$/.test(p) && SK_ROSTER[p]).sort((a, b) => a.slice(1) - b.slice(1));
+const skYes = p => SK_PEND.has(p) ? SK_PEND.get(p) : !!(SK_CHECK[p] && SK_CHECK[p].choice === 'yes');
+// 同じ名前かどうか（全角・半角と空白の違いは同じとみなす）
+const skNorm = s => String(s).normalize('NFKC').replace(/\s/g, '');
+function takeS(d) {
+  if (!d || d.kai !== skai() || !d.uchiage || typeof d.uchiage !== 'object' || Array.isArray(d.uchiage)) return false;
+  SK_ROSTER = d.roster && typeof d.roster === 'object' ? d.roster : {};
+  SK_CHECK = d.uchiage;
+  return true;
+}
+function renderS() {
+  const on = mitei();
+  $('skbox').hidden = !on; $('herebox').hidden = on;
+  if (!on) return;
+  const ok = SK_ST === 'ok';
+  $('sknote').hidden = ok; $('skmain').hidden = !ok;
+  $('sknote').textContent = SK_ST === 'none' ? '受け口が未設定のため、出席確認は使えません。'
+    : SK_ST === 'long' ? '回の名前（taikai.json の kai）が長すぎるため、出席確認は使えません（22字までにしてください）。'
+    : SK_ST === 'net' ? '受け口を読めませんでした（通信）。少し待ってから「読み直す」を押してください。'
+    : '受け口が古いため、出席確認は使えません。受け口を新しいバージョンでデプロイすると使えます。';
+  if (!ok) return;
+  const ps = skPeople(), yes = ps.filter(skYes), n = yes.length, M = CFG.mode;
+  $('skcount').textContent = '参加 ' + n + '人' + (n >= M ? '（' + Math.floor(n / M) + '卓。' + (n % M ? '半荘ごとに' + n % M + '人が抜け番' : '抜け番なし') + '）' : '');
+  const box = $('sklist'); box.innerHTML = '';
+  if (!ps.length) box.innerHTML = '<p class="small" style="margin:0;grid-column:1/-1">名前の一覧は、まだ入っていません。</p>';
+  ps.forEach(p => {
+    const row = document.createElement('div'); row.className = 'att' + (skYes(p) ? ' here' : '');
+    const lab = document.createElement('label'); lab.className = 'who';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = skYes(p); cb.disabled = SK_PEND.has(p);
+    cb.addEventListener('change', () => sendCheck(p, cb.checked));
+    const sp = document.createElement('span'); sp.textContent = SK_ROSTER[p];
+    lab.append(cb, sp); row.appendChild(lab); box.appendChild(row);
+  });
+  $('sknames').textContent = n ? yes.map(p => SK_ROSTER[p]).join('・') : 'まだいません。';
+  const sel = $('skdelsel'), keep = sel.value;
+  sel.innerHTML = ''; sel.appendChild(new Option('（選ぶ）', ''));
+  ps.forEach(p => sel.appendChild(new Option(SK_ROSTER[p], p)));
+  sel.value = ps.includes(keep) ? keep : '';
+}
+// 出欠用の回へ送る。返事の data（断られたときも付く）で一覧を新しくする（ほかの幹部が付けたチェックも入る）
+async function sendS(body) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ kai: skai() }, body)) });
+  const j = await r.json();
+  if (j && takeS(j.data)) SK_ST = 'ok';
+  if (!j || !j.ok) throw new Error((j && j.error) || 'ng');
+  return j;
+}
+async function sendCheck(p, on) {
+  const nm = SK_ROSTER[p] || p;
+  SK_PEND.set(p, on); renderS();
+  try {
+    await sendS({ action: 'uchiage', player: p, choice: on ? 'yes' : '' });
+    SK_PEND.delete(p); renderS();
+    say('skmsg', nm + (on ? ' に参加のチェックを付けました。' : ' のチェックを外しました。'), true);
+  } catch (e) {
+    SK_PEND.delete(p); renderS();
+    say('skmsg', nm + '：' + opErr(e), false);
+  }
+}
+// 初めての人を足す。足す直前に読み直して、空いている次の番号を使う（ほかの幹部が足したばかりの番号に上書きしない）。足した人には参加のチェックを付ける
+async function addS() {
+  const btn = $('skadd'), name = $('skname').value.trim();
+  const dup = () => skPeople().some(p => skNorm(SK_ROSTER[p]) === skNorm(name));
+  if (!name) { say('skemsg', '名前を入れてください', false); return; }
+  if (name.length > 20 || /[\u0000-\u001f<>]/.test(name)) { say('skemsg', '名前は20字までで、< と > は使えません', false); return; }
+  if (dup()) { say('skemsg', '「' + name + '」は、もう一覧にあります', false); return; }
+  if (!confirm('「' + name + '」を一覧に足して、参加のチェックを付けますか？')) return;
+  btn.disabled = true;
+  try {
+    const j0 = await getApi(API + '?kai=' + encodeURIComponent(skai()));
+    if (!(j0 && j0.ok && takeS(j0.data))) throw new Error('action');
+    if (dup()) { renderS(); say('skemsg', '「' + name + '」は、もう一覧にあります', false); return; }
+    const n = Math.max(0, ...Object.keys(SK_ROSTER).concat(Object.keys(SK_CHECK)).filter(p => /^P\d{1,2}$/.test(p)).map(p => Number(p.slice(1)))) + 1;
+    if (n > 99) throw new Error('full');
+    const p = 'P' + n;
+    await sendS({ action: 'roster', names: { [p]: name } });
+    await sendS({ action: 'uchiage', player: p, choice: 'yes' });
+    $('skname').value = '';
+    renderS();
+    say('skemsg', '「' + name + '」を足して、参加のチェックを付けました。', true);
+  } catch (e) {
+    renderS();
+    say('skemsg', e.message === 'full' ? 'これ以上は足せません（99人まで）' : e.message === 'name' ? '名前の形が受け口で断られました（20字まで・< と > は使えません）' : opErr(e), false);
+  } finally { btn.disabled = false; }
+}
+// 打ち間違えた名前を消す。チェックを先に外してから名前を消す（途中で止まっても、チェックだけが残らないように）
+async function delS() {
+  const btn = $('skdel'), p = $('skdelsel').value, nm = SK_ROSTER[p];
+  if (!p || !nm) { say('skemsg', '消す名前を選んでください', false); return; }
+  if (!confirm('「' + nm + '」を一覧から消しますか？' + (skYes(p) ? '\n参加のチェックも外れます。' : ''))) return;
+  btn.disabled = true;
+  try {
+    if (SK_CHECK[p]) await sendS({ action: 'uchiage', player: p, choice: '' });
+    await sendS({ action: 'roster', names: { [p]: '' } });
+    renderS();
+    say('skemsg', '「' + nm + '」を一覧から消しました。', true);
+  } catch (e) { renderS(); say('skemsg', opErr(e), false); }
+  finally { btn.disabled = false; }
 }
 
 // ---- 打ち上げ（taikai.json の uchiage が true の会）。参加者がトップページで答えた出欠を、P番号の順に出す。みんなの出欠はこのページにだけ出す（主催） ----
@@ -701,6 +842,10 @@ async function load() {
   API = String(c.api || '').trim();
   BIRTH_OK = false;
   if (!API) UCHI_ST = 'none';
+  // 出席確認（人数未定の間）の名前とチェック。大会の回の分と同時に取りに行く
+  const skOk = miteiOf(c) && !!API && KAI_RE.test(skai());
+  if (miteiOf(c)) SK_ST = !API ? 'none' : !skOk ? 'long' : SK_ST;
+  const skp = skOk ? getApi(API + '?kai=' + encodeURIComponent(skai())).catch(() => null) : null;
   if (API) {
     try {
       const j = await getApi(API + '?kai=' + encodeURIComponent(c.kai));
@@ -719,14 +864,25 @@ async function load() {
     }
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; if (OPS_ST !== 'ok') OPS_ST = 'net'; }
   }
+  // 読み直しで通信が切れたときは、前に読めたチェックのまま出す
+  if (skp) {
+    const j = await skp;
+    if (j && j.ok && takeS(j.data)) SK_ST = 'ok';
+    else if (!j) { if (SK_ST === 'ok') notes.push('出席確認を読み直せませんでした（通信）。前に読んだチェックを出しています。'); else SK_ST = 'net'; }
+    else if (SK_ST !== 'ok') SK_ST = 'old';
+  }
   if (endNow()) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; });
   scoreLink(endNow());
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
-  renderJunbi(); renderSched(); renderAttend(); renderOps(); renderUchi(); renderJikkyo(); renderCfg();
+  renderJunbi(); renderSched(); renderS(); renderAttend(); renderOps(); renderUchi(); renderJikkyo(); renderCfg();
 }
 $('reload').addEventListener('click', load);
+$('skreload').addEventListener('click', load);
+$('skadd').addEventListener('click', addS);
+$('skname').addEventListener('keydown', e => { if (e.key === 'Enter') addS(); });
+$('skdel').addEventListener('click', delS);
 $('ureload').addEventListener('click', load);
 $('oreload').addEventListener('click', load);
 $('kgo').addEventListener('click', () => sendKuji(false));
