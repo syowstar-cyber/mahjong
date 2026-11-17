@@ -6,6 +6,9 @@
   python kai/tools/meibo.py <名簿ファイル>   … 名簿を送る。ファイルは UTF-8 で1行1人「P1 呼び名」（空白かタブで区切る）
                                                渡した番号だけ直す（直したい人の行だけ送ってもよい）
   python kai/tools/meibo.py --show            … 受け口の名簿の人数と番号を出す
+  python kai/tools/meibo.py --shukketsu <名簿ファイル> … 出席確認の一覧（受け口の回 <kai>-s。人数未定の間に、幹部用ページで参加のチェックを付ける一覧）へ送る。
+                                               番号は一覧の中だけのもの。受け口に入っている番号へ別の名前は上書きしない（チェックは番号に付いているため）
+  python kai/tools/meibo.py --shukketsu --show … 出席確認の一覧の人数と、参加のチェックの人数を出す
   python kai/tools/meibo.py --test            … 初回のテスト送信。回 setup-test に決勝最終実況と名簿と1卓を送り、読み直し、消して空に戻るかを見る
   --group で会を選ぶ（既定は halu）。--config は試験用（既定は kai/g/<会>/taikai.json）
 成功は1行目が OK で始まる。失敗は NG で始まり、終了コード 1"""
@@ -82,12 +85,28 @@ def send(api, names, players):
     print(f"OK roster 送った {len(names)}人（{nums(names)}）・受け口の名簿は {len(got)}人")
 
 
-def show(api):
+def show(api, checks=False):
     j = api.get()
     if not j.get("ok"):
         raise SystemExit(f"NG 受け口がエラーを返した: {j.get('error')}")
     r = j["data"]["roster"]
+    if checks:
+        u = j["data"].get("uchiage") or {}
+        yes = [p for p in r if (u.get(p) or {}).get("choice") == "yes"]
+        print(f"OK show 出席確認の一覧 {api.kai}・名前 {len(r)}人（{nums(r) if r else 'なし'}）・参加のチェック {len(yes)}人")
+        return
     print(f"OK show 回 {api.kai}・名簿 {len(r)}人（{nums(r) if r else 'なし'}）・点数の入った半荘 {len(j['data']['rounds'])}・最終更新 {j['data']['updated'] or '―'}")
+
+
+def keep_numbers(api, names):
+    """出席確認の一覧では、受け口に入っている番号へ別の名前を上書きしない（参加のチェックは番号に付いているので、別の人に付いてしまう）"""
+    j = api.get()
+    if not j.get("ok"):
+        raise SystemExit(f"NG 受け口がエラーを返した: {j.get('error')}")
+    got = j["data"].get("roster") or {}
+    clash = [p for p in names if p in got and got[p] != names[p]]
+    if clash:
+        raise SystemExit(f"NG 出席確認の一覧の {nums(clash)} には、もう別の名前が入っている（送らなかった）。空いている番号で送る")
 
 
 def test(api):
@@ -134,16 +153,26 @@ def main():
     ap.add_argument("--test", action="store_true")
     ap.add_argument("--group", default="halu", help="会（kai/g/<会>/ の設定を使う。既定は halu）")
     ap.add_argument("--config")
+    ap.add_argument("--shukketsu", action="store_true", help="出席確認の一覧（受け口の回 <kai>-s）へ送る・見る")
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z0-9-]{1,20}", a.group):
         raise SystemExit("--group は英小文字・数字・- で20字まで")
     gdir = KAI / "g" / a.group
     cfg = json.loads(Path(a.config or gdir / "taikai.json").read_text(encoding="utf-8"))
     api = Api(cfg)
+    # 出席確認の一覧は、幹部用ページの skai と同じ回の名前（<kai>-s）
+    if a.shukketsu:
+        api.kai = str(cfg["kai"]) + "-s"
+        if not re.fullmatch(r"[0-9A-Za-z-]{1,24}", api.kai):
+            raise SystemExit("NG 回の名前が長すぎて、出席確認の一覧（<kai>-s）を作れない（kai は22字まで）")
     if a.test:
         test(api)
     elif a.show:
-        show(api)
+        show(api, a.shukketsu)
+    elif a.file and a.shukketsu:
+        names = read_names(a.file)
+        keep_numbers(api, names)
+        send(api, names, None)
     elif a.file:
         send(api, read_names(a.file), cfg.get("players"))
     else:
