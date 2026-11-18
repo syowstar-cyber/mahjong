@@ -66,13 +66,6 @@ td.nw,th.nw{white-space:nowrap}
 .jump a{flex:1 1 auto;text-align:center;padding:8px 10px;font-size:.95rem;font-weight:700;white-space:nowrap;text-decoration:none;color:var(--accent);background:var(--soft);border:1px solid var(--line);border-radius:8px}
 /* 9章 決勝最終実況 */
 .lvtools{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}
-.lv3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end;margin:4px 0 12px}
-.lv3 label{font-size:.88rem;margin:0 0 2px;overflow-wrap:anywhere}
-select,.lv3 input{width:100%;font:inherit;font-size:1.05rem;padding:9px 6px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
-.lv3 input.auto{background:var(--card2)}
-.lvlab{font-weight:700;font-size:.92rem;margin-top:6px}
-.chk{display:flex;gap:8px;align-items:center;margin:4px 0 0}
-.chk input{width:22px;height:22px;margin:0}
 details.card>summary{cursor:pointer;font-weight:700}
 /* 2〜8章（くじの説明）。最初からたたんで出す（結果と実況を近くに。2026-11-04 主催） */
 details.more{margin:26px 0 0}
@@ -138,27 +131,6 @@ details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background
   <h2 id="live">9. 決勝最終実況</h2>
   <div class="lvtools"><button type="button" class="ghost" id="lvre">最新に更新</button><span class="small" id="lvat"></span></div>
   <div id="livebox"></div>
-  <details id="livein" class="card" hidden>
-    <summary>運営の入力（入れるのは1人だけ）</summary>
-    <p id="lfpre" class="small" hidden></p>
-    <form id="liveform" autocomplete="off">
-      <p class="small">局が終わるたびに、これから打つ局と、いまの点棒を入れて送ります。点棒の欄には、前の局の点棒が入っています。2人分を打つか、1人を空けると、残りの1人は自動で入ります。見ている人の画面には、30秒ほどで出ます。</p>
-      <div class="lvlab">席（東1局の並び。最初に1回）</div>
-      <div class="lv3" id="lfseat"></div>
-      <div class="lv3">
-        <div><label for="lfkyoku">これからの局</label><select id="lfkyoku"></select></div>
-        <div><label for="lfhonba">本場</label><input type="text" id="lfhonba" inputmode="numeric" maxlength="2"></div>
-        <div><label for="lfkyotaku">供託（本）</label><input type="text" id="lfkyotaku" inputmode="numeric" maxlength="2"></div>
-      </div>
-      <div class="lvlab">いまの点棒（百点単位。25,300点なら 253）</div>
-      <div class="lv3" id="lfraw"></div>
-      <label class="chk"><input type="checkbox" id="lfend">終局（この半荘が終わった）</label>
-      <div id="lfwarn" class="small warn"></div>
-      <button type="submit" class="send">この局の点数を送る</button>
-      <div id="lfmsg" class="msg" aria-live="polite"></div>
-      <button type="button" class="ghost" id="lfclear">実況を消す</button>
-    </form>
-  </details>
   </div>
   </div>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../">トップ</a><a class="score" href="../score/" hidden>点数入力</a><a class="rule" href="#" hidden>ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="./" aria-current="page" hidden>対戦表</a></nav>
@@ -176,9 +148,6 @@ const G = new URLSearchParams(location.search).get('g') || 'halu';
 const G_OK = /^[a-z0-9-]{1,20}$/.test(G);
 // 設定の置き場（kai/ から見た場所）。試験の写しだけが window.KAI_CONF_DIR で差し替える
 const CONF = window.KAI_CONF_DIR !== undefined ? window.KAI_CONF_DIR : 'g/' + G + '/';
-// 9章（決勝最終実況）の運営の入力を出すか。幹部用ページの「実況を入れる」から開いたとき（?unei=1）だけ、開いた形で出す。参加者の画面には出さない（2026-11-03 主催）
-const UNEI = new URLSearchParams(location.search).get('unei') === '1';
-if (UNEI) $('livein').open = true;
 // ページ間のリンクにも会を付ける（halu は付けない）。ルール・点数早見表は会のフォルダの中なので付けない
 document.querySelectorAll('.pnav a:not(.rule):not(.tensu)').forEach(a => { if (G !== 'halu') a.setAttribute('href', a.getAttribute('href') + '?g=' + encodeURIComponent(G)); });
 // 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
@@ -238,9 +207,9 @@ const miteiOf = c => !!c && typeof c === 'object' && (c.players === undefined ||
 const mitei = () => miteiOf(CFG);
 // 受け口から読むもの（点数・年上からの順・決勝最終実況）と、受け口の URL
 let DATA = { rounds: {} }, AGERANK = {}, LIVE = null, API = '';
-// 受け口で確定した半荘（当日の操作で幹部用ページから付ける。古い受け口は返さないので空）。上の「決勝ライン」のボタンを出すかに使う（トップと同じ考え方）
+// 受け口で確定した半荘（運営用ページで付ける。古い受け口は返さないので空）。上の「決勝ライン」のボタンを出すかに使う（トップと同じ考え方）
 let GLOCK = [];
-// 組み合わせ表（kumiawase.json）そのものと、受け口のくじの番号（幹部用ページで入れる。{n4, date, ts, log}）・そのうち型の抽せんの日の4桁。
+// 組み合わせ表（kumiawase.json）そのものと、受け口のくじの番号（運営用ページで入れる。{n4, date, ts, log}）・そのうち型の抽せんの日の4桁。
 // N4 と KUMI は出す番号と表（applyKuji）
 let KUMI0 = null, QKUJI = null, N4_GAS = '';
 // はじめの読み込みで、受け口の名前を待っている間（1章の表に「名前を読み込み中」と出す）
@@ -327,7 +296,7 @@ function applyKuji() {
   KUMI = KUMI0;
   if (KATA && N4_GAS && !file && !(KUMI0 && Object.keys(KUMI0.rounds || {}).length)) KUMI = { kai: KATA.kai, from: 1, kuji: { date: KATA.date, n4: N4_GAS }, rounds: roundsOf(draw(seedOf(N4_GAS))), gas: true };
 }
-// 幹部用ページで入れ直す前の番号（同じ抽せんの日で、いまの受け口の番号と違うもの。古い順・重ねない）
+// 運営用ページで入れ直す前の番号（同じ抽せんの日で、いまの受け口の番号と違うもの。古い順・重ねない）
 const redoN4 = () => { const q = QKUJI; return N4_GAS && q && Array.isArray(q.log) ? [...new Set(q.log.filter(x => x && x.date === q.date && /^\d{4}$/.test(String(x.n4 || '')) && String(x.n4) !== N4_GAS).map(x => String(x.n4)))] : []; };
 // 同じ組み合わせか（卓の番号・卓の人の並び・抜け番。お休みは比べない）
 const shape = r => JSON.stringify({ t: ((r && r.tables) || []).map(t => [t.no, t.p]), r: (r && r.rest) || [] });
@@ -392,9 +361,9 @@ function renderResult() {
   const remade = !!KUMI && (KUMI.remade === true || KUMI.from > 1), from = remade ? Number(KUMI.from) || 1 : ks.length + 1;
   const bad = ks.filter(k => Number(k) < from && !sameRound(now[k], want[k]));
   let h = '<div class="card"><div class="big">本番の番号</div>' + esc(mdText(KATA.date)) + 'のナンバーズ4の当せん番号: <b>' + esc(N4) + '</b></div>';
-  // 組み合わせ表の番号と受け口の番号が違う（どちらかの打ち間違い）。幹部用ページで番号を入れ直したときは、前の番号も出す（前の晩に表を見た人が取り違えないように）
-  if (N4_GAS && N4_GAS !== N4) h += '<p class="warn">幹部用ページで入れた番号（' + esc(N4_GAS) + '）が、組み合わせ表の番号と違います。集計係に知らせてください。</p>';
-  else if (redoN4().length) h += '<p class="warn">幹部用ページで、番号を入れ直しました（前に入れた番号: ' + esc(redoN4().join('・')) + '）。前の表を見ていた人は、自分の卓を確かめ直してください。</p>';
+  // 組み合わせ表の番号と受け口の番号が違う（どちらかの打ち間違い）。運営用ページで番号を入れ直したときは、前の番号も出す（前の晩に表を見た人が取り違えないように）
+  if (N4_GAS && N4_GAS !== N4) h += '<p class="warn">運営が入れた番号（' + esc(N4_GAS) + '）が、組み合わせ表の番号と違います。集計係に知らせてください。</p>';
+  else if (redoN4().length) h += '<p class="warn">運営が、番号を入れ直しました（前に入れた番号: ' + esc(redoN4().join('・')) + '）。前の表を見ていた人は、自分の卓を確かめ直してください。</p>';
   if (bad.length) h += '<p class="warn">' + bad.join('・') + '半荘目が、型と本番の番号のとおりではありません。集計係に知らせてください。</p>';
   else if (!remade) h += '<p>いまの組み合わせは、型と本番の番号のとおりです。</p>';
   else {
@@ -498,13 +467,16 @@ $('calc').addEventListener('submit', ev => {
   CALC = b; renderCalc();
 });
 // ---- 9章: 決勝最終実況（決勝の最後の半荘。2026-11-02 主催） ----
-// 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く（見ている人の画面は pull で読み直す）。入れる欄は、幹部用ページから開いたとき（UNEI）だけ出す。
+// 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く（見ている人の画面は pull で読み直す）。
+// 入れる欄は運営用ページ（kai/unei/）にある（2026-11-19 にこのページから移した。前は幹部用ページから ?unei=1 で開いたときだけ出していた）。
 // 前の半荘までの決勝のポイントといまの点棒から、総合の順位と、アガって総合1位になるのに要る手を出す。
-// 出すのは taikai.json の jikkyo が true の会で、3麻・決勝1卓・2半荘以上。局は東南3局ずつ（南3局がオーラス）・南場の流局は親が聴牌なら連荘・
-// 南3局の親はアガってトップならアガリやめ（g/halu/rule.html）・点の払い方はツモ損なし（g/halu/tensu.html）
-const KYOKU = ['東1局', '東2局', '東3局', '南1局', '南2局', '南3局'], ORAS = 5;
-// 9章を出す会か（幹部用ページの入口も同じ条件。kanbu/index.html の liveOn。どちらかを直したら、もう片方も直す）
-const liveOn = () => !!(CFG && CFG.jikkyo === true && CFG.mode === 3 && CFG.final && CFG.final.tables === 1 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan >= 2
+// 出すのは taikai.json の jikkyo が true の会で、3麻か4麻・決勝1卓・2半荘以上（4麻は 2026-11-18 から）。局は東場と南場を人数の数ずつ（3麻は南3局・4麻は南4局がオーラス）・
+// 南場の流局は親が聴牌なら連荘・オーラスの親はアガってトップならアガリやめ（g/halu/rule.html・rule4.html）・点の払い方は3麻がツモ損なし（g/halu/tensu.html）、4麻はふつう（g/halu/tensu4.html）
+// 局の名前（KYOKU）とオーラス（ORAS）は、load() で MODE から作る
+const kyokuOf = m => ['東', '南'].flatMap(w => Array.from({ length: m }, (_, k) => w + (k + 1) + '局'));
+let KYOKU = kyokuOf(3), ORAS = 5;
+// 9章を出す会か（運営用ページの入れる欄も同じ条件。unei/index.html の liveOn。どちらかを直したら、もう片方も直す）
+const liveOn = () => !!(CFG && CFG.jikkyo === true && (CFG.mode === 3 || CFG.mode === 4) && CFG.final && CFG.final.tables === 1 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan >= 2
   && Number.isInteger(CFG.start) && Number.isInteger(CFG.return) && Number.isInteger(CFG.prelim) && !!CFG.uma && typeof CFG.uma === 'object');
 const lastF = () => 'F' + CFG.final.hanchan;
 const recsOf = r => (DATA.rounds && DATA.rounds[r]) || {};
@@ -513,7 +485,6 @@ const fmt = n => n.toLocaleString('ja-JP');
 // ポイントは 0.1 単位の整数で持ち、表示で小数1桁にする（score/index.html と同じ）
 const pt1 = n => (Math.abs(n) / 10).toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fpt = n => (n > 0 ? '+' : n < 0 ? '−' : '') + pt1(n);
-function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
 const windOf = (i, d) => WINDS[(i - d + MODE) % MODE];
 
 // ポイントの計算（score/index.html の umaFor・calcTable と同じ。どちらかを直したら、もう片方も直す）。MODE・OKA は load() で大会設定から入れる
@@ -576,7 +547,8 @@ function prelimRank() {
   return rk;
 }
 
-// 点の払い方（g/halu/tensu.html の basePts・handName・payOf と同じ。ツモ損なし（ツモはロンの点を2人で折半）・切り上げ満貫あり・数え役満あり（13翻からは役満の点。2026-11-11 から）。どちらかを直したら、もう片方も直す）
+// 点の払い方（3麻は g/halu/tensu.html、4麻は g/halu/tensu4.html の basePts・handName・payOf と同じ。3麻はツモ損なし（ツモはロンの点を2人で折半）・
+// 4麻は子のツモで親が倍を払う・どちらも切り上げ満貫あり・数え役満あり（13翻からは役満の点。2026-11-11 から）。どちらかを直したら、もう片方も直す）
 const up100 = v => Math.ceil(v / 100) * 100;
 function basePts(fu, han) {
   if (han === 'y1') return 8000;
@@ -591,13 +563,15 @@ function basePts(fu, han) {
   return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
 }
 const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満', 24000: 'トリプル役満' })[b] || '';
-// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）。ツモはロンの点の半分を2人が払う
+// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）。3麻のツモはロンの点の半分を2人が払う。
+// 4麻のツモは、子のツモが子2人から基本点・親から倍、親のツモが子3人から倍（tensu4.html と同じ）
 function payOf(kind, b) {
   const ron = up100(b * (kind[0] === 'k' ? 4 : 6));
   if (kind[1] === 'r') return [{ who: '放銃した人', v: ron, n: 1 }];
+  if (MODE === 4) return kind === 'kt' ? [{ who: '子', v: up100(b), n: 2 }, { who: '親', v: up100(b * 2), n: 1 }] : [{ who: '子', v: up100(b * 2), n: 3 }];
   return [{ who: kind === 'kt' ? '親と子の' : '子', v: up100(ron / 2), n: 2 }];
 }
-// 早見表にある手（tensu.html の表と同じ）。20符は平和ツモだけで2翻から、25符は七対子だけで2翻から（ツモは3翻から）、1翻は100符まで。満貫から上は翻だけ（lim は目安に出す字）。早見表の計算機にあるトリプル役満（y3）は入れない（当日の決勝で使う計算を変えない。2026-11-14 主催）
+// 早見表にある手（tensu.html・tensu4.html の表と同じ）。20符は平和ツモだけで2翻から、25符は七対子だけで2翻から（ツモは3翻から）、1翻は100符まで。満貫から上は翻だけ（lim は目安に出す字）。早見表の計算機にあるトリプル役満（y3）は入れない（当日の決勝で使う計算を変えない。2026-11-14 主催）
 const LIMITS = [['5', '5翻'], ['6', '6翻'], ['8', '8翻'], ['11', '11翻'], ['y1', '役満'], ['y2', 'ダブル役満']];
 function handsOf(tsumo) {
   const hs = [];
@@ -608,14 +582,17 @@ function handsOf(tsumo) {
   LIMITS.forEach(([h, t]) => hs.push({ han: h, fu: 0, b: basePts(0, h), lim: t }));
   return hs;
 }
-// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場（ロンは1本1,000・ツモは1人500。2026-11-10 に600から変えた）と供託は、アガった人へ
+// アガった後の点棒（席の順）。how は 'tsumo' か、放銃した人の席。本場と供託は、アガった人へ。
+// 本場1本は、3麻がロン1,000・ツモ1人500（2026-11-10 に600から変えた）、4麻がロン300・ツモ1人100（rule4.html）
+const HONBA = () => MODE === 4 ? { ron: 300, tsumo: 100 } : { ron: 1000, tsumo: 500 };
 function afterWin(st, w, how, b) {
-  const R = st.raw.slice(), oya = w === st.kyoku % MODE;
+  const R = st.raw.slice(), d = st.kyoku % MODE, oya = w === d, hb = HONBA();
   if (how === 'tsumo') {
-    const v = payOf(oya ? 'ot' : 'kt', b)[0].v + 500 * st.honba;
-    R.forEach((_, i) => { if (i === w) return; R[i] -= v; R[w] += v; });
+    // 払う人ごとの点（4麻の子のツモは、親が倍を払う）
+    const ps = payOf(oya ? 'ot' : 'kt', b);
+    R.forEach((_, i) => { if (i === w) return; const v = (ps.length > 1 && i === d ? ps[1].v : ps[0].v) + hb.tsumo * st.honba; R[i] -= v; R[w] += v; });
   } else {
-    const v = payOf(oya ? 'or' : 'kr', b)[0].v + 1000 * st.honba;
+    const v = payOf(oya ? 'or' : 'kr', b)[0].v + hb.ron * st.honba;
     R[how] -= v; R[w] += v;
   }
   R[w] += 1000 * st.kyotaku;
@@ -660,10 +637,11 @@ function handHint(hs) {
   const lim = hs.find(x => x.lim && x.ok);
   return toks.concat(lim ? [lim.lim] : []).join('・');
 }
-// 要る点（早見表の点＝本場を足す前）。ツモは子のツモも親のツモも「〇〇オール」（tensu.html の申告と同じ）
+// 要る点（早見表の点＝本場を足す前）。3麻のツモは、子のツモも親のツモも「〇〇オール」（tensu.html の申告と同じ）。
+// 4麻の子のツモは「子の払い・親の払い」、親のツモは「〇〇オール」（tensu4.html の申告と同じ）
 function payText(kind, b) {
   const ps = payOf(kind, b), n = handName(b);
-  return fmt(ps[0].v) + (kind[1] === 't' ? 'オール' : '') + (n ? '（' + n + '）' : '');
+  return ps.map(x => fmt(x.v)).join('・') + (kind[1] === 't' && ps.length === 1 ? 'オール' : '') + (n ? '（' + n + '）' : '');
 }
 // 決勝の人（決勝1半荘目の1卓の顔ぶれ）・前の半荘までの決勝のポイント・予選の順位。前の半荘の点数がまだなら wait（その半荘）
 function liveCtx() {
@@ -701,15 +679,15 @@ function standHtml(T, ctx, d) {
   });
   return h + '</tbody></table></div>';
 }
-// アガリの条件（総合の順に1人ずつ。ツモと、ほかの2人からのロン）
+// アガリの条件（総合の順に1人ずつ。ツモと、ほかの人からのロン）
 function condHtml(st, ctx, S, d, oras) {
   let h = '<h3>' + (oras ? 'アガリの条件（優勝＝総合1位）' : 'この局のアガリで総合1位に立つには（参考）') + '</h3><p class="small">'
     // 流局の扱いは、ルールの4章（南場は親の聴牌で連荘・ノーテンなら親が移って終わる。2026-11-10 に「流局は連荘」から変えた）
     + (oras ? 'オーラスです。子がアガると、ここで終わります。親は、アガってこの半荘のトップ（同点のトップも含む）ならアガリやめで終われます（トップでなければ続きます）。' + (tobi() ? '誰かの点棒がマイナスになれば、そこで終わります（トビ）。' : '') + '流局は、親が聴牌なら連荘、ノーテンなら終わりです。'
-      : 'オーラス（南3局）の前です。いまアガって、総合1位に立つのに要る手です。') + '</p>';
+      : 'オーラス（' + KYOKU[ORAS] + '）の前です。いまアガって、総合1位に立つのに要る手です。') + '</p>';
   S.forEach((x, k) => {
     const w = x.i, oya = w === d;
-    const cs = ['tsumo'].concat([0, 1, 2].filter(i => i !== w)).map(how => ({ how, c: condOf(st, ctx, w, how), kind: (oya ? 'o' : 'k') + (how === 'tsumo' ? 't' : 'r') }));
+    const cs = ['tsumo'].concat(st.seats.map((_, i) => i).filter(i => i !== w)).map(how => ({ how, c: condOf(st, ctx, w, how), kind: (oya ? 'o' : 'k') + (how === 'tsumo' ? 't' : 'r') }));
     const li = cs.every(y => y.c.any) ? ['<li>アガれば、どの手でも</li>'] : cs.map(({ how, c, kind }) => {
       const what = how === 'tsumo' ? 'ツモ' : esc(dn(st.seats[how])) + 'から';
       const need = c.any ? 'どの手でも' : c.none ? '届かない' : payText(kind, c.b) + ' 以上';
@@ -726,28 +704,44 @@ function lineHtml(seats, raw, ctx, order) {
   const bonus = umaFor(raw).map((x, r) => Math.round(x * 10) + (r === 0 ? OKA : 0));
   const perms = a => a.length <= 1 ? [a] : a.flatMap((x, k) => perms(a.slice(0, k).concat(a.slice(k + 1))).map(r => [x].concat(r)));
   const orders = perms(seats.map((_, i) => i));   // o[r]＝r+1 着の席
+  const fact = n => n <= 1 ? 1 : n * fact(n - 1);
+  // 並びの書き方（keep が真の席だけ「k着 名前」で書く）
+  const who = (o, keep) => o.map((s, k) => keep(s) ? (k + 1) + '着 ' + esc(dn(seats[s])) : '').filter(Boolean).join('・');
   let h = '<h3>優勝の条件（この半荘の終わりの点棒）</h3><p class="small">着順ごとに、総合1位になるのに要る点棒の差です。書いていない着順では、優勝に届きません。</p>';
   order.forEach(i => {
     const p = seats[i], li = [];
     for (let r = 0; r < seats.length; r++) {
       const at = orders.filter(o => o[r] === i);
+      // con＝条件がつく人の席（上の人はいつも。下の人は差が要るときだけ）。key＝条件がつく人の着順（同じなら条件の文も同じ）
       const rows = at.map(o => {
-        const req = [];
+        const req = [], con = [];
         for (let k = 0; k < o.length; k++) {
           const j = o[k];
           if (j === i) continue;
           const q = seats[j], D = ctx.prev[p] - ctx.prev[q] + bonus[r] - bonus[k];
           // 総合の差は D＋(自分の点棒−その人の点棒)/100。正なら上、0 なら予選の順位で決まる。点棒の差は need 以上が要る
           const need = -D * 100 + (ctx.prk[p] < ctx.prk[q] ? 0 : 100);
-          if (k > r) { if (need > 100) req.push(esc(dn(q)) + 'より ' + fmt(need) + '点以上多い'); }
+          if (k > r) { if (need > 100) { req.push(esc(dn(q)) + 'より ' + fmt(need) + '点以上多い'); con.push(j); } }
           else if (need > -100) return null;
-          else req.push(esc(dn(q)) + 'との差が ' + fmt(-need) + '点まで');
+          else { req.push(esc(dn(q)) + 'との差が ' + fmt(-need) + '点まで'); con.push(j); }
         }
-        return { o, req };
+        return { o, req, con, key: o.map((s, k) => con.includes(s) ? k + ':' + s : '').join(',') };
       }).filter(Boolean);
       if (!rows.length) continue;
-      if (rows.length === at.length && rows.every(x => !x.req.length)) { li.push('<li><b>' + (r + 1) + '着</b>　なら優勝</li>'); continue; }
-      rows.forEach(({ o, req }) => li.push('<li><b>' + (r + 1) + '着</b>（' + o.map((s, k) => s === i ? '' : (k + 1) + '着 ' + esc(dn(seats[s]))).filter(Boolean).join('・') + '）　' + (req.length ? req.join('、') : 'なら優勝') + '</li>'));
+      // 条件のつく人の着順が同じ並び（条件のない人の並びだけが違う）は、まとめて1行にする。条件のない人の並びが全部そろえば、その人は書かない
+      // （そろわないのは、1着で条件のない並びだけ。上に書いた並びの「ほかの並び」として最後に書く）。3麻では、まとまるのは全部の並びが
+      // 「なら優勝」のときだけで、行は前と同じ（2026-11-18 4麻へ広げたとき。4麻は下の2人・3人の並びで同じ行が並んでいた）
+      const gs = [], tail = [];
+      rows.forEach(x => { const g = gs.find(y => y.key === x.key); if (g) g.rows.push(x); else gs.push({ key: x.key, rows: [x] }); });
+      gs.forEach(g => {
+        const x = g.rows[0], txt = x.req.length ? x.req.join('、') : 'なら優勝';
+        if (g.rows.length > 1 && g.rows.length === fact(seats.length - 1 - x.con.length)) {
+          const lab = who(x.o, s => x.con.includes(s));
+          li.push('<li><b>' + (r + 1) + '着</b>' + (lab ? '（' + lab + '）' : '') + '　' + txt + '</li>');
+        } else if (g.rows.length > 1 && !x.con.length) tail.push('<li><b>' + (r + 1) + '着</b>（ほかの並び）　' + txt + '</li>');
+        else g.rows.forEach(y => li.push('<li><b>' + (r + 1) + '着</b>（' + who(y.o, s => s !== i) + '）　' + txt + '</li>'));
+      });
+      li.push(...tail);
     }
     h += '<div class="card lvc"><div class="who">' + esc(dn(p)) + '</div><ul>' + (li.length ? li.join('') : '<li>この半荘では、優勝に届きません</li>') + '</ul></div>';
   });
@@ -760,21 +754,14 @@ function renderLive() {
   $('livesec').hidden = !on; $('jlive').hidden = !on;
   if (!on) return;
   const box = $('livebox'), ctx = liveCtx(), n = CFG.final.hanchan;
-  // 運営の入力は、幹部用ページから開いたときだけ。決勝の前の半荘の点数が入るまでは、入れられる時期の案内だけ出す
-  $('livein').hidden = !UNEI;
-  $('liveform').hidden = !!ctx.wait; $('lfpre').hidden = !ctx.wait;
   if (ctx.wait) {
-    $('lfpre').textContent = '決勝' + ctx.wait + '半荘目の点数が入ると、ここで入れられます（席の欄に決勝の' + MODE + '人が出ます）。';
     box.innerHTML = '<div class="hint">決勝' + ctx.wait + '半荘目の点数が入ると、ここに決勝' + n + '半荘目の実況が出ます。<br>運営が局ごとに点数を入れます。当日は、30秒ごとに読み直します。</div>';
     return;
   }
-  fillLiveForm(ctx);
-  // 決勝の最後の半荘の点数が入ったら、9章はその点数で出す。実況の点棒は使わず、運営の入力も閉じる（終局を送らずに点数を入れると、
+  // 決勝の最後の半荘の点数が入ったら、9章はその点数で出す。実況の点棒は使わない（運営用ページの入れる欄も閉じる。終局を送らずに点数を入れると、
   // 実況の最後の点棒で違う優勝者が出ていた。2026-11-03 の実況の試験で見つけた）
   const rec = recsOf(lastF())['1'];
   if (rec) {
-    $('liveform').hidden = true; $('lfpre').hidden = false;
-    $('lfpre').textContent = '決勝' + n + '半荘目の点数が入りました。9章は、その点数で出します（ここで入れる物はありません）。';
     box.innerHTML = doneHtml(rec, ctx, n);
     return;
   }
@@ -785,7 +772,7 @@ function renderLive() {
       + lineSafe(ctx.mem, ctx.mem.map(() => CFG.start), ctx, byTotal(ctx.mem.map((p, i) => ({ p, i, total: ctx.prev[p] })), ctx.prk).map(x => x.i));
     return;
   }
-  if (st.bad) { box.innerHTML = '<p class="warn">運営の入力が、決勝の人と合いません。運営の入力で、席を選び直してください。</p>'; return; }
+  if (st.bad) { box.innerHTML = '<p class="warn">運営が入れた席が、決勝の人と合いません。運営が席を選び直すと、ここに出ます。</p>'; return; }
   const d = st.kyoku % MODE, oras = st.kyoku === ORAS, fin = !!st.end, T = totalsOf(st.raw, st.seats, ctx), S = byTotal(T, ctx.prk);
   let h = '<div class="card"><div class="big">' + (fin ? '終局' : KYOKU[st.kyoku] + (oras ? '（オーラス）' : '') + '　' + st.honba + '本場' + (st.kyotaku ? '・供託' + st.kyotaku + '本' : '')) + '</div>'
     + '<div class="small">' + (fin ? '' : '親は ' + esc(dn(st.seats[d])) + '。') + '運営の入力 ' + esc(String(st.ts || '').slice(11, 16)) + '</div></div>';
@@ -806,108 +793,6 @@ function doneHtml(rec, ctx, n) {
   return h + '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><h3>総合の順位</h3>' + standHtml(T, ctx, -1);
 }
 
-// ---- 9章: 運営の入力 ----
-// 席（東1局の東・南・西）・これから打つ局・本場・供託・いまの点棒（百点単位。2人を打つか1人を空けると、残りの1人は自動）を送る。
-// 受け口の live が変わったら、入れかけでなければ、欄をその値に合わせ直す（読み直しで入れかけを消さない）
-const SEAT_LABEL = ['東（起家）', '南', '西'];
-let LF_DIRTY = false, LF_KEY = '';
-// 数を読む（全角の数字とマイナスも）。数でなければ NaN
-const numOf = s => { s = String(s).normalize('NFKC').replace(/−/g, '-').trim(); return /^-?\d+$/.test(s) ? Number(s) : NaN; };
-function fillLiveForm(ctx) {
-  if (!$('lfkyoku').options.length) KYOKU.forEach((t, i) => $('lfkyoku').appendChild(new Option(t, String(i))));
-  if (!$('lfr0')) $('lfraw').innerHTML = [0, 1, 2].map(i => '<div><label for="lfr' + i + '" id="lfl' + i + '"></label><input type="text" id="lfr' + i + '" inputmode="numeric" maxlength="6"></div>').join('');
-  // 選ぶ欄は、決勝の人か名前が変わったときだけ作り直す（選んでいた人は残す）
-  const mk = JSON.stringify(ctx.mem.map(p => [p, dn(p)]));
-  if ($('lfseat').dataset.mk !== mk) {
-    const was = [0, 1, 2].map(i => $('lfs' + i) ? $('lfs' + i).value : '');
-    $('lfseat').dataset.mk = mk;
-    $('lfseat').innerHTML = SEAT_LABEL.map((t, i) => '<div><label for="lfs' + i + '">' + t + '</label><select id="lfs' + i + '"><option value="">（選ぶ）</option>' + ctx.mem.map(p => '<option value="' + esc(p) + '">' + esc(dn(p)) + '</option>').join('') + '</select></div>').join('');
-    was.forEach((p, i) => { if (ctx.mem.includes(p)) $('lfs' + i).value = p; });
-  }
-  const key = JSON.stringify(LIVE || null);
-  if (!LF_DIRTY && key !== LF_KEY) {
-    LF_KEY = key;
-    const v = liveState(ctx), s = v && !v.bad ? v : null;
-    // 点棒の欄には、いまの点棒（前の局の点棒）を前の値 pv として入れる。この局で打った印（typed）と自動の印は消す
-    [0, 1, 2].forEach(i => {
-      $('lfs' + i).value = s ? s.seats[i] : '';
-      const r = $('lfr' + i); r.value = r.dataset.pv = String((s ? s.raw[i] : CFG.start) / 100);
-      delete r.dataset.auto; delete r.dataset.typed; r.classList.remove('auto');
-    });
-    $('lfkyoku').value = String(s ? s.kyoku : 0);
-    $('lfhonba').value = String(s ? s.honba : 0);
-    $('lfkyotaku').value = String(s ? s.kyotaku : 0);
-    $('lfend').checked = !!(s && s.end);
-    $('lfwarn').textContent = '';
-  }
-  lfLabels();
-}
-// 点棒の欄の見出しは、選んだ人の名前（選ぶ前は席）
-function lfLabels() { [0, 1, 2].forEach(i => { const p = $('lfs' + i) ? $('lfs' + i).value : ''; $('lfl' + i).textContent = p ? dn(p) : SEAT_LABEL[i]; }); }
-// 点棒の自動: 残る1人を「持ち点の合計−供託−ほかの2人」にする（score/index.html の autoFill と同じ考え方）。
-// 埋める欄＝空いた欄がちょうど1つならその欄。空いた欄がなく、この局で打った欄（typed）が2つなら、打っていない欄（前の局の点棒のままの欄）。
-// 自動の欄は、いったん元に戻してから決め直す（打って空けた欄は空へ、ほかは前の局の点棒 pv へ）。
-// 打とうとしている欄（フォーカス中）は埋めない（消して打ち直すときに、消したそばから埋まらないように。force は送信時）
-function lfAuto(force) {
-  const ins = [0, 1, 2].map(i => $('lfr' + i)), ky = numOf($('lfkyotaku').value);
-  ins.forEach(i => { if (i.dataset.auto) { i.value = i.dataset.typed ? '' : (i.dataset.pv || ''); delete i.dataset.auto; i.classList.remove('auto'); } });
-  const blank = ins.filter(i => i.value.trim() === ''), typed = ins.filter(i => i.dataset.typed && i.value.trim() !== '');
-  const target = blank.length === 1 ? blank[0] : !blank.length && typed.length === MODE - 1 ? ins.find(i => !typed.includes(i)) : null;
-  if (!target || (!force && target === document.activeElement)) return;
-  const units = ins.filter(i => i !== target).map(i => numOf(i.value));
-  if (!units.every(u => Number.isInteger(u) && u >= -2000 && u <= 9999) || !(ky >= 0 && ky <= 99)) return;
-  target.value = String((CFG.start * MODE - 1000 * ky) / 100 - units.reduce((a, b) => a + b, 0));
-  target.dataset.auto = '1'; target.classList.add('auto');
-}
-$('liveform').addEventListener('input', ev => {
-  LF_DIRTY = true;
-  // 点棒の欄に打ったら、その欄は「この局で打った欄」（自動の欄に打っても同じ）
-  const t = ev.target;
-  if (t && /^lfr\d$/.test(t.id)) { t.dataset.typed = '1'; delete t.dataset.auto; t.classList.remove('auto'); }
-  lfAuto(); lfLabels();
-  const ps = [0, 1, 2].map(i => $('lfs' + i) ? $('lfs' + i).value : '').filter(Boolean);
-  $('lfwarn').textContent = new Set(ps).size < ps.length ? '同じ人が2つの席に選ばれています。' : '';
-});
-// 欄を離れたら決め直す（空けたまま離れた欄は、ここで自動で埋まる）
-$('liveform').addEventListener('focusout', () => lfAuto());
-const LIVE_ERR = { action: '受け口がまだ実況に対応していません。主催が受け口の新しいバージョンをデプロイすると送れます', live: '送り方が不正です', player: '席の人の指定が不正です', score: '点棒の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', kai: '回の名前（大会設定）が不正です', bad_json: '送り方が不正です' };
-async function postLive(live) {
-  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'live', kai: CFG.kai, live }) });
-  return r.json();
-}
-$('liveform').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  if (!API) { say('lfmsg', '点数の受け口が設定されていません', false); return; }
-  if (liveCtx().wait) return;
-  lfAuto(true);
-  const seats = [0, 1, 2].map(i => $('lfs' + i).value);
-  if (seats.some(p => !p) || new Set(seats).size < MODE) { say('lfmsg', '席に3人を1人ずつ選んでください', false); return; }
-  const kyoku = Number($('lfkyoku').value), honba = numOf($('lfhonba').value), kyotaku = numOf($('lfkyotaku').value), end = $('lfend').checked;
-  if (!(honba >= 0 && honba <= 99 && kyotaku >= 0 && kyotaku <= 99)) { say('lfmsg', '本場と供託は、0〜99の数で入れてください', false); return; }
-  const units = [0, 1, 2].map(i => numOf($('lfr' + i).value));
-  if (units.some(u => !Number.isInteger(u) || u < -2000 || u > 9999)) { say('lfmsg', '点棒は百点単位の整数で入れてください（25,300点なら 253）', false); return; }
-  const raw = units.map(u => u * 100), want = CFG.start * MODE - 1000 * kyotaku;
-  if (raw.reduce((a, b) => a + b, 0) !== want) { say('lfmsg', '点棒の合計が ' + fmt(want) + '（持ち点の合計−供託）になりません。点棒を確かめてください', false); return; }
-  // 終局のとき、供託はアガった人（アガリで終わらなければトップ）の点棒に移って0本になる。残っていれば、送る前に確かめる
-  if (end && kyotaku > 0 && !confirm('終局で、供託が' + kyotaku + '本残っています（0本になるはず）。このまま送りますか？\n供託は、アガった人の点棒に足します。アガリで終わらなかったときは、トップに足します。')) { say('lfmsg', '送るのをやめました。供託と点棒を確かめてください', false); return; }
-  const btn = $('liveform').querySelector('.send');
-  btn.disabled = true;
-  try {
-    say('lfmsg', '送信中…', true);
-    const j = await postLive({ seats, kyoku, honba, kyotaku, raw, end }).catch(() => ({ ok: false, error: 'net' }));
-    if (!j.ok) { say('lfmsg', LIVE_ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください', false); return; }
-    LF_DIRTY = false; LF_KEY = ''; take(j.data);
-    say('lfmsg', (end ? '終局' : KYOKU[kyoku] + ' ' + honba + '本場') + 'を送りました。見ている人の画面には、30秒ほどで出ます', true);
-  } finally { btn.disabled = false; }
-});
-$('lfclear').addEventListener('click', async () => {
-  if (!API || !LIVE) { say('lfmsg', '消す実況はありません', false); return; }
-  if (!confirm('決勝最終実況を消しますか？（見ている人の画面からも消えます）')) return;
-  const j = await postLive(null).catch(() => ({ ok: false, error: 'net' }));
-  if (!j.ok) { say('lfmsg', LIVE_ERR[j.error] || '消せませんでした。少し待ってから、もう一度押してください', false); return; }
-  LF_DIRTY = false; LF_KEY = ''; take(j.data);
-  say('lfmsg', '消しました', true);
-});
 // 受け口の返事を持つ（点数・名簿・年上からの順・決勝最終実況）。名前が変わったときだけ、全部を出し直す
 let PULL_AT = 0;
 function take(d) {
@@ -916,7 +801,7 @@ function take(d) {
   DATA = { rounds: d.rounds || {} }; AGERANK = d.agerank || {}; LIVE = d.live || null; ROSTER = d.roster || {};
   GLOCK = Array.isArray(d.locked) ? d.locked.map(String) : [];
   $('jline').hidden = !lineOn(CFG);
-  // 受け口のくじの番号（幹部用ページで入れる）。変わったら、番号と表を出し直す
+  // 受け口のくじの番号（運営用ページで入れる）。変わったら、番号と表を出し直す
   QKUJI = d.kuji && typeof d.kuji === 'object' ? d.kuji : null;
   const kuji = JSON.stringify(QKUJI) !== kw;
   if (kuji) { applyKuji(); if (N4 && !$('n4').value) $('n4').value = N4; }
@@ -954,7 +839,7 @@ function renderAll() { renderResult(); renderFlow(); renderKata(); renderRoster(
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
 // 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
-// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
+// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用・運営用で同じ。どれかを直したら、ほかも直す）
 async function getApi(u) {
   for (let i = 0; ; i++) {
     const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), 15000) : 0;
@@ -991,6 +876,7 @@ async function load() {
   if (!c || !KAI_RE.test(String(c.kai || '')) || (c.mode !== 3 && c.mode !== 4) || (!miteiOf(c) && !Number.isInteger(c.players))) { setup('大会設定（taikai.json）の書き方が違います。'); return; }
   CFG = c;
   MODE = c.mode; OKA = Number.isInteger(c.start) && Number.isInteger(c.return) ? (c.return - c.start) * c.mode / 100 : 0;
+  KYOKU = kyokuOf(MODE); ORAS = KYOKU.length - 1;
   applyTheme(c);
   pageLinks(c);
   saveShell(c);

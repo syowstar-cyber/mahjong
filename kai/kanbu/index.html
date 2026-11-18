@@ -56,27 +56,15 @@ details.card>summary{cursor:pointer;font-weight:700}
 details.card[open]>summary{margin-bottom:8px}
 #utbl th:first-child,#utbl td:first-child{width:auto}
 #utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
-/* 決勝最終実況の入口（対戦表の9章を、運営の入力つきで開く） */
-.go{display:inline-block;margin:10px 0 8px;padding:10px 16px;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-weight:700;text-decoration:none}
-/* 当日の操作（taikai.json の tojitsu が true の会。受け口へ送る） */
+/* 出席確認（人数未定の間）の名前を足す・消す欄（当日の操作は 2026-11-19 に運営用ページへ移した） */
 .op{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:8px 0}
 .op label{font-weight:700;min-width:5.5em}
 .op select,.op input{font-size:1.05rem;padding:7px 10px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);max-width:100%}
-.op input{width:6.2em;letter-spacing:.12em;font-family:ui-monospace,Menlo,Consolas,monospace}
 .act{background:var(--accent);color:var(--accent-fg);padding:9px 16px}
 .act:disabled,.ghost:disabled,.op input:disabled{opacity:.5;cursor:default}
-/* 半荘の確定の1行。左に半荘の名前と状態（2段）、右にボタン */
-.lk{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 10px;padding:8px 6px;border-bottom:1px solid var(--line)}
-.lk:last-child{border-bottom:0}
-.lk .nm{font-weight:700}
-.lk .st{grid-column:1;color:var(--muted);font-size:.95rem}
-.lk button{grid-column:2;grid-row:1 / span 2;padding:7px 12px;font-size:.95rem}
-.lk.on{background:var(--ok-bg)}
-.lk.on .st{color:var(--ok);font-weight:700}
-.sl{margin:4px 0 8px;padding-left:1.3em;font-size:.95rem}
-/* 出席確認（人数未定の間）。名前が多いので、広い画面では2〜3列にする。名前の欄は、くじの番号の欄の形にしない */
+/* 出席確認（人数未定の間）。名前が多いので、広い画面では2〜3列にする */
 #sklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(13em,1fr));column-gap:14px}
-.op input.name{width:11em;letter-spacing:normal;font-family:inherit}
+.op input.name{width:11em}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
@@ -145,48 +133,6 @@ details.card[open]>summary{margin-bottom:8px}
   <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を伝えます。push してから1〜2分でページに出ます。</p>
   </div>
 
-  <div id="opsbox" hidden>
-  <h2>当日の操作</h2>
-  <p class="hint" id="opsnote" hidden></p>
-  <div id="kujibox" hidden>
-  <h3>くじの番号</h3>
-  <div class="card">
-    <div class="big" id="kujinow"></div>
-    <p class="small" id="kujiwhen" style="margin:0"></p>
-    <div class="op">
-      <label for="kn4">当せん番号</label>
-      <input type="text" id="kn4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="例 0482">
-      <button class="act" type="button" id="kgo">入れる</button>
-      <button class="ghost" type="button" id="kdel" hidden>取り消す</button>
-    </div>
-    <p class="small" id="kujihelp" style="margin:0"></p>
-    <p class="small" style="margin:0">当せん番号の確かめ先: <a href="https://www.takarakuji-official.jp/check/" target="_blank" rel="noopener">宝くじ公式サイト 当せん番号のご案内</a></p>
-    <div id="kmsg" class="msg" aria-live="polite"></div>
-  </div>
-  </div>
-  <div id="shiftbox" hidden>
-  <h3>時刻をずらす</h3>
-  <div class="card">
-    <div class="op"><label for="sfrom">どの行から</label><select id="sfrom"></select></div>
-    <div class="op"><label for="smin">何分</label><select id="smin"></select><button class="act" type="button" id="sgo">ずらす</button></div>
-    <div id="slist"></div>
-    <button class="ghost" type="button" id="sreset" hidden>ずらしを全部消して元の時刻に戻す</button>
-    <p class="small" style="margin-bottom:0">選んだ行から後の時刻を、全部同じだけずらします。何度でも重ねられます。下の時間割にも出ます。</p>
-    <div id="smsg" class="msg" aria-live="polite"></div>
-  </div>
-  </div>
-  <div id="lockbox" hidden>
-  <h3>半荘の確定</h3>
-  <div class="card">
-    <div id="locks"></div>
-    <p class="small" style="margin-bottom:0">確定した半荘は、点数入力のページから入れ直せなくなります。間違いが見つかったら「確定を外す」で戻せます。</p>
-    <div id="lmsg" class="msg" aria-live="polite"></div>
-  </div>
-  </div>
-  <div class="tools"><button class="ghost" type="button" id="oreload">受け口を読み直す</button></div>
-  <p class="small">ここで入れたものは受け口に入り、幹部のどの端末にも出ます。</p>
-  </div>
-
   <div id="uchibox" hidden>
   <h2>打ち上げ</h2>
   <div class="big" id="ucount"></div>
@@ -206,15 +152,6 @@ details.card[open]>summary{margin-bottom:8px}
     <p class="hint" id="schedmemo" hidden></p>
   </details>
 
-  <div id="jikkyobox" hidden>
-  <h2>決勝最終実況</h2>
-  <div class="card">
-    <p style="margin:0">決勝の最後の半荘は、運営の1人が局ごとに点棒を入れます。対戦表の9章で、見ている人に総合の順位と優勝に要るアガリが出ます。</p>
-    <a class="go" id="jikkyolink" href="../kuji/?unei=1#live">実況を入れる（対戦表の9章）</a>
-    <p class="small" id="jikkyonote" style="margin:0"></p>
-  </div>
-  </div>
-
   <h2>この回の設定</h2>
   <div class="tw"><table id="cfg"></table></div>
   </div>
@@ -225,8 +162,9 @@ details.card[open]>summary{margin-bottom:8px}
 // 普段の回の幹部用ページ。会ごとの taikai.json（大会設定）から準備（junbi）・時間割（schedule）と設定を出し、受け口からは名前（名簿）・年上からの順（agerank）・打ち上げの回答（uchiage）を読む。
 // 出席のチェックはこの端末の中（localStorage）にだけ置く＝ほかの幹部の端末とは共有しない。
 // ただし人数未定の間の出席確認（これまでの参加者に、参加する人のチェックを付ける）は、受け口の出欠用の回（<回>-s）に置いて共有する（2026-11-17）。
-// 送るのは生年月日（taikai.json の nenrei が true の会。予選の合計が同点のときだけ、その人たちの分を入れる）と、
-// 当日の操作（tojitsu が true の会。時刻ずらし・半荘の確定・くじの番号。当日に push しなくて済むように。2026-11-15）
+// 送るのは生年月日（taikai.json の nenrei が true の会。予選の合計が同点のときだけ、その人たちの分を入れる）と、人数未定の間の出席確認。
+// 当日の操作（時刻ずらし・半荘の確定・くじの番号）と決勝最終実況の入力は、運営の1人だけが使う運営用ページ（kai/unei/）に移した（2026-11-19 主催）。
+// このページから運営用ページへのボタンは置かない（運営用ページは URL を直に開く）
 const $ = id => document.getElementById(id);
 const KAI_RE = /^[0-9A-Za-z-]{1,24}$/;
 const T_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
@@ -241,29 +179,18 @@ let CFG = null, ROSTER = {}, HERE = new Set(), API = '';
 // 年上からの順（受け口の agerank。生年月日を入れた人どうし。1 が最年長）。BIRTH_OK は受け口が生年月日を受け付けるか（古い受け口は agerank を返さない）
 let AGERANK = {}, BIRTH_OK = false;
 const BDRAFT = {};   // 打ちかけの生年月日（表を作り直しても消さない）
-// 当日の操作（taikai.json の tojitsu が true の会）。受け口の時刻ずらし（shift）・確定（locked）・くじの番号（kuji）と、点数（rounds。入った卓の数を見るだけ）。
-// OPS_ST は受け口から読めたか（ok・old＝受け口が古い・net＝通信）
+// 受け口の時刻ずらし（shift。運営用ページで入れる）。taikai.json の tojitsu が true の会だけ、時間割に足す
 const tojitsu = () => !!(CFG && CFG.tojitsu === true);
-let SHIFT = [], GLOCK = [], KUJI = null, ROUNDS = {}, OPS_ST = 'old';
+let SHIFT = [];
 const fmt = n => Number(n).toLocaleString('ja-JP');
 const dnf = p => p + (ROSTER[p] ? ' ' + ROSTER[p] : '');
 const mins = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 const hhmm = m => { m = Math.max(0, Math.min(1439, m)); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
-const nowText = () => { const d = new Date(); return today() + ' ' + hhmm(d.getHours() * 60 + d.getMinutes()); };
 // 当日の時刻ずらしを足した時刻。from は大会設定の時刻と比べる（ずらした後の時刻ではない）。ずらしの無い行は、書いたままの形で返す。
 // 時間割を出すページは、どれも同じ計算にする（どれかを直したら、ほかも直す）
 const shiftMin = t => tojitsu() ? SHIFT.reduce((a, s) => a + (mins(t) >= mins(s.from) ? s.min : 0), 0) : 0;
 const shiftedT = t => { const d = shiftMin(t); return d ? hhmm(mins(t) + d) : String(t); };
-const WDAY = ['日', '月', '火', '水', '木', '金', '土'];
-// 「12月18日（金）」。受け口の時刻（"2026-12-18 18:47:05"）は「12月18日 18:47」（対戦表の mdText・madeText と同じ）
-function mdText(s) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
-  if (!m) return '';
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return Number(m[2]) + '月' + Number(m[3]) + '日（' + WDAY[d.getDay()] + '）';
-}
-const madeText = s => { const m = /^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(s || ''); return m ? Number(m[1]) + '月' + Number(m[2]) + '日 ' + m[3] : String(s || ''); };
 function applyTheme(c) {
   if (!/^#[0-9a-fA-F]{6}$/.test(c.color || '')) return;
   document.documentElement.style.setProperty('--accent', c.color);
@@ -294,7 +221,7 @@ const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endNow = () => END || (!GOT && endSeen());
 // 大会設定の locked に全部の半荘が入ったか（トップページ・点数入力の allFixed と同じ。どれかを直したら、ほかも直す）。
-// 受け口の確定（当日の操作で付ける）は数えない（数えると、全部確定した後に幹部用ページが開けず、確定を外せなくなる）
+// 受け口の確定（運営用ページで付ける）は数えない（数えると、全部確定した後に運営用ページが開けず、確定を外せなくなる。運営用ページも同じ計算）
 const allFixed = c => {
   const f = c.final || {}, ls = (c.locked || []).map(String);
   const rs = Array.from({ length: Number(c.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []);
@@ -313,8 +240,13 @@ function readShell() {
 }
 function setTitle(t) { document.title = t + ' 幹部用'; $('ttl').textContent = '🀄 ' + t + ' 幹部用'; }
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
+// 送った結果の知らせ（出席確認の欄）。受け口に断られたときの言い方
+function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
+const opErr = e => e.message === 'action' ? '受け口が古いため、受け付けませんでした。受け口を新しいバージョンでデプロイしてください'
+  : e.message === 'busy' ? '受け口が混み合っています。少し待って、もう一度押してください'
+  : '送れませんでした。通信を確かめて、もう一度押してください';
 
-// ---- 時間割（taikai.json の schedule＝[["10:45","集合・受付"], …]）。開催日の当日は、いまの行に色をつける。当日の操作で時刻をずらしたら、ずらした後の時刻で出す ----
+// ---- 時間割（taikai.json の schedule＝[["10:45","集合・受付"], …]）。開催日の当日は、いまの行に色をつける。運営用ページで時刻をずらしたら、ずらした後の時刻で出す ----
 const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
 function renderSched() {
   const t = $('sched'); t.innerHTML = '';
@@ -595,195 +527,6 @@ function renderUchi() {
   t.appendChild(tb);
 }
 
-// ---- 決勝最終実況の入口 ----
-// 対戦表の9章の運営の入力は、ここから開いたとき（?unei=1）だけ出る。出す会は kuji/index.html の liveOn と同じ条件（どちらかを直したら、もう片方も直す）で、くじの会
-const liveOn = c => !!(c.jikkyo === true && c.mode === 3 && c.final && c.final.tables === 1 && Number.isInteger(c.final.hanchan) && c.final.hanchan >= 2
-  && Number.isInteger(c.start) && Number.isInteger(c.return) && Number.isInteger(c.prelim) && !!c.uma && typeof c.uma === 'object') && /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '');
-function renderJikkyo() {
-  // 結果が出たら出さない（実況は終わっていて、入れる先の対戦表のボタンも出さない。2026-11-14 主催「対戦表を消して」）
-  const c = CFG, on = liveOn(c) && !endNow();
-  $('jikkyobox').hidden = !on;
-  if (!on) return;
-  $('jikkyolink').setAttribute('href', '../kuji/?' + (G !== 'halu' ? 'g=' + encodeURIComponent(G) + '&' : '') + 'unei=1#live');
-  const h = c.final.hanchan;
-  $('jikkyonote').textContent = '入れる欄は、このボタンから開いたときだけ出ます（参加者の画面には出ません）。' + (h === 2 ? '決勝1半荘目' : '決勝' + (h - 1) + '半荘目まで') + 'の点数が入ると、入れられます。入れるのは1人だけです。';
-}
-
-// ---- 当日の操作（taikai.json の tojitsu が true の会。2026-11-15 第21回の準備） ----
-// 当日の push を無くすため、時刻ずらし・半荘の確定・くじの番号を、このページから受け口へ送る。tojitsu の無い会には出さない（今までどおり）。
-// 受け口が古い（shift・locked・kuji を返さない）ときは、欄を出さずに知らせだけ出す。送った後は、返事の data（断られたときも付く）で欄を新しくする
-const opsOk = d => !!d && Array.isArray(d.shift) && Array.isArray(d.locked) && 'kuji' in d;
-function takeOps(d) {
-  if (!opsOk(d)) return false;
-  SHIFT = d.shift.filter(x => x && T_RE.test(String(x.from)) && Number.isInteger(x.min));
-  GLOCK = d.locked.map(String);
-  KUJI = d.kuji && typeof d.kuji === 'object' ? d.kuji : null;
-  if (d.rounds && typeof d.rounds === 'object') ROUNDS = d.rounds;
-  return true;
-}
-function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
-async function sendOp(body) {
-  const r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ kai: CFG.kai }, body)) });
-  const j = await r.json();
-  if (j && j.data && j.data.kai === CFG.kai && takeOps(j.data)) OPS_ST = 'ok';
-  if (!j || !j.ok) throw new Error((j && j.error) || 'ng');
-  return j;
-}
-const opErr = e => e.message === 'action' ? '受け口が古いため、受け付けませんでした。受け口を新しいバージョンでデプロイしてください'
-  : e.message === 'busy' ? '受け口が混み合っています。少し待って、もう一度押してください'
-  : '送れませんでした。通信を確かめて、もう一度押してください';
-function renderOps() {
-  const on = tojitsu();
-  $('opsbox').hidden = !on;
-  if (!on) return;
-  const ok = !!API && OPS_ST === 'ok';
-  $('opsnote').hidden = ok;
-  $('opsnote').textContent = !API ? '受け口が未設定のため、当日の操作は使えません。'
-    : OPS_ST === 'net' ? '受け口を読めませんでした（通信）。少し待ってから「受け口を読み直す」を押してください。'
-    : '受け口が古いため、当日の操作は使えません。受け口を新しいバージョンでデプロイすると使えます。';
-  renderKuji(ok); renderShift(ok); renderLocks(ok);
-}
-
-// くじの番号（taikai.json の kuji＝抽せんの日がある会）。ナンバーズ4の当せん番号を、抽せんの日の18:00から入れる（受け口も、それより前は断る）。
-// 点数が1つでも入ったら、番号は変えない（組み合わせが変わってしまうため）。番号の形は、対戦表の normN4 と同じにそろえる
-const KUJI_CUT = '18:00';
-const normN4 = s => { s = String(s).normalize('NFKC').replace(/\s/g, ''); return /^\d{4}$/.test(s) ? s : null; };
-const tablesIn = r => ROUNDS[r] && typeof ROUNDS[r] === 'object' ? Object.keys(ROUNDS[r]).length : 0;
-const anyScore = () => Object.keys(ROUNDS).some(r => tablesIn(r) > 0);
-function renderKuji(ok) {
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(CFG.kuji || '') ? CFG.kuji : '';
-  $('kujibox').hidden = !ok || !d;
-  if (!ok || !d) return;
-  const k = KUJI && KUJI.date === d ? KUJI : null, cur = k && /^\d{4}$/.test(String(k.n4 || '')) ? k : null;
-  const log = k && Array.isArray(k.log) ? k.log.filter(x => x && x.date === d) : [];
-  const early = nowText() < d + ' ' + KUJI_CUT, played = anyScore(), can = !early && !played;
-  $('kujinow').textContent = cur ? '入った番号 ' + cur.n4 : 'まだ入っていません';
-  $('kujiwhen').textContent = mdText(d) + 'のナンバーズ4の当せん番号で、組み合わせを決めます。' + (cur ? madeText(cur.ts) + 'に入れました。' : '')
-    + (log.length ? '前に入れた番号: ' + log.map(x => (x.n4 || 'なし') + '（' + madeText(x.ts) + '）').join('・') + '。' : '');
-  $('kn4').disabled = !can; $('kgo').disabled = !can;
-  $('kgo').textContent = cur ? '直す' : '入れる';
-  $('kdel').hidden = !cur || !can;
-  $('kujihelp').textContent = played ? '点数が入ったので、番号は変えられません（組み合わせが変わってしまうため）。'
-    : early ? mdText(d) + 'の' + Number(KUJI_CUT.slice(0, 2)) + '時から入れられます（抽せんは夕方です）。'
-    : cur ? '番号を間違えたときは、正しい番号を入れて「直す」を押します。前の番号は記録に残ります。'
-    : '抽せんの後に、当せん番号の4桁を入れて「入れる」を押します。入れると、トップ・点数入力・対戦表に組み合わせが出ます。';
-}
-async function sendKuji(clear) {
-  const d = CFG.kuji;
-  let n4 = '';
-  if (!clear) {
-    n4 = normN4($('kn4').value);
-    if (!n4) { say('kmsg', '当せん番号を4桁の数字で入れてください（例 0482）', false); return; }
-    if (!confirm(mdText(d) + 'のナンバーズ4の当せん番号を ' + n4 + ' で入れますか？\nこの番号で組み合わせが決まります。')) return;
-  } else if (!confirm('入れたくじの番号を取り消しますか？\n番号を入れ直すまで、組み合わせは出なくなります。')) return;
-  $('kgo').disabled = true; $('kdel').disabled = true;
-  let m = '', ok = false;
-  try { await sendOp({ action: 'kuji', date: d, n4 }); ok = true; m = clear ? 'くじの番号を取り消しました。' : 'くじの番号 ' + n4 + ' を入れました。'; if (!clear) $('kn4').value = ''; }
-  catch (e) {
-    m = e.message === 'early' ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前なので、受け口が受け付けませんでした'
-      : e.message === 'n4' ? '当せん番号を4桁の数字で入れてください'
-      : e.message === 'date' ? '大会設定の抽せんの日（kuji）の形が違います' : opErr(e);
-  }
-  $('kdel').disabled = false;
-  renderOps();
-  say('kmsg', m, ok);
-}
-
-// 時刻ずらし（taikai.json の schedule がある会）。選んだ行（大会設定の時刻）から後の時刻を、全部同じ分だけずらす。重ねて入れられ、全部消すと大会設定の時刻に戻る
-const SHIFT_MINS = [-30, -20, -15, -10, -5, 5, 10, 15, 20, 30];
-const rowLabel = from => { const r = schedRows().find(x => mins(x[0]) === mins(from)); return r ? r[0] + ' ' + r[1] : from; };
-function renderShift(ok) {
-  const s = schedRows();
-  $('shiftbox').hidden = !ok || !s.length;
-  if (!ok || !s.length) return;
-  // どの行から。送るのは大会設定の時刻、出すのはずらした後の時刻。前に選んだ行を残す。当日は、まだ来ていない最初の行を選んでおく
-  const sel = $('sfrom'), keep = sel.value, isToday = CFG.date === today(), dt = new Date(), now = dt.getHours() * 60 + dt.getMinutes();
-  let def = '';
-  sel.innerHTML = '';
-  s.forEach(r => {
-    const o = document.createElement('option'), e = shiftedT(r[0]);
-    o.value = hhmm(mins(r[0]));
-    o.textContent = e + ' ' + r[1] + (e !== r[0] ? '（元 ' + r[0] + '）' : '');
-    sel.appendChild(o);
-    if (!def && isToday && mins(e) > now) def = o.value;
-  });
-  const vals = [...sel.options].map(o => o.value);
-  sel.value = vals.includes(keep) ? keep : (def || vals[0]);
-  const ms = $('smin');
-  if (!ms.options.length) {
-    SHIFT_MINS.forEach(m => { const o = document.createElement('option'); o.value = String(m); o.textContent = m > 0 ? m + '分遅らせる' : (-m) + '分早める'; ms.appendChild(o); });
-    ms.value = '10';
-  }
-  const list = $('slist'); list.innerHTML = '';
-  if (SHIFT.length) {
-    const h = document.createElement('div'); h.className = 'small'; h.textContent = '入れたずらし（' + SHIFT.length + '件。古い順）';
-    const ul = document.createElement('ul'); ul.className = 'sl';
-    SHIFT.forEach(x => {
-      const li = document.createElement('li');
-      li.textContent = rowLabel(x.from) + ' から後を' + (x.min > 0 ? x.min + '分遅らせた' : (-x.min) + '分早めた') + (x.ts ? '（' + madeText(x.ts) + '）' : '');
-      ul.appendChild(li);
-    });
-    list.append(h, ul);
-  }
-  $('sreset').hidden = !SHIFT.length;
-}
-async function sendShift(reset) {
-  let body, done;
-  if (reset) {
-    if (!confirm('入れたずらしを全部消して、大会設定の時刻に戻しますか？')) return;
-    body = { action: 'shift', reset: true }; done = 'ずらしを全部消して、大会設定の時刻に戻しました。';
-  } else {
-    const from = $('sfrom').value, min = Number($('smin').value);
-    if (!/^\d{2}:\d{2}$/.test(from) || !Number.isInteger(min) || !min) { say('smsg', '行と分を選んでください', false); return; }
-    const how = min > 0 ? min + '分遅らせ' : (-min) + '分早め';
-    if (!confirm(rowLabel(from) + ' から後の時刻を、全部' + how + 'ますか？')) return;
-    body = { action: 'shift', from, min }; done = rowLabel(from) + ' から後を' + how + 'ました。';
-  }
-  $('sgo').disabled = true; $('sreset').disabled = true;
-  let m = '', ok = false;
-  try { await sendOp(body); ok = true; m = done; }
-  catch (e) { m = e.message === 'full' ? 'ずらしは20件までです。全部消してから、まとめて入れ直してください' : e.message === 'from' || e.message === 'min' ? '行か分の形が違います' : opErr(e); }
-  $('sgo').disabled = false; $('sreset').disabled = false;
-  renderOps(); renderSched();
-  say('smsg', m, ok);
-}
-
-// 半荘の確定。確定した半荘は、受け口が点数の送信と消去を断る（点数入力のページから入れ直せない）。大会設定の locked（push で入れる確定）は、ここでは外せない
-const roundsAll = () => { const f = CFG.final || {}; return Array.from({ length: Number(CFG.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []); };
-const roundName = r => r.charAt(0) === 'F' ? '決勝' + r.slice(1) + '半荘目' : '予選' + r + '半荘目';
-function renderLocks(ok) {
-  $('lockbox').hidden = !ok;
-  const box = $('locks'); box.innerHTML = '';
-  if (!ok) return;
-  const cl = (CFG.locked || []).map(String);
-  roundsAll().forEach(r => {
-    const inCfg = cl.includes(r), inG = GLOCK.includes(r);
-    const row = document.createElement('div'); row.className = 'lk' + (inCfg || inG ? ' on' : '');
-    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = roundName(r);
-    const st = document.createElement('span'); st.className = 'st';
-    st.textContent = (inCfg ? '確定（大会設定）' : inG ? '確定' : '未確定') + '・入った卓 ' + tablesIn(r);
-    row.append(nm, st);
-    if (!inCfg) {
-      const b = document.createElement('button'); b.type = 'button'; b.className = inG ? 'ghost' : 'act';
-      b.textContent = inG ? '確定を外す' : '確定する';
-      b.addEventListener('click', () => sendLock(r, !inG, b));
-      row.appendChild(b);
-    }
-    box.appendChild(row);
-  });
-}
-async function sendLock(r, on, btn) {
-  if (!confirm(on ? roundName(r) + 'を確定しますか？' + (tablesIn(r) ? '' : '\nまだ点数が1卓も入っていません。') + '\n確定すると、この半荘の点数は入れ直せなくなります（「確定を外す」で戻せます）。'
-    : roundName(r) + 'の確定を外しますか？\n点数入力のページから、また入れ直せるようになります。')) return;
-  btn.disabled = true;
-  let m = '', ok = false;
-  try { await sendOp({ action: 'lock', rounds: [r], on }); ok = true; m = roundName(r) + (on ? 'を確定しました。' : 'の確定を外しました。'); }
-  catch (e) { m = opErr(e); }
-  btn.disabled = false;
-  renderOps();
-  say('lmsg', m, ok);
-}
-
 // ---- この回の設定 ----
 function renderCfg() {
   const c = CFG, n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
@@ -857,12 +600,11 @@ async function load() {
         const u = j.data.uchiage;
         UCHI_ST = u && typeof u === 'object' && !Array.isArray(u) ? 'ok' : 'old'; UCHI = UCHI_ST === 'ok' ? u : {};
         END = resultDone(c, j.data.rounds); GOT = true; rememberEnd(END);
-        // 当日の操作の分（古い受け口は shift・locked・kuji を返さない）
-        ROUNDS = j.data.rounds && typeof j.data.rounds === 'object' ? j.data.rounds : {};
-        OPS_ST = takeOps(j.data) ? 'ok' : 'old';
+        // 時間割に足す時刻ずらし（運営用ページで入れる。古い受け口は shift を返さない）。読めなかった読み直しでは、前に読めた分のまま
+        SHIFT = Array.isArray(j.data.shift) ? j.data.shift.filter(x => x && T_RE.test(String(x.from)) && Number.isInteger(x.min)) : [];
       }
     }
-    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; if (OPS_ST !== 'ok') OPS_ST = 'net'; }
+    catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
   }
   // 読み直しで通信が切れたときは、前に読めたチェックのまま出す
   if (skp) {
@@ -876,7 +618,7 @@ async function load() {
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
-  renderJunbi(); renderSched(); renderS(); renderAttend(); renderOps(); renderUchi(); renderJikkyo(); renderCfg();
+  renderJunbi(); renderSched(); renderS(); renderAttend(); renderUchi(); renderCfg();
 }
 $('reload').addEventListener('click', load);
 $('skreload').addEventListener('click', load);
@@ -884,12 +626,6 @@ $('skadd').addEventListener('click', addS);
 $('skname').addEventListener('keydown', e => { if (e.key === 'Enter') addS(); });
 $('skdel').addEventListener('click', delS);
 $('ureload').addEventListener('click', load);
-$('oreload').addEventListener('click', load);
-$('kgo').addEventListener('click', () => sendKuji(false));
-$('kdel').addEventListener('click', () => sendKuji(true));
-$('kn4').addEventListener('keydown', e => { if (e.key === 'Enter') sendKuji(false); });
-$('sgo').addEventListener('click', () => sendShift(false));
-$('sreset').addEventListener('click', () => sendShift(true));
 $('clear').addEventListener('click', () => {
   if (!CFG || !confirm('出席のチェックを全部外しますか？')) return;
   HERE.clear(); saveHere(); renderAttend();
@@ -900,8 +636,8 @@ const SH = G_OK ? readShell() : null;
 // 点数入力のボタンは、前に結果を見た回なら「対戦結果」で出す（scoreLink）
 if (SH) { applyTheme(SH); pageLinks(SH); setTitle(SH.title); if (seenKai(SH.kai)) { document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(true); } }
 load();
-// 当日は、いまの行の色を1分ごとに動かす。くじの番号の欄も新しくする（抽せんの日の18:00で入れられるようになる）
-setInterval(() => { if (CFG) { renderSched(); if (tojitsu() && API && OPS_ST === 'ok') renderKuji(true); } }, 60000);
+// 当日は、いまの行の色を1分ごとに動かす
+setInterval(() => { if (CFG) renderSched(); }, 60000);
 </script>
 <a class="top" href="#" title="上へ">↑</a>
 </body>

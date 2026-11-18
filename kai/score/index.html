@@ -218,7 +218,7 @@ const endSeen = () => !!CFG && seenKai(CFG.kai);
 const rememberEnd = on => { try { if (on) localStorage.setItem(END_KEY, CFG.kai); else localStorage.removeItem(END_KEY); } catch (e) {} };
 const endView = () => resultDone() || (!LOADED && endSeen());
 const hideRuleLinks = () => { const end = endView(); if (end) document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(end); };
-// 大会設定の locked に全部の半荘が入ったか（トップページ・幹部用の allFixed と同じ。どれかを直したら、ほかも直す）。入った回は、このページを出さずにトップページ（結果）へ移る
+// 大会設定の locked に全部の半荘が入ったか（トップページ・幹部用・運営用の allFixed と同じ。どれかを直したら、ほかも直す）。入った回は、このページを出さずにトップページ（結果）へ移る
 const allFixed = c => {
   const f = c.final || {}, ls = (c.locked || []).map(String);
   const rs = Array.from({ length: Number(c.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []);
@@ -260,7 +260,7 @@ let CFG = null, KUMI = null, KATA = null, DATA = { rounds: {}, roster: {}, updat
 // 組み合わせ表（kumiawase.json）そのもの。KUMI は使う表（くじの会で表がなければ、型と受け口のくじの番号から作った表。applyKuji）
 let KUMI0 = null;
 let MODE = 4, TOTAL = 100000, OKA = 0, API = '', PRELIM = [], FINALS = [], LOCKED = [];
-// 受け口で確定した半荘（当日の操作で幹部用ページから付ける）。大会設定の locked と同じに扱う（allFixed には数えない）。古い受け口は返さないので空。render で入れる
+// 受け口で確定した半荘（運営用ページで付ける）。大会設定の locked と同じに扱う（allFixed には数えない）。古い受け口は返さないので空。render で入れる
 let GLOCK = [];
 // 点棒の欄や選ぶ欄を触ったら true。自動更新で入力中の欄を作り直さない（送信・取り消し・卓の切り替えで false）
 let EDITING = false;
@@ -308,7 +308,7 @@ const recOf = (r, t) => recsOf(r)[String(t)] || null;
 const pnum = p => Number(String(p).slice(1));
 
 // ---- くじの会の組み合わせを、型と受け口のくじの番号から作る（第21回から。抽せんの夜の push を無くす） ----
-// 抽せんの後、組み合わせ表（kumiawase.json）に表がまだなければ、型（kata.json）と、幹部用ページで受け口に入れた当せん番号（受け口の kuji）から表を作って使う。
+// 抽せんの後、組み合わせ表（kumiawase.json）に表がまだなければ、型（kata.json）と、運営用ページで受け口に入れた当せん番号（受け口の kuji）から表を作って使う。
 // 組み合わせ表に表があれば、そちらを使う（当日の組み直しは kumiawase.py が書く）。
 // 計算は対戦表ページの sha256hex・seedOf・kataOut・kataPresent・outSlots・draw・roundsOf と、kai/tools/kumiawase.py の lottery_rounds と同じ。
 // トップページの SHA_K・sha256hex・kataOk・kujiRounds・gasN4・n4Redone・kujiKumi・applyKuji とも同じ（どれかを直したら、ほかも直す）
@@ -960,7 +960,7 @@ $('qsend').addEventListener('click', async () => {
     if (!j.ok) {
       // 断られたときは、ほかの端末が先に送っている＝画面が古い。打ちかけの欄を捨てて、最新の状態を出し直す
       if (j.error === 'dup') { if (j.data) { EDITING = false; render(j.data); } say('qmsg', (j.players || []).map(dn).join('・') + ' は、この半荘のほかの卓にもう入っています。半荘と卓を確かめてください', false); return; }
-      // 幹部用ページで、この半荘が確定された後（画面が古い）。最新の状態を出し直す
+      // 運営用ページで、この半荘が確定された後（画面が古い）。最新の状態を出し直す
       if (j.error === 'locked') { if (j.data) { EDITING = false; render(j.data); } say('qmsg', LOCKED_TEXT, false); return; }
       say('qmsg', ERR[j.error] || '送信に失敗しました。少し待ってから、もう一度送ってください（送り直すと上書きされます）', false); return;
     }
@@ -1133,7 +1133,7 @@ function renderResults() {
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
 // 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
-// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
+// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用・運営用で同じ。どれかを直したら、ほかも直す）
 async function getApi(u) {
   for (let i = 0; ; i++) {
     const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), 15000) : 0;
@@ -1163,7 +1163,7 @@ async function load() {
   const errs = checkCfg(c);
   if (errs.length) { setup('大会設定（taikai.json）の書き方が違います: ' + errs.join('／')); $('main').hidden = true; return; }
   // 全部の半荘が確定した回は、トップページ（結果）へ移る（結果はトップの1ページにまとめた。2026-11-15 主催「1ページにまとめる」）。
-  // 本文を出さず、受け口も読まない。幹部用と同じ。locked を外すと、また出る
+  // 本文を出さず、受け口も読まない。幹部用・運営用と同じ。locked を外すと、また出る
   if (allFixed(c)) { location.replace('../' + (G === 'halu' ? '' : '?g=' + encodeURIComponent(G))); return; }
   // 人数未定の会は、報告の欄も集計も出さない（2026-11-17）。名前・色・切り替えボタンだけ大会設定に合わせる
   if (miteiOf(c)) { CFG = c; applyTheme(c); pageLinks(c); saveShell(c); setTitle(c.title); $('sub').textContent = ''; $('main').hidden = true; setup('人数がまだ決まっていません。点数入力は、人数と組み合わせが決まってから使えます。'); return; }

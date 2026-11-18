@@ -9,6 +9,7 @@
   "mode": 4,
   "prelim": 6,
   "final": { "tables": 1, "hanchan": 2, "junni": 1 },
+  "jikkyo": true,
   "bakime": true,
   "doten": "heikin",
   "tobi": true,
@@ -18,6 +19,7 @@
   "tables": [],
   "locked": [],
   "rule": "rule4.html",
+  "tensu": "tensu4.html",
   "tojitsu": true,
   "schedule": [
     ["11:45", "集合・受付・写真撮影"],

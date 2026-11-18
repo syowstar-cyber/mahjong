@@ -5,12 +5,12 @@
 くじ値 = SHA-256(種 + "|P" + 番号) の16進64桁（くじを引く人＝P1〜PN から、型で外した人を除いた全員）
 くじ値の小さい順に 枠1〜 を割り当て、型の枠を P番号に置き換える。型で外した人は、その後ろの枠（どの半荘もお休み）。
 
-第21回から: 幹部用ページで受け口に番号を入れれば、トップ・点数入力・対戦表が型と番号から表を作る（抽せんの夜に書かなくてよい）。
+第21回から: 運営用ページで受け口に番号を入れれば、トップ・点数入力・対戦表が型と番号から表を作る（抽せんの夜に書かなくてよい）。
 書くのは、当日に組み直す前（kumiawase.py の組み直しは kumiawase.json の番号を使う）と、終わった後に表を残すとき。
 
 使い方:
   python kai/tools/kuji.py 0482            … 計算して表示だけ（何も書かない）
-  python kai/tools/kuji.py                 … 受け口の番号（幹部用ページで入れたもの）で計算して表示だけ
+  python kai/tools/kuji.py                 … 受け口の番号（運営用ページで入れたもの）で計算して表示だけ
   python kai/tools/kuji.py --write         … 受け口の番号で kumiawase.json に書く（ほかの会は --group <会> を足す）
   python kai/tools/kuji.py 0482 --write    … 番号を渡して書く（受け口に番号があれば、同じ番号でないと書かない）
   python kai/tools/kuji.py --check         … kumiawase.json の本番の番号で計算し直し、型のとおりか確かめる
@@ -51,7 +51,7 @@ def check(cfg, kata, old):
 
 
 def gas_n4(cfg, kata):
-    """受け口のくじの番号（幹部用ページで入れたもの）。抽せんの日が型と同じ4桁だけ返す。まだ無ければ ""、読めなければ None"""
+    """受け口のくじの番号（運営用ページで入れたもの）。抽せんの日が型と同じ4桁だけ返す。まだ無ければ ""、読めなければ None"""
     api = str(cfg.get("api") or "").strip()
     if not api:
         return None
@@ -93,17 +93,17 @@ def main():
     if a.check:
         check(cfg, kata, old)
         return
-    # 受け口の番号（幹部用ページで入れたもの）。番号を渡さないときはそれを使い、渡して書くときは同じ番号か確かめる（打ち間違いで表を変えない）
+    # 受け口の番号（運営用ページで入れたもの）。番号を渡さないときはそれを使い、渡して書くときは同じ番号か確かめる（打ち間違いで表を変えない）
     g = gas_n4(cfg, kata) if a.write or not a.n4 else None
     if not a.n4:
         if g is None:
             raise SystemExit("受け口を読めないので、くじの番号が分からない（taikai.json の api と通信を確かめる）。番号を渡すときは kuji.py <番号>（使い方は -h）")
         if not g:
-            raise SystemExit("受け口にくじの番号がまだない（幹部用ページの「当日の操作」で入れる）。番号を渡すときは kuji.py <番号>")
+            raise SystemExit("受け口にくじの番号がまだない（運営用ページの「当日の操作」で入れる）。番号を渡すときは kuji.py <番号>")
         print("受け口の番号を使います:", g)
     n4 = K.norm_n4(a.n4 or g)
     if a.write and g and g != n4:
-        raise SystemExit(f"受け口のくじの番号（{g}）と違うので書きません。番号を確かめる（受け口の番号が違うときは、幹部用ページで直してから）")
+        raise SystemExit(f"受け口のくじの番号（{g}）と違うので書きません。番号を確かめる（受け口の番号が違うときは、運営用ページで直してから）")
     if a.write and g is None:
         print("※ 受け口の番号と比べられませんでした（受け口が未設定か、通信できない）。渡した番号で書きます")
     if kata["players"] > cfg["players"]:

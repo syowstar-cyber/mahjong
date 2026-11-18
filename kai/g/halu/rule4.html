@@ -17,6 +17,9 @@ header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:1
 header h1{font-size:1.35rem;margin:0;line-height:1.4}
 header .sub{color:var(--muted);font-size:.9rem}
 .lead{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.98rem}
+.other{background:var(--soft);border:2px solid var(--accent);border-radius:8px;padding:10px 12px;margin:12px 0}
+.other p{margin:4px 0}
+.other a{display:inline-block;margin-top:4px;padding:8px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--card);color:var(--accent);font-weight:700;text-decoration:none}
 h2{font-size:1.15rem;margin:34px 0 12px;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;position:sticky;top:0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 h3{font-size:1.08rem;margin:24px 0 8px;border-left:5px solid var(--accent);padding-left:10px}
 p{margin:8px 0}
@@ -96,6 +99,7 @@ details.ch[open]>summary{margin-bottom:12px}
     <div class="sub">草案（2026-11-18）。4人麻雀のルールです。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html" aria-current="page">ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <div class="other" id="other" hidden><p><b>このページは四麻のルールです。</b></p><p id="other-t"></p><p id="other-p"><a id="other-a" href="#">今の回のルールを開く</a></p></div>
   <section class="qbox" aria-label="ルールの質問">
     <form id="qf" autocomplete="off" role="search">
       <label for="qa">ルールの質問</label>
@@ -715,13 +719,31 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-// 会の色と題名。くじのボタンは、くじで決める会（kuji）だけ。早見表のボタンは、早見表のページ（tensu）がある会だけ（四麻の早見表はまだ無い。2026-11-18）
+// このページは四麻のルール（三麻は rule.html）。今の回が別の種類なら、回の題名も数字も入れず、一番上に今の回のルールへの案内を出す
+// （2026-11-18。三麻のページに第21回の四麻の題名と数字が入ったため、両方の種類のページで同じにした）。種類は大会設定の mode で見る。
+// 端末に覚えた分は mode を持たないので、ルールのページ名で見る（分からなければ 0＝大会設定を読むまで決めない）
+const KIND = 4, KIND_NAME = { 3: '三麻', 4: '四麻' }, TTL0 = $('ttl').textContent, DOC0 = document.title;
+const kindOf = c => Number.isInteger(c.mode) ? c.mode : c.rule === 'rule.html' ? 3 : c.rule === 'rule4.html' ? 4 : 0;
+// 会の色と題名（題名は同じ種類の回だけ。違えばページの元の題名に戻す）。くじのボタンは、くじで決める会（kuji）だけ。
+// 早見表のボタンは、同じ種類の回で早見表のページ（tensu）があるときだけ（四麻の早見表は tensu4.html。2026-11-18）
 function shell(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
-  if (c.title) { document.title = c.title + ' ルール'; $('ttl').textContent = '🀄 ' + c.title + ' ルール'; }
+  const k = kindOf(c), t = k === KIND && c.title ? c.title + ' ルール' : '';
+  document.title = t || DOC0;
+  $('ttl').textContent = t ? '🀄 ' + t : TTL0;
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
-  const t = /^[a-z0-9-]{1,30}\.html$/.test(c.tensu || '') ? c.tensu : '';
-  document.querySelectorAll('.pnav a.tensu').forEach(a => { a.hidden = !t; if (t) a.setAttribute('href', t); });
+  const ts = k === KIND && /^[a-z0-9-]{1,30}\.html$/.test(c.tensu || '') ? c.tensu : '';
+  document.querySelectorAll('.pnav a.tensu').forEach(a => { a.hidden = !ts; if (ts) a.setAttribute('href', ts); });
+  otherKind(c, k);
+}
+// 今の回が別の種類のときの案内（種類が分からないときは出さない）。リンクは今の回のルール
+function otherKind(c, k) {
+  const box = $('other'), r = /^[a-z0-9-]{1,30}\.html$/.test(c.rule || '') ? c.rule : '';
+  box.hidden = !KIND_NAME[k] || k === KIND;
+  if (box.hidden) return;
+  $('other-t').textContent = (c.title ? '今の回（' + c.title + '）' : '今の回') + 'は' + KIND_NAME[k] + 'です。このページには、今の回の持ち点や順位点を出していません。';
+  $('other-p').hidden = !r;
+  if (r) $('other-a').setAttribute('href', r);
 }
 const SH = G ? readShell() : null;
 if (SH) shell(SH);
@@ -737,6 +759,7 @@ fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.j
   if (!c) return;
   shell(c);
   if (G) saveShell(c);
+  if (kindOf(c) !== KIND) return;   // 今の回が別の種類なら、回ごとの数字は入れない（案内は shell が出す）
   hasNuke(c).then(v => { const s = $('q-nuke'); if (!v && s) s.remove(); });
   const n = c.final && c.final.tables > 0 ? c.final.tables * c.mode : 0;
   const junni = n > 0 && c.final.junni === 1;

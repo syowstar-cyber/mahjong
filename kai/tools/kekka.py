@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """普段の回の結果を、保管庫に残す形（Markdown）で出す。受け口の点数と会ごとの kai/g/<会>/taikai.json・kumiawase.json から、
 点数入力ページと同じ決まりで予選の集計と最終順位を計算する（決まりの正典は kai/README.md の「計算のきまり」）。
-くじの会で kumiawase.json に表がなければ、型（kata.json）と受け口のくじの番号（幹部用ページで入れたもの）から表を作る（ページと同じ。第21回から）。
+くじの会で kumiawase.json に表がなければ、型（kata.json）と受け口のくじの番号（運営用ページで入れたもの）から表を作る（ページと同じ。第21回から）。
 名前は受け口の名簿から読む＝出力には名前が入る。公開リポに置かず、保管庫へだけ書く。
 
 使い方:
@@ -245,7 +245,7 @@ def build(cfg, kumi, data):
 
 
 def kuji_kumi(cfg, kata_path, data):
-    """くじの会で kumiawase.json に表がないとき: 型（kata.json）と受け口のくじの番号（data の kuji。幹部用ページで入れる）から表を作る。
+    """くじの会で kumiawase.json に表がないとき: 型（kata.json）と受け口のくじの番号（data の kuji。運営用ページで入れる）から表を作る。
     ページの applyKuji と同じ（型の回と抽せんの日・番号の抽せんの日が合い、番号が4桁のときだけ）。作れなければ None"""
     q = data.get("kuji")
     if not isinstance(q, dict) or not kata_path.exists():

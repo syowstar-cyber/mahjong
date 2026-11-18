@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#7a1a1a">
+<title>四麻Halu杯 点数早見表</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1c1c1c;--muted:#4f4f4f;--line:#d6d6d2;--field:#8c8c86;--accent:#7a1a1a;--accent-fg:#ffffff;--card:#ffffff;--card2:#f1f1ee;--soft:#faf3e3;--focus:#1a56db}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:17px;line-height:1.8;-webkit-text-size-adjust:100%}
+a{color:var(--accent);text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 84px}
+header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:10px}
+header h1{font-size:1.35rem;margin:0;line-height:1.4}
+header .sub{color:var(--muted);font-size:.9rem}
+h2{font-size:1.15rem;margin:34px 0 12px;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;position:sticky;top:0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+h3{font-size:1.08rem;margin:24px 0 8px;border-left:5px solid var(--accent);padding-left:10px}
+p{margin:8px 0}
+.tw{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;background:var(--card);font-size:.98rem}
+th,td{border-bottom:1px solid var(--line);padding:10px 10px;text-align:left;vertical-align:middle;line-height:1.55}
+td + td, th + th, th + td{border-left:1px solid var(--line)}
+tr:nth-child(even) td{background:var(--card2)}
+th{background:#ececE8;white-space:nowrap;font-weight:700}
+ul{padding-left:1.5em;margin:8px 0}
+li{margin:5px 0}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:14px 0}
+nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.95rem;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;text-decoration:none}
+.top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
+.pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
+.note{font-size:.92rem;color:var(--muted)}
+.other{background:var(--soft);border:2px solid var(--accent);border-radius:8px;padding:10px 12px;margin:12px 0}
+.other p{margin:4px 0}
+.other a{display:inline-block;margin-top:4px;padding:8px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--card);color:var(--accent);font-weight:700;text-decoration:none}
+.ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
+.src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
+/* このページだけの部品 */
+table.how th,table.how td{text-align:center;white-space:nowrap}
+table.how td:first-child{text-align:left}
+table.sc th,table.sc td{text-align:center;white-space:nowrap;padding:7px 5px;line-height:1.35}
+table.sc th small,table.how th small{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+table.sc td b{display:block;font-size:1.05rem}
+table.sc td.na{color:var(--muted)}
+table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight:700}
+/* 点数の計算（ページの一番上）。アガリ・本場・翻・符の順。狭い画面は、アガリと本場を1行目に、翻と符を1行ずつ（選択肢の名前が長いため） */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+.calc{display:grid;grid-template-columns:1fr .8fr 1.4fr 1.3fr;gap:8px}
+.calc label{display:block;font-weight:700;margin:0 0 4px}
+.calc select{width:100%;padding:10px 8px;font-size:1.05rem;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
+.calc select:disabled{opacity:.45}
+.cres{margin-top:12px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font-size:1.05rem;line-height:1.8}
+.cres b{font-size:1.3rem;color:var(--accent)}
+@media (max-width:420px){.calc{grid-template-columns:1fr 1fr}.calc .chn,.calc .cfu{grid-column:1/-1}}
+</style>
+<script src="../../fresh.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="ttl">🀄 四麻Halu杯 点数早見表</h1>
+    <div class="sub">草案（2026-11-18）。4人麻雀の点数です。</div>
+  </header>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html">ルール</a><a href="tensu4.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <div class="other" id="other" hidden><p><b>このページは四麻の点数早見表です。</b></p><p id="other-t"></p><p id="other-p"><a id="other-a" href="#">今の回のルールを開く</a></p></div>
+  <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
+  <div class="card">
+    <div class="calc">
+      <div class="ck"><label for="ck">アガリ</label><select id="ck"><option value="kr">子のロン</option><option value="kt">子のツモ</option><option value="or">親のロン</option><option value="ot">親のツモ</option></select></div>
+      <div class="cb"><label for="cb">本場</label><select id="cb"></select></div>
+      <div class="chn"><label for="ch">翻</label><select id="ch"></select></div>
+      <div class="cfu"><label for="cf">符</label><select id="cf"></select></div>
+    </div>
+    <div id="cres" class="cres" aria-live="polite"></div>
+    <div class="note" id="cnote" style="margin-top:6px"></div>
+  </div>
+  <nav class="toc" id="toc"></nav>
+  <main id="content">
+
+<h2 id="t1">1. ツモの払い方</h2>
+<p>ツモは、残りの3人が払います。子のツモは、子2人が同じ点を払い、親は子より多く払います。親のツモは、子3人が同じ点を払います。</p>
+<div class="tw"><table class="how">
+<thead><tr><th>アガリ</th><th>ロンなら</th><th>ツモ<small>子が払う・親が払う</small></th></tr></thead>
+<tbody>
+<tr><td>子の満貫</td><td>8,000</td><td><b>2,000・4,000</b></td></tr>
+<tr><td>親の満貫</td><td>12,000</td><td><b>4,000オール</b></td></tr>
+<tr><td>子の30符1翻</td><td>1,000</td><td><b>300・500</b></td></tr>
+<tr><td>子の40符1翻</td><td>1,300</td><td><b>400・700</b></td></tr>
+</tbody></table></div>
+<h3>決まり</h3>
+<ul>
+<li>100点未満は、払う人ごとに100点に切り上げます。そのため、ツモの合計がロンより多くなることがあります。例: 子の30符1翻は、ロンが1,000点、ツモは合計1,100点です。</li>
+<li>平和ツモは20符です。平和のロンは30符で数えます。</li>
+<li>翻は、ドラも入れたふつうの数です。符の数え方は<a href="rule4.html#s9">ルールの9章</a>です。</li>
+</ul>
+<h3>表の見方</h3>
+<div class="ex">子のツモは、子が払う点と親が払う点の2つの欄です。<br>例: 子の30符1翻のツモ → 子2人が<b>300</b>点ずつ、親が<b>500</b>点（合計1,100点）</div>
+
+<h2 id="t2">2. 満貫から上</h2>
+<h3>子のアガリ</h3>
+<div class="tw"><table class="sc"><thead><tr><th></th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>満貫<small>5翻</small></th><td><b>8,000</b></td><td><b>2,000</b></td><td><b>4,000</b></td></tr>
+<tr><th>跳満<small>6〜7翻</small></th><td><b>12,000</b></td><td><b>3,000</b></td><td><b>6,000</b></td></tr>
+<tr><th>倍満<small>8〜10翻</small></th><td><b>16,000</b></td><td><b>4,000</b></td><td><b>8,000</b></td></tr>
+<tr><th>三倍満<small>11〜12翻</small></th><td><b>24,000</b></td><td><b>6,000</b></td><td><b>12,000</b></td></tr>
+<tr><th>役満<small>数え役満は13翻〜</small></th><td><b>32,000</b></td><td><b>8,000</b></td><td><b>16,000</b></td></tr>
+</tbody></table></div>
+<h3>親のアガリ</h3>
+<div class="tw"><table class="sc"><thead><tr><th></th><th>ロン</th><th>ツモ<small>子3人が同じ点</small></th></tr></thead><tbody>
+<tr><th>満貫<small>5翻</small></th><td><b>12,000</b></td><td><b>4,000</b></td></tr>
+<tr><th>跳満<small>6〜7翻</small></th><td><b>18,000</b></td><td><b>6,000</b></td></tr>
+<tr><th>倍満<small>8〜10翻</small></th><td><b>24,000</b></td><td><b>8,000</b></td></tr>
+<tr><th>三倍満<small>11〜12翻</small></th><td><b>36,000</b></td><td><b>12,000</b></td></tr>
+<tr><th>役満<small>数え役満は13翻〜</small></th><td><b>48,000</b></td><td><b>16,000</b></td></tr>
+</tbody></table></div>
+<ul>
+<li>4翻30符から上と、3翻60符から上も満貫です（切り上げ満貫）。</li>
+<li>役満の役がなくても、13翻以上は役満です（数え役満）。数え役満は、何翻でも役満1つ分です。</li>
+<li>ダブル役満は2倍、トリプル役満は3倍です。違う役満が重なった時だけです（<a href="rule4.html#s1">ルールの1章</a>）。</li>
+</ul>
+
+<h2 id="t3">3. 子のアガリ（満貫まで）</h2>
+<h3>1翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>30符</th><td><b>1,000</b></td><td><b>300</b></td><td><b>500</b></td></tr>
+<tr><th>40符</th><td><b>1,300</b></td><td><b>400</b></td><td><b>700</b></td></tr>
+<tr><th>50符</th><td><b>1,600</b></td><td><b>400</b></td><td><b>800</b></td></tr>
+<tr><th>60符</th><td><b>2,000</b></td><td><b>500</b></td><td><b>1,000</b></td></tr>
+<tr><th>70符</th><td><b>2,300</b></td><td><b>600</b></td><td><b>1,200</b></td></tr>
+<tr><th>80符</th><td><b>2,600</b></td><td><b>700</b></td><td><b>1,300</b></td></tr>
+<tr><th>90符</th><td><b>2,900</b></td><td><b>800</b></td><td><b>1,500</b></td></tr>
+<tr><th>100符</th><td><b>3,200</b></td><td><b>800</b></td><td><b>1,600</b></td></tr>
+</tbody></table></div>
+<h3>2翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>400</b></td><td><b>700</b></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>1,600</b></td><td class="na">―</td><td class="na">―</td></tr>
+<tr><th>30符</th><td><b>2,000</b></td><td><b>500</b></td><td><b>1,000</b></td></tr>
+<tr><th>40符</th><td><b>2,600</b></td><td><b>700</b></td><td><b>1,300</b></td></tr>
+<tr><th>50符</th><td><b>3,200</b></td><td><b>800</b></td><td><b>1,600</b></td></tr>
+<tr><th>60符</th><td><b>3,900</b></td><td><b>1,000</b></td><td><b>2,000</b></td></tr>
+<tr><th>70符</th><td><b>4,500</b></td><td><b>1,200</b></td><td><b>2,300</b></td></tr>
+<tr><th>80符</th><td><b>5,200</b></td><td><b>1,300</b></td><td><b>2,600</b></td></tr>
+<tr><th>90符</th><td><b>5,800</b></td><td><b>1,500</b></td><td><b>2,900</b></td></tr>
+<tr><th>100符</th><td><b>6,400</b></td><td><b>1,600</b></td><td><b>3,200</b></td></tr>
+<tr><th>110符</th><td><b>7,100</b></td><td><b>1,800</b></td><td><b>3,600</b></td></tr>
+</tbody></table></div>
+<h3>3翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>700</b></td><td><b>1,300</b></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>3,200</b></td><td><b>800</b></td><td><b>1,600</b></td></tr>
+<tr><th>30符</th><td><b>3,900</b></td><td><b>1,000</b></td><td><b>2,000</b></td></tr>
+<tr><th>40符</th><td><b>5,200</b></td><td><b>1,300</b></td><td><b>2,600</b></td></tr>
+<tr><th>50符</th><td><b>6,400</b></td><td><b>1,600</b></td><td><b>3,200</b></td></tr>
+<tr><th>60符〜</th><td class="man" colspan="3">満貫</td></tr>
+</tbody></table></div>
+<h3>4翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子が払う</small></th><th>ツモ<small>親が払う</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,300</b></td><td><b>2,600</b></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>6,400</b></td><td><b>1,600</b></td><td><b>3,200</b></td></tr>
+<tr><th>30符〜</th><td class="man" colspan="3">満貫</td></tr>
+</tbody></table></div>
+
+<h2 id="t4">4. 親のアガリ（満貫まで）</h2>
+<h3>1翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子3人が同じ点</small></th></tr></thead><tbody>
+<tr><th>30符</th><td><b>1,500</b></td><td><b>500</b></td></tr>
+<tr><th>40符</th><td><b>2,000</b></td><td><b>700</b></td></tr>
+<tr><th>50符</th><td><b>2,400</b></td><td><b>800</b></td></tr>
+<tr><th>60符</th><td><b>2,900</b></td><td><b>1,000</b></td></tr>
+<tr><th>70符</th><td><b>3,400</b></td><td><b>1,200</b></td></tr>
+<tr><th>80符</th><td><b>3,900</b></td><td><b>1,300</b></td></tr>
+<tr><th>90符</th><td><b>4,400</b></td><td><b>1,500</b></td></tr>
+<tr><th>100符</th><td><b>4,800</b></td><td><b>1,600</b></td></tr>
+</tbody></table></div>
+<h3>2翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子3人が同じ点</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>700</b></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>2,400</b></td><td class="na">―</td></tr>
+<tr><th>30符</th><td><b>2,900</b></td><td><b>1,000</b></td></tr>
+<tr><th>40符</th><td><b>3,900</b></td><td><b>1,300</b></td></tr>
+<tr><th>50符</th><td><b>4,800</b></td><td><b>1,600</b></td></tr>
+<tr><th>60符</th><td><b>5,800</b></td><td><b>2,000</b></td></tr>
+<tr><th>70符</th><td><b>6,800</b></td><td><b>2,300</b></td></tr>
+<tr><th>80符</th><td><b>7,700</b></td><td><b>2,600</b></td></tr>
+<tr><th>90符</th><td><b>8,700</b></td><td><b>2,900</b></td></tr>
+<tr><th>100符</th><td><b>9,600</b></td><td><b>3,200</b></td></tr>
+<tr><th>110符</th><td><b>10,600</b></td><td><b>3,600</b></td></tr>
+</tbody></table></div>
+<h3>3翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子3人が同じ点</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>1,300</b></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>4,800</b></td><td><b>1,600</b></td></tr>
+<tr><th>30符</th><td><b>5,800</b></td><td><b>2,000</b></td></tr>
+<tr><th>40符</th><td><b>7,700</b></td><td><b>2,600</b></td></tr>
+<tr><th>50符</th><td><b>9,600</b></td><td><b>3,200</b></td></tr>
+<tr><th>60符〜</th><td class="man" colspan="2">満貫</td></tr>
+</tbody></table></div>
+<h3>4翻</h3>
+<div class="tw"><table class="sc"><thead><tr><th>符</th><th>ロン</th><th>ツモ<small>子3人が同じ点</small></th></tr></thead><tbody>
+<tr><th>20符<small>平和ツモ</small></th><td class="na">―</td><td><b>2,600</b></td></tr>
+<tr><th>25符<small>七対子</small></th><td><b>9,600</b></td><td><b>3,200</b></td></tr>
+<tr><th>30符〜</th><td class="man" colspan="2">満貫</td></tr>
+</tbody></table></div>
+
+<h2 id="t5">5. 本場と申告</h2>
+<ul>
+<li>本場1本につき、ロンは300点を足します。ツモは3人が100点ずつ足します。</li>
+<li>ダブロンは、アガった人それぞれにロンの点を払います。本場も、1本300点ずつ、アガった人それぞれに払います。場のリーチ棒は、アガった人で山分けします（<a href="rule4.html#s2">ルールの2章</a>）。</li>
+<li>子のツモは、子が払う点・親が払う点の順に言います。親のツモは「〇〇オール」と言います。本場があれば、足した点も言います。</li>
+</ul>
+<div class="ex">例（子の30符3翻ツモ）: 「1,000・2,000」。1本場なら「1,000・2,000 は 1,100・2,100」<br>例（親の30符3翻ツモ）: 「2,000オール」。1本場なら「2,000オール は 2,100オール」</div>
+
+<p class="src">点数は、ルールの10章の点数表と同じです。細かい解釈で迷ったときは、運営が判断します。</p>
+
+  </main>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html">ルール</a><a href="tensu4.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <a class="top" href="#" title="上へ">↑</a>
+</div>
+<script>
+// 普段の回（Halu杯・4麻）の点数早見表（3麻は tensu.html。2026-11-18）。点数は表に書き込み済み（rule4.html の10章の点数表と同じ）で、題名と色とくじの有無だけ同じフォルダの taikai.json から読む
+const $ = id => document.getElementById(id);
+// 「↑」は、下へ行ったときだけ出す（一番上では本文に重ねない）
+addEventListener('scroll', () => { const b = document.querySelector('.top'); if (b) b.classList.toggle('on', scrollY > innerHeight / 2); }, { passive: true });
+document.getElementById('content').querySelectorAll('h2').forEach(h => { const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; $('toc').appendChild(a); });
+const fmt = n => n.toLocaleString('ja-JP');
+
+// ---- 点数の計算（三麻の tensu.html と同じ形で、払い方と本場だけが四麻）。アガリ・符・翻から、誰からいくらもらうか ----
+// 子のツモは、子2人が基本点・親が基本点の2倍を払う。親のツモは、子3人が基本点の2倍を払う（どれも100点未満は切り上げ）。
+// 切り上げ満貫あり・数え役満あり（13翻からは役満の y1 を選ぶ）。下の表と同じ数になる
+const FU = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
+const HAN = [['1', '1翻'], ['2', '2翻'], ['3', '3翻'], ['4', '4翻'], ['5', '満貫（5翻）'], ['6', '跳満（6・7翻）'], ['8', '倍満（8〜10翻）'], ['11', '三倍満（11・12翻）'], ['y1', '役満（数え役満の13翻〜も）'], ['y2', 'ダブル役満'], ['y3', 'トリプル役満']];
+const up100 = v => Math.ceil(v / 100) * 100;
+// 基本点（符×2の(翻+2)乗）。満貫から上は決まった数
+function basePts(fu, han) {
+  if (han === 'y1') return 8000;
+  if (han === 'y2') return 16000;
+  if (han === 'y3') return 24000;
+  const h = Number(han);
+  if (h >= 11) return 6000;
+  if (h >= 8) return 4000;
+  if (h >= 6) return 3000;
+  if (h >= 5) return 2000;
+  const b = fu * Math.pow(2, h + 2);
+  return b >= 1920 ? 2000 : b;   // 30符4翻・60符3翻は切り上げ満貫
+}
+const handName = b => ({ 2000: '満貫', 3000: '跳満', 4000: '倍満', 6000: '三倍満', 8000: '役満', 16000: 'ダブル役満', 24000: 'トリプル役満' })[b] || '';
+// 符の選択肢。平和ツモの20符はツモのときだけ出す（ロンに切り替えて20符が消えたら30符にする）
+function fillFu() {
+  const sel = $('cf'), tsumo = $('ck').value[1] === 't', was = sel.value;
+  sel.innerHTML = '';
+  FU.filter(f => tsumo || f !== 20).forEach(f => sel.appendChild(new Option(f + '符' + (f === 20 ? '（平和ツモ）' : f === 25 ? '（七対子）' : ''), String(f))));
+  sel.value = [...sel.options].some(o => o.value === was) ? was : '30';
+}
+// ない組み合わせ（20符は平和ツモだけで2翻から。25符は七対子だけで2翻から。七対子のツモは3翻から。1翻は100符まで＝表と同じ）。満貫から上は符を見ない
+function noHand(kind, fu, han) {
+  const h = Number(han), tsumo = kind[1] === 't';
+  if (!(h <= 4)) return '';
+  if (fu === 20 && h < 2) return '20符は平和ツモだけで、2翻からです。';
+  if (fu === 110 && h < 2) return '1翻は100符までです。';
+  if (fu === 25 && h < 2) return '25符は七対子だけで、2翻からです。';
+  if (fu === 25 && tsumo && h < 3) return '七対子のツモは、3翻からです。';
+  return '';
+}
+// 誰からいくら。[{who, v, n}]＝n 人から v 点ずつ（kind: kr 子のロン・kt 子のツモ・or 親のロン・ot 親のツモ）
+function payOf(kind, b) {
+  if (kind === 'kr') return [{ who: '放銃した人', v: up100(b * 4), n: 1 }];
+  if (kind === 'or') return [{ who: '放銃した人', v: up100(b * 6), n: 1 }];
+  if (kind === 'kt') return [{ who: '子', v: up100(b), n: 2 }, { who: '親', v: up100(b * 2), n: 1 }];
+  return [{ who: '子', v: up100(b * 2), n: 3 }];
+}
+// 本場は、ロンは1本300点、ツモは払う3人が1本100点ずつ（payOf の点に足すだけ。rule4.html の1章・10章と同じ）
+function calc() {
+  const kind = $('ck').value, fu = Number($('cf').value), han = $('ch').value, hb = Number($('cb').value) || 0, big = !(Number(han) <= 4);
+  $('cf').disabled = big;
+  const box = $('cres'); box.innerHTML = '';
+  const ng = noHand(kind, fu, han);
+  $('cnote').textContent = '';
+  if (ng) { box.textContent = ng; return; }
+  const add = hb * (kind[1] === 't' ? 100 : 300);
+  const b = basePts(fu, han), pays = payOf(kind, b), total = pays.reduce((a, x) => a + (x.v + add) * x.n, 0);
+  const head = document.createElement('div');
+  head.textContent = (kind[0] === 'k' ? '子' : '親') + 'の' + (kind[1] === 't' ? 'ツモ' : 'ロン') + '　' + (big ? '' : fu + '符' + han + '翻　') + (handName(b) ? handName(b) + '　' : '') + (hb ? hb + '本場　' : '') + '合計 ' + fmt(total) + '点';
+  box.appendChild(head);
+  pays.forEach(x => {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(x.who + (x.n > 1 ? x.n + '人' : '') + 'から '));
+    const v = document.createElement('b'); v.textContent = fmt(x.v + add) + '点'; d.appendChild(v);
+    if (x.n > 1) d.appendChild(document.createTextNode(' ずつ'));
+    if (add) d.appendChild(document.createTextNode('（本場の' + fmt(add) + '点を含む）'));
+    box.appendChild(d);
+  });
+  $('cnote').textContent = (big ? '満貫から上は、符を見ません。' : '') + (kind === 'kt' ? '子のツモは、親が子より多く払います（100点未満は切り上げ）。' : kind === 'ot' ? '親のツモは、子3人が同じ点です（100点未満は切り上げ）。' : '') + '本場は、ロン1本300点、ツモは1人100点です。';
+}
+fillFu();
+HAN.forEach(([v, t]) => $('ch').appendChild(new Option(t, v)));
+for (let i = 0; i <= 10; i++) $('cb').appendChild(new Option(i + '本場', String(i)));
+$('cf').value = '30'; $('ch').value = '1'; $('cb').value = '0';
+$('ck').addEventListener('change', () => { fillFu(); calc(); });
+['cf', 'ch', 'cb'].forEach(id => $(id).addEventListener('change', calc));
+calc();
+
+// 前に読んだ大会設定のうち、名前・色・切り替えボタンの分（この端末に覚える。キーと形はトップページと同じで、会はこのページのフォルダ g/<会>/）。
+// 開いた瞬間に出して、大会設定を読んだら新しくする
+const G = (location.pathname.match(/\/g\/([a-z0-9-]{1,20})\/[^/]*$/) || [])[1] || '';
+const SHELL_KEY = 'halukai:shell:' + G, SHELL_F = ['title', 'color', 'short', 'group', 'rule', 'tensu', 'kuji', 'kai', 'date'];
+function saveShell(c) { try { localStorage.setItem(SHELL_KEY, JSON.stringify(Object.fromEntries(SHELL_F.map(k => [k, c[k]])))); } catch (e) {} }
+function readShell() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SHELL_KEY));
+    const o = s && typeof s === 'object' ? Object.fromEntries(SHELL_F.filter(k => typeof s[k] === 'string').map(k => [k, s[k]])) : {};
+    return o.title ? o : null;
+  } catch (e) { return null; }
+}
+// このページは四麻の点数早見表（三麻は tensu.html）。今の回が別の種類なら、回の題名を入れず、一番上に今の回の早見表（無ければルール）への案内を出す
+// （2026-11-18。三麻の早見表と同じ形）。種類は大会設定の mode で見る。
+// 端末に覚えた分は mode を持たないので、ルールのページ名で見る（分からなければ 0＝大会設定を読むまで決めない）
+const KIND = 4, KIND_NAME = { 3: '三麻', 4: '四麻' }, TTL0 = $('ttl').textContent, DOC0 = document.title;
+const kindOf = c => Number.isInteger(c.mode) ? c.mode : c.rule === 'rule.html' ? 3 : c.rule === 'rule4.html' ? 4 : 0;
+// 会の色と題名（題名は同じ種類の回だけ。違えばページの元の題名に戻す）。くじのボタンは、くじで決める会（kuji）だけ
+function shell(c) {
+  if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
+  const k = kindOf(c), t = k === KIND && c.title ? c.title + ' 点数早見表' : '';
+  document.title = t || DOC0;
+  $('ttl').textContent = t ? '🀄 ' + t : TTL0;
+  document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
+  otherKind(c, k);
+}
+// 今の回が別の種類のときの案内（種類が分からないときは出さない）。リンクは今の回の早見表、無ければ今の回のルール
+function otherKind(c, k) {
+  const pg = f => /^[a-z0-9-]{1,30}\.html$/.test(c[f] || '') ? c[f] : '';
+  const box = $('other'), ts = pg('tensu'), r = ts || pg('rule');
+  box.hidden = !KIND_NAME[k] || k === KIND;
+  if (box.hidden) return;
+  $('other-t').textContent = (c.title ? '今の回（' + c.title + '）' : '今の回') + 'は' + KIND_NAME[k] + 'です。この表の点数は、' + KIND_NAME[k] + 'とは違うところがあります。';
+  $('other-p').hidden = !r;
+  if (r) { $('other-a').setAttribute('href', r); $('other-a').textContent = ts ? '今の回の早見表を開く' : '今の回のルールを開く'; }
+}
+const SH = G ? readShell() : null;
+if (SH) shell(SH);
+fetch('taikai.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
+  if (!c) return;
+  shell(c);
+  if (G) saveShell(c);
+}).catch(() => {});
+</script>
+</body>
+</html>

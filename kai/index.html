@@ -250,7 +250,7 @@ let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
 let KATA = null, KUMI0 = null;
 // 決勝ラインの計算に使う（load() で大会設定から入れる。点数入力ページと同じ名前）。DATA_ST＝受け口を読めたか（wait＝はじめの読み込み中・ok・ng）
 let MODE = 4, TOTAL = 100000, OKA = 0, PRELIM = [], FINALS = [], LOCKED = [], AGERANK = {}, DATA_ST = 'wait';
-// 当日の操作（幹部用ページから受け口に入れる）。SHIFT＝時刻ずらし（taikai.json の tojitsu が true の会だけ時間割に足す）、GLOCK＝受け口で確定した半荘（大会設定の locked と同じに扱う。allFixed には数えない）。
+// 当日の操作（運営用ページから受け口に入れる）。SHIFT＝時刻ずらし（taikai.json の tojitsu が true の会だけ時間割に足す）、GLOCK＝受け口で確定した半荘（大会設定の locked と同じに扱う。allFixed には数えない）。
 // 古い受け口は返さない（空のまま）。useData で入れる
 let SHIFT = [], GLOCK = [];
 const nm = p => (p && ROSTER[p]) || '';
@@ -293,7 +293,7 @@ function today() { const d = new Date(); return d.getFullYear() + '-' + String(d
 const str = v => typeof v === 'string' ? v.trim() : '';
 const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
 // 当日の時刻ずらしを足した時刻。from は大会設定の時刻と比べる（ずらした後の時刻ではない）。ずらしの無い行は、書いたままの形で返す。
-// 幹部用の tojitsu・hhmm・shiftMin・shiftedT と同じ（どれかを直したら、ほかも直す）
+// 幹部用・運営用の tojitsu・hhmm・shiftMin・shiftedT と同じ（どれかを直したら、ほかも直す）
 const tojitsu = () => !!(CFG && CFG.tojitsu === true);
 const hhmm = m => { m = Math.max(0, Math.min(1439, m)); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 const shiftMin = t => tojitsu() ? SHIFT.reduce((a, s) => a + (mins(t) >= mins(s.from) ? s.min : 0), 0) : 0;
@@ -369,7 +369,7 @@ function render() {
   $('sub').textContent = [c.mode + '麻', '予選' + c.prelim + '半荘', c.final.tables > 0 ? '決勝' + (c.final.tables > 1 ? c.final.tables + '卓' : '') + (c.final.hanchan > 1 ? c.final.hanchan + '半荘' : '') : ''].filter(Boolean).join('・');
   // 組み直しの知らせ（前日の表を見ていた人が取り違えないように）。くじの会の抽せんの後は、1半荘目からの組み直しにも remade が付く
   const rm = $('remade');
-  // 型と受け口のくじの番号から作った表で、幹部用ページで番号を入れ直した後（redo）も知らせる
+  // 型と受け口のくじの番号から作った表で、運営用ページで番号を入れ直した後（redo）も知らせる
   rm.hidden = !(KUMI && (KUMI.from > 1 || KUMI.remade === true || KUMI.redo === true));
   if (!rm.hidden) rm.textContent = (KUMI.redo === true ? 'くじの番号を入れ直したので、組み合わせが変わりました' : (KUMI.from > 1 ? KUMI.from + '半荘目から' : '組み合わせを') + '組み直しました') + '（' + KUMI.made + '）。前の表を見ていた人は、自分の' + (bakime() ? '卓' : '席') + 'を確かめ直してください。';
   $('mineh').textContent = bakime() ? '自分の卓' : '自分の席';
@@ -516,7 +516,7 @@ const endView = () => resultDone() || (DATA_ST !== 'ok' && endSeen());
 // 確定した結果の写し（2026-11-15 主催「読み込まずにそのまま表示されるようにして」）。大会設定の locked に全部の半荘が入った回は、受け口の中身（名前と点数など、受け口が返すものそのまま）を
 // この端末に覚え、次に開いたときは受け口を待たずに出す（確定の後は点数が変わらないため）。受け口は後ろで読み直し、中身が変わっていたときだけ出し直して覚え直す。
 // 使うのは、大会設定を読んで同じ回で全部の半荘が確定しているときだけ（ほかの回の写しと、確定を外した回の写しは消す）。名前はファイルに置かない決まりのまま（覚えるのは見た人の端末の中だけ）。
-// 写しを使うのはトップだけ（全部の半荘が確定した回は、点数入力＝対戦結果と幹部用がトップへ移るため。2026-11-15 主催「1ページにまとめる」）。allFixed は点数入力と幹部用にもある。どれかを直したら、ほかも直す
+// 写しを使うのはトップだけ（全部の半荘が確定した回は、点数入力＝対戦結果と幹部用がトップへ移るため。2026-11-15 主催「1ページにまとめる」）。allFixed は点数入力・幹部用・運営用にもある。どれかを直したら、ほかも直す
 const FINAL_KEY = 'halukai:final:' + G;
 const allFixed = c => {
   const f = c.final || {}, ls = (c.locked || []).map(String);
@@ -961,7 +961,7 @@ $('udel').addEventListener('click', () => { if (confirm('打ち上げの回答�
 
 // ---- くじ（taikai.json の kuji＝抽せんの日。その日のナンバーズ4の当せん番号で、誰がどの枠に入るかを決める。kai/tools/kuji.py） ----
 // ---- くじの会の組み合わせを、型と受け口のくじの番号から作る（第21回から。抽せんの夜の push を無くす） ----
-// 抽せんの後、組み合わせ表（kumiawase.json）に表がまだなければ、型（kata.json）と、幹部用ページで受け口に入れた当せん番号（受け口の kuji）から表を作って出す。
+// 抽せんの後、組み合わせ表（kumiawase.json）に表がまだなければ、型（kata.json）と、運営用ページで受け口に入れた当せん番号（受け口の kuji）から表を作って出す。
 // 組み合わせ表に表があれば、そちらを出す（当日の組み直しは kumiawase.py が書く）。
 // 計算は対戦表ページの sha256hex・seedOf・kataOut・kataPresent・outSlots・draw・roundsOf と、kai/tools/kumiawase.py の lottery_rounds と同じ。
 // 点数入力ページの SHA_K・sha256hex・kataOk・kujiRounds・gasN4・n4Redone・kujiKumi・applyKuji とも同じ（どれかを直したら、ほかも直す）
@@ -1046,7 +1046,7 @@ function renderKuji() {
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
 // 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
-// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
+// （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用・運営用で同じ。どれかを直したら、ほかも直す）
 async function getApi(u) {
   for (let i = 0; ; i++) {
     const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), 15000) : 0;

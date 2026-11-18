@@ -35,6 +35,9 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 .note{font-size:.92rem;color:var(--muted)}
+.other{background:var(--soft);border:2px solid var(--accent);border-radius:8px;padding:10px 12px;margin:12px 0}
+.other p{margin:4px 0}
+.other a{display:inline-block;margin-top:4px;padding:8px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--card);color:var(--accent);font-weight:700;text-decoration:none}
 .ex{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.95rem}
 .src{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);margin-top:34px;padding-top:10px}
 /* このページだけの部品 */
@@ -64,6 +67,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
     <div class="sub">草案（2026-11-14）。3人麻雀・ツモ損なしの点数です。</div>
   </header>
   <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule.html">ルール</a><a href="tensu.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <div class="other" id="other" hidden><p><b>このページは三麻の点数早見表です。</b></p><p id="other-t"></p><p id="other-p"><a id="other-a" href="#">今の回のルールを開く</a></p></div>
   <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
   <div class="card">
     <div class="calc">
@@ -311,11 +315,29 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-// 会の色と題名。くじのボタンは、くじで決める会（kuji）だけ
+// このページは三麻の点数早見表（四麻の早見表はまだ無い）。今の回が別の種類なら、回の題名を入れず、一番上に今の回の早見表（無ければルール）への案内を出す
+// （2026-11-18。第21回の四麻で、このページに四麻の題名が入ったため）。種類は大会設定の mode で見る。
+// 端末に覚えた分は mode を持たないので、ルールのページ名で見る（分からなければ 0＝大会設定を読むまで決めない）
+const KIND = 3, KIND_NAME = { 3: '三麻', 4: '四麻' }, TTL0 = $('ttl').textContent, DOC0 = document.title;
+const kindOf = c => Number.isInteger(c.mode) ? c.mode : c.rule === 'rule.html' ? 3 : c.rule === 'rule4.html' ? 4 : 0;
+// 会の色と題名（題名は同じ種類の回だけ。違えばページの元の題名に戻す）。くじのボタンは、くじで決める会（kuji）だけ
 function shell(c) {
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
-  if (c.title) { document.title = c.title + ' 点数早見表'; $('ttl').textContent = '🀄 ' + c.title + ' 点数早見表'; }
+  const k = kindOf(c), t = k === KIND && c.title ? c.title + ' 点数早見表' : '';
+  document.title = t || DOC0;
+  $('ttl').textContent = t ? '🀄 ' + t : TTL0;
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
+  otherKind(c, k);
+}
+// 今の回が別の種類のときの案内（種類が分からないときは出さない）。リンクは今の回の早見表、無ければ今の回のルール
+function otherKind(c, k) {
+  const pg = f => /^[a-z0-9-]{1,30}\.html$/.test(c[f] || '') ? c[f] : '';
+  const box = $('other'), ts = pg('tensu'), r = ts || pg('rule');
+  box.hidden = !KIND_NAME[k] || k === KIND;
+  if (box.hidden) return;
+  $('other-t').textContent = (c.title ? '今の回（' + c.title + '）' : '今の回') + 'は' + KIND_NAME[k] + 'です。この表の点数は、' + KIND_NAME[k] + 'とは違うところがあります。';
+  $('other-p').hidden = !r;
+  if (r) { $('other-a').setAttribute('href', r); $('other-a').textContent = ts ? '今の回の早見表を開く' : '今の回のルールを開く'; }
 }
 const SH = G ? readShell() : null;
 if (SH) shell(SH);
