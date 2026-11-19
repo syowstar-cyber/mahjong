@@ -163,7 +163,7 @@ table.pre td.sum{font-weight:700}
     <div class="info" id="whenrow"><span class="k">日時</span><span class="v" id="when"></span></div>
     <div class="info" id="whererow"><span class="k">場所</span><span class="v" id="where"></span></div>
     <div class="info" id="ninrow"><span class="k">人数</span><span class="v" id="nin"></span></div>
-    <div class="info" id="shukrow" hidden><span class="k">出欠</span><span class="v">幹部に伝えてください。</span></div>
+    <div class="info" id="shukrow" hidden><span class="k">出席</span><span class="v" id="shuk"></span></div>
   </div>
   <h2 id="mineh">自分の席</h2>
   <div class="card" id="mecard">
@@ -387,8 +387,13 @@ function renderInfo() {
   if (!place) $('where').innerHTML = '<span class="w">未定</span><span class="w">（決まったら出します）</span>';
   // 人数。人数未定の会は「未定」（2026-11-17 主催「トップは人数未定で作成」）
   $('nin').innerHTML = mitei() ? '<span class="w">未定</span><span class="w">（出席が決まってから</span><span class="w">決めます）</span>' : CFG.players + '人';
-  // 出欠の伝え先。人数未定の間だけ出す（出席確認は、幹部が幹部用ページでチェックする）
+  // 出席の伝え先。人数未定の間だけ出す（出席確認は、幹部が幹部用ページでチェックする）。
+  // 大会設定の shusseki（伝え先の呼び名）があればその人、なければ「幹部」（2026-11-19 主催の指示で、設定から出す形にした）。
+  // 名前は textContent で入れる。狭い画面で折り返すときは、言葉の切れ目で折り返す（span.w）
   $('shukrow').hidden = !mitei();
+  const shuk = $('shuk');
+  shuk.textContent = '';
+  [(str(CFG.shusseki) || '幹部') + 'に', '伝えてください。'].forEach(t => { const e = document.createElement('span'); e.className = 'w'; e.textContent = t; shuk.appendChild(e); });
   // 結果が出たら出さない（2026-11-14 主催）。人数の行はいつもあるので、ほかの時は出す
   $('info').hidden = endView();
 }
