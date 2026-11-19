@@ -33,8 +33,12 @@ h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);paddi
 label{display:block;font-weight:700;margin:0 0 4px}
 select{width:100%;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
-.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem;min-height:44px}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。使いやすさの総点検の指摘18） */
+header h1 .w{display:inline-block}
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+/* 幅360px未満は、切り替えボタンを3つずつの段にそろえる（前は4つと1つの段になり、1つだけ横に長く伸びた）。2つだけのときは2つで1段を分ける（auto-fit）。点数入力・対戦表・ルール・早見表も同じ。幹部用はボタンが6つなので幅420px未満 */
+@media (max-width:359px){.pnav{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
@@ -50,6 +54,17 @@ td.me{background:var(--soft) !important;color:var(--accent);font-weight:700;box-
 #mine th:nth-child(2),#mine td:nth-child(2),#mine th:nth-child(3),#mine td:nth-child(3){width:3.4em}
 #mine.noseat th:nth-child(3),#mine.noseat td:nth-child(3){width:auto}
 #sched th:first-child,#sched td:first-child{width:4.2em;white-space:nowrap}
+/* 4麻の場決めの会の「全部の卓」（table.g4）。幅600px以下では、名前を2人ずつ2段に並べる（名前の列が4つで1列が3字分しかなく、4字の名前が1字だけ次の行へ落ちていたため。2026-11-19）。
+   表の並びは席でないので、2段にしても意味は変わらない。対戦表のページの table.g4 と同じ形（どちらかを直したら、もう片方も直す） */
+@media (max-width:600px){
+table.g4,table.g4 thead,table.g4 tbody{display:block}
+table.g4 tr{display:grid;grid-template-columns:3.6em minmax(0,1fr) minmax(0,1fr)}
+table.g4 th:first-child,table.g4 td:first-child{width:auto}
+table.g4 th:nth-child(2){grid-column:2/-1}
+table.g4 td:first-child{grid-row:1/span 2}
+table.g4 td:nth-child(2),table.g4 td:nth-child(3){border-bottom:0;padding-bottom:1px}
+table.g4 td:nth-child(n+4){padding-top:1px}
+}
 /* 卓ごとの結果（結果が出たら、組み合わせの欄の代わり）。名前の列を広く、数の列は右に寄せる */
 table.tres th,table.tres td{width:auto}
 table.tres .s{width:2.6em}
@@ -61,6 +76,12 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .next{background:var(--soft);border:2px solid var(--accent);border-radius:12px;padding:10px 14px;margin:10px 0}
 .next .lab{font-size:.95rem;font-weight:700;color:var(--muted)}
 .next .big{font-size:1.45rem;font-weight:700;color:var(--accent);line-height:1.45}
+/* 決勝最終実況への入口。決勝の最後の半荘の間だけ、ページの一番上に出す（2026-11-19 使いやすさの点検。前はトップに案内がなく、実況は対戦表の9章にしかなかった） */
+.livego{display:block;background:var(--accent);color:var(--accent-fg);border-radius:12px;padding:12px 16px;margin:10px 0;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.livego[hidden]{display:none}
+.livego .big{display:block;font-size:1.3rem;font-weight:700;line-height:1.45}
+.livego .sub{display:block;font-size:.95rem}
+.livego .w,.info .w{display:inline-block}
 #mine tr.past td{color:var(--muted)}
 /* 決勝ライン（自分の名前の目安）。段落の間を詰める */
 #line p{margin:8px 0}#line>p:first-child{margin-top:0}
@@ -73,9 +94,11 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .info{display:flex;gap:12px;align-items:baseline}
 .info[hidden]{display:none}
-.info:not([hidden])+.info{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.info:not([hidden])~.info{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
 .info .k{flex:0 0 auto;font-weight:700;color:var(--accent)}
 .info .v{flex:1;min-width:0}
+/* 「地図を開く」はボタンの形にする（前は住所の下の文字のリンクで、押せる高さが25px。使いやすさの総点検の指摘7） */
+.info a.map{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:var(--card2);color:var(--accent);font-weight:700;text-decoration:none}
 /* 打ち上げ（第20回の参加者ページ7章と同じ形） */
 .party .opt{display:flex;gap:10px;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0;font-weight:400;cursor:pointer}
 .party .opt input{width:24px;height:24px;margin:0;flex:0 0 auto;accent-color:var(--accent)}
@@ -87,8 +110,9 @@ tr.now td{background:var(--soft) !important;color:var(--accent);font-weight:700;
 .party .st.ng{color:var(--ng);font-weight:700}
 /* たたむ箱（点数入力ページと同じ形）。打ち上げは答えた後、全部の卓は名前を選んだ後にたたむ */
 details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
-summary{cursor:pointer;font-weight:700}
-details[open]>summary{margin-bottom:8px}
+/* たたむ箱の見出しは、箱の上下と左右の余白まで押せるようにする（高さ44px以上。見た目は前と同じ。使いやすさの総点検の指摘7） */
+summary{cursor:pointer;font-weight:700;margin:-8px -12px;padding:8px 12px}
+details[open]>summary{margin-bottom:0}
 #usum.ok{color:var(--ok)}#usum.ng{color:var(--ng)}
 /* 結果（決勝の最後の半荘の決勝の卓が入ったら、一番上に出す。2026-11-14 主催） */
 .result{border:2px solid var(--accent);background:var(--soft)}
@@ -129,6 +153,7 @@ table.pre td.sum{font-weight:700}
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
+  <a class="livego" id="livego" hidden></a>
   <div class="card result" id="result" hidden></div>
   <details id="tfold" hidden><summary>トータルの順位（参考）</summary><div id="tbox"></div></details>
   <details id="pfold" hidden><summary>予選の成績（半荘ごとのpt）</summary><div id="pbox"></div></details>
@@ -138,6 +163,7 @@ table.pre td.sum{font-weight:700}
     <div class="info" id="whenrow"><span class="k">日時</span><span class="v" id="when"></span></div>
     <div class="info" id="whererow"><span class="k">場所</span><span class="v" id="where"></span></div>
     <div class="info" id="ninrow"><span class="k">人数</span><span class="v" id="nin"></span></div>
+    <div class="info" id="shukrow" hidden><span class="k">出欠</span><span class="v">幹部に伝えてください。</span></div>
   </div>
   <h2 id="mineh">自分の席</h2>
   <div class="card" id="mecard">
@@ -242,7 +268,16 @@ function readShell() {
   } catch (e) { return null; }
 }
 // ページの名前。結果が出たら「結果」と呼ぶ（2026-11-15 主催「1ページにまとめる」）
-function setTitle(t, end) { const s = t + (end ? ' 結果' : ' トップページ'); document.title = s; $('ttl').textContent = '🀄 ' + s; }
+function setTitle(t, end) { const s = t + (end ? ' 結果' : ' トップページ'); document.title = s; ttlWords($('ttl'), s); }
+// 見出しを言葉ごとの span.w にする（狭い画面で「トップペー／ジ」のように言葉の途中で折り返さない。使いやすさの総点検の指摘18）。
+// 点数入力・対戦表・幹部用・運営用の ttlWords と同じ（どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const e = document.createElement('span'); e.className = 'w'; e.textContent = (i ? '' : '🀄 ') + w; h.appendChild(e);
+  });
+}
 // 全部の半荘が確定した回は、切り替えボタンの並び（上と下）を出さない（点数入力＝対戦結果のページはトップへ移り、ルール・早見表・対戦表は結果の後は出さないため、トップだけが残る。2026-11-15 主催「1ページにまとめる」）
 const navShow = on => document.querySelectorAll('.pnav').forEach(n => { n.hidden = !on; });
 let CFG = null, KUMI = null, ROSTER = {}, DATA = null, LAST_LOAD = 0;
@@ -345,10 +380,15 @@ function renderInfo() {
     if (s.length > 1) { when.appendChild(document.createElement('br')); when.appendChild(document.createTextNode(at(s[0]) + ' 〜 ' + at(end))); }
   }
   $('whenrow').hidden = !day;
-  $('whererow').hidden = !place;
+  // 場所は書いた会だけ出す。人数未定の間は、書いていなければ「未定」と出す（使いやすさの総点検の指摘6・2026-11-19）
+  $('whererow').hidden = !place && !mitei();
   renderPlace(place, str(CFG.address));
+  // 狭い画面で折り返すときは、言葉の切れ目で折り返す（span.w）
+  if (!place) $('where').innerHTML = '<span class="w">未定</span><span class="w">（決まったら出します）</span>';
   // 人数。人数未定の会は「未定」（2026-11-17 主催「トップは人数未定で作成」）
-  $('nin').textContent = mitei() ? '未定（出席が決まってから決めます）' : CFG.players + '人';
+  $('nin').innerHTML = mitei() ? '<span class="w">未定</span><span class="w">（出席が決まってから</span><span class="w">決めます）</span>' : CFG.players + '人';
+  // 出欠の伝え先。人数未定の間だけ出す（出席確認は、幹部が幹部用ページでチェックする）
+  $('shukrow').hidden = !mitei();
   // 結果が出たら出さない（2026-11-14 主催）。人数の行はいつもあるので、ほかの時は出す
   $('info').hidden = endView();
 }
@@ -359,7 +399,7 @@ function renderPlace(place, addr) {
   if (addr) { box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(addr)); }
   const a = document.createElement('a');
   a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((addr.replace(/^〒?\s*\d{3}-\d{4}\s*/, '') + ' ' + place).trim());
-  a.target = '_blank'; a.rel = 'noopener'; a.textContent = '地図を開く';
+  a.target = '_blank'; a.rel = 'noopener'; a.className = 'map'; a.textContent = '地図を開く';
   box.appendChild(document.createElement('br')); box.appendChild(a);
 }
 
@@ -399,6 +439,7 @@ function render() {
   scoreLink(end);
   // 人数未定の会も出さない（名前も卓もまだ無い。2026-11-17）
   ['mineh', 'mecard', 'mine', 'metools', 'minenote'].forEach(id => { $(id).hidden = end || mitei(); });
+  renderLiveGo();
   renderNext();
   renderMine();
   renderUpdated();
@@ -427,7 +468,8 @@ function renderRounds(end) {
   }
   $('rbox').hidden = false;
   $('rnone').hidden = !!rs.length; $('rfold').hidden = !rs.length;
-  if (!rs.length) $('rnone').innerHTML = '<b>組み合わせはまだ決まっていません。' + (kujiDay() ? dayText(kujiDay()) + 'の夜に、くじで決まります。' : '前日に出ます。') + '</b>';
+  // くじの番号を待っている・読めない間は、そのわけを出す（kujiWait。抽せんの日を過ぎても「夜に、くじで決まります」のままにしない）
+  if (!rs.length) { const w = kujiWait(); $('rnone').innerHTML = '<b' + (w === 'ng' ? ' class="warn"' : '') + '>' + (w ? KUJI_WAIT[w][1] : '組み合わせはまだ決まっていません。' + (kujiDay() ? dayText(kujiDay()) + 'の夜に、くじで決まります。' : '前日に出ます。')) + '</b>'; }
   $('rsum').textContent = '全部の卓（予選' + rs.length + '半荘）';
   autoOpen('rfold', ME, !ME);
   rs.forEach(k => {
@@ -439,6 +481,8 @@ function renderRounds(end) {
     box.appendChild(h);
     const tw = document.createElement('div'); tw.className = 'tw';
     const tbl = document.createElement('table');
+    // 4麻の場決めの会は、狭い画面で名前を2人ずつ2段に並べる（CSS の table.g4）。席の列がある会と3麻は今までどおり
+    if (c.mode === 4 && bakime()) tbl.className = 'g4';
     tbl.innerHTML = '<thead><tr><th>卓</th>' + (bakime() ? '<th colspan="' + c.mode + '">この卓の' + c.mode + '人</th>' : WINDS.slice(0, c.mode).map(w => '<th>' + w + '</th>').join('')) + '</tr></thead>';
     const tb = document.createElement('tbody');
     tabs.forEach(t => {
@@ -625,7 +669,7 @@ function renderResult() {
   const sub = x => (x.how === '決勝の合計' ? '決勝' + FINALS.length + '半荘の合計' : x.how) + ' ' + x.val;
   let h = '<div class="lab">結果' + (all ? '（確定）' : '') + '</div>'
     + '<div class="win">🏆 優勝　' + top.map(x => esc(dn(x.p))).join('・') + '</div>'
-    + (top.length > 1 ? '<p class="warn">1位が同点です。集計係が決めます。</p>' : '<div class="small">' + esc(sub(top[0])) + '</div>');
+    + (top.length > 1 ? '<p class="warn">1位が同点です。運営が決めます。</p>' : '<div class="small">' + esc(sub(top[0])) + '</div>');
   // 最終順位。決め方（決勝・順位決定戦の卓・予選の合計）ごとに見出しの行で区切り、右の列はその決め方の成績だけ。区切りごとに tbody を分ける（行の色の縞が区切りごとにそろう）
   const head = how => how === '決勝' ? '決勝（点棒）' : how === '決勝の合計' ? '決勝（' + FINALS.length + '半荘の合計）' : how.startsWith('順位決定戦（') ? '順位決定戦 ' + how.slice(6, -1) + '（点棒）' : how === '予選の合計' ? '予選の合計（pt）' : how;
   let tb = '', cur = null;
@@ -633,8 +677,12 @@ function renderResult() {
     if (x.how !== cur) { cur = x.how; tb += (tb ? '</tbody>' : '') + '<tbody><tr class="grp"><th colspan="3">' + esc(head(x.how)) + '</th></tr>'; }
     tb += '<tr><td>' + x.rank + '位' + (x.tie ? '<div class="small">同点</div>' : '') + '</td><td>' + esc(dn(x.p)) + '</td><td class="v' + (String(x.val).startsWith('−') ? ' neg' : '') + '">' + esc(x.val) + '</td></tr>';
   });
+  // 同じ合計・同じ点棒の人の並べ方（finalRanking の比べ方。使いやすさの総点検の指摘14・2026-11-19。前は結果の画面に書いていなかった）。
+  // 決勝が1半荘の会の決勝の卓は席の順で並べるので、ここには書かない
+  const multi = FINALS.length > 1, jr = rows.some(x => String(x.how).startsWith('順位決定戦'));
+  const tie = multi && jr ? '決勝の合計が同じ人と、順位決定戦で点棒が同じ人は、' : multi ? '決勝の合計が同じ人は、' : jr ? '順位決定戦で点棒が同じ人は、' : '';
   h += '<h3>最終順位</h3><div class="tw"><table class="rk"><colgroup><col class="c1"><col><col class="c3"></colgroup>' + tb + '</tbody></table></div>'
-    + (all ? '' : '<p class="small" style="margin:6px 0 0">集計係が確定するまでは、変わることがあります。</p>');
+    + (tie || !all ? '<p class="small" style="margin:6px 0 0">' + (tie ? tie + '予選の順位が上の人を上にしています。' : '') + (all ? '' : '運営が確定するまでは、変わることがあります。') + '</p>' : '');
   box.innerHTML = h;
   // トータルの順位と予選の成績（たたむ箱の中だけを書き直す＝人が開け閉めしたものは、読み直しで戻さない）。何か起きても、上の結果は出す
   if (FINALS.length >= 2) { try { $('tbox').innerHTML = totalHtml(); $('tfold').hidden = false; } catch (e) {} }
@@ -692,7 +740,48 @@ function progress() {
   });
   return { list, next: list.findIndex(a => !a.done) };
 }
-// 一番上の「次は」。抜け番・お休みの半荘なら、その次に打つ卓も出す。予選がぜんぶ済んだら、決勝の卓の出る所を出す
+// ページの一番上の、決勝最終実況（対戦表の9章）への入口（2026-11-19 使いやすさの点検。前は決勝の最後の半荘の間も、トップに実況への案内がなかった）。
+// 実況のある会か: 対戦表・運営用ページの liveOn と同じ条件（9章は対戦表のページにあるので、くじの会だけ。運営用ページと同じ。どれかを直したら、ほかも直す）。
+// 出す間: 決勝の最後の半荘の前の半荘まで決勝の卓（1卓）の点数が入り、最後の半荘の点数がまだのとき（入ると結果が出る）。対戦表の liveNow と同じ見方。
+// ただし運営が終局を送った後も、点数が入るまでは出す（9章に優勝が出るため）。受け口を読めていない間は出さない
+const liveOn = c => !!(c.jikkyo === true && (c.mode === 3 || c.mode === 4) && c.final && c.final.tables === 1 && Number.isInteger(c.final.hanchan) && c.final.hanchan >= 2
+  && Number.isInteger(c.start) && Number.isInteger(c.return) && Number.isInteger(c.prelim) && !!c.uma && typeof c.uma === 'object') && /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '');
+function renderLiveGo() {
+  const a = $('livego'), n = FINALS.length;
+  a.hidden = !(liveOn(CFG) && DATA_ST === 'ok' && !endView() && n >= 2 && FINALS.slice(0, -1).every(r => recOf(r, 1)) && !recOf(FINALS[n - 1], 1));
+  if (a.hidden) { a.innerHTML = ''; return; }
+  a.href = 'kuji/' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '#live';
+  // 狭い画面で折り返すときは、言葉の切れ目で折り返す（span.w）
+  a.innerHTML = '<span class="big"><span class="w">決勝' + n + '半荘目の</span><span class="w">実況を見る →</span></span><span class="sub"><span class="w">局ごとの点棒と、</span><span class="w">優勝の条件が出ます。</span></span>';
+}
+// 予選の後の自分の卓（決勝の顔ぶれは finalMembers＝点数入力ページの「決勝と順位決定戦の卓」と同じ分け方）。予選の全部の卓が入り、自分の順位が卓の境目をまたぐ同点でないときだけ決める。
+// 返すもの: { big, sub }＝次に打つ卓／{ done, note }＝打つ卓がない・まだ決まらない／null＝決勝のない会
+function finalNext() {
+  const T = CFG.final.tables, J = junniOn();
+  if (!(T > 0)) return null;
+  const both = '決勝' + (J ? 'と順位決定戦' : '');
+  if (!rounds().every(k => (KUMI.rounds[k].tables || []).every(x => doneOf(k, x.no)))) return { note: both + 'の卓は、予選の全部の卓の点数が入ると、ここに出ます。' };
+  const fm = finalMembers(), gone = goneList(), ok = fm.rk.filter(x => !gone.includes(x.p)), K = T * MODE;
+  const x = ok.find(y => y.p === ME);
+  if (!x) return { note: both + 'は打ちません。' };
+  // 卓の境目（決勝の後ろ・順位決定戦の卓ごとの後ろ）をまたいで同じ順位の数字が並ぶ＝まだ決まらない同点
+  const cuts = [K].concat(fm.junni.map(j => j.from - 1 + j.p.length));
+  if (cuts.some(b => b > 0 && b < ok.length && ok[b - 1].rank === ok[b].rank && ok[b].rank === x.rank)) return { note: '同点のため、' + both + 'の卓がまだ決まりません。運営が決めます。' };
+  const with_ = ps => '同じ卓: ' + ps.filter(p => p !== ME).map(dn).join('・');
+  const i = fm.tables.findIndex(ps => ps.includes(ME));
+  if (i >= 0) {
+    const r = FINALS.find(f => !recOf(f, i + 1));
+    if (!r) return { done: '決勝は、ぜんぶ終わりました', note: '結果は、ほかの卓が終わると、ここに出ます。' };
+    return { big: (FINALS.length > 1 ? '決勝 ' + r.slice(1) + '半荘目' : '決勝') + (T > 1 ? '・' + (i + 1) + '卓' : ''), sub: with_(fm.tables[i]) };
+  }
+  const j = fm.junni.find(y => y.p.includes(ME));
+  if (j) {
+    if (recOf('F1', j.no)) return { done: '順位決定戦は、終わりました', note: '結果は、決勝が終わると、ここに出ます。' };
+    return { big: '順位決定戦（' + j.from + '〜' + (j.from + j.p.length - 1) + '位）', sub: '決勝1半荘目と同じ時間に打ちます。' + with_(j.p) };
+  }
+  return { note: J ? '決勝と順位決定戦の卓には入っていません。' : '決勝は、予選の上位' + K + '人で打ちます。' };
+}
+// 一番上の「次は」。抜け番・お休みの半荘なら、その次に打つ卓も出す。予選がぜんぶ済んだら、自分の決勝・順位決定戦の卓を出す（finalNext）
 function renderNext() {
   // 結果が出たら「次は」は出さない
   if (endView()) { $('next').hidden = true; $('next').innerHTML = ''; return; }
@@ -703,8 +792,11 @@ function renderNext() {
   const at = a => a.k + '半荘目・' + a.t.no + '卓' + (bakime() ? '' : '・' + WINDS[a.t.p.indexOf(ME)]);
   const a = pg.list[pg.next];
   if (!a) {
-    line('big', '予選は、ぜんぶ終わりました');
-    if (CFG.final.tables > 0) line('', (CFG.final.junni === 1 ? '決勝と順位決定戦' : '決勝') + 'の卓は、点数入力ページに出ます。');
+    // 予選がぜんぶ済んだら、自分の決勝・順位決定戦の卓を出す（使いやすさの総点検の指摘12・2026-11-19。前は点数入力ページへの案内だけだった）
+    const f = finalNext();
+    if (f && f.big) { line('lab', '次は'); line('big', f.big); if (f.sub) line('', f.sub); return; }
+    line('big', f && f.done ? f.done : '予選は、ぜんぶ終わりました');
+    if (f && f.note) line('', f.note);
     return;
   }
   line('lab', '次は');
@@ -717,7 +809,8 @@ function renderMine() {
   const box = $('mine'); box.innerHTML = '';
   const rs = rounds();
   if (!ME) { box.innerHTML = '<p class="small">名前を選ぶと、半荘ごとの卓' + (bakime() ? '' : 'と席') + 'が出ます（この端末に覚えます）。</p>'; return; }
-  if (!rs.length) { box.innerHTML = '<p class="small">組み合わせはまだ決まっていません。</p>'; return; }
+  // くじの番号を待っている・読めない間は、そのわけを出す（kujiWait）
+  if (!rs.length) { const w = kujiWait(); box.innerHTML = '<p class="small' + (w === 'ng' ? ' warn' : '') + '">' + (w ? KUJI_WAIT[w][0] : '組み合わせはまだ決まっていません。') + '</p>'; return; }
   const pg = progress();
   const tw = document.createElement('div'); tw.className = 'tw';
   const tbl = document.createElement('table'); tbl.id = 'mine';
@@ -843,7 +936,7 @@ function lineTie(rk, x) {
   while (hi + 1 < ok.length && ok[hi + 1].rank === x.rank) hi++;
   if (lo > K - 1) return '';
   if (hi <= K - 1) return x.kime || x.tie ? '圏内（' + (x.kime || (heikin() ? '同点' : '年齢')) + '）' : '';
-  return heikin() || !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（集計係が決める）' : '同点（年齢で決まる）';
+  return heikin() || !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（運営が決める）' : '同点（年齢で決まる）';
 }
 // 逆算で使う点棒の上限と下限（受け口と同じ）。r 位（0 始まり）で取れる点棒の上限は、卓の合計から、上の人が自分と同じ・下の人が下限のとき
 const RAW_TOP = 999900, RAW_LOW = -200000;
@@ -889,8 +982,8 @@ function renderLine() {
   const D = B - x.total, t = D === 0 && x.n ? lineTie(rk, x) : '';
   h += '<p>' + K + '位ライン（自分を除いた' + K + '番目の合計）: <b>' + fpt(B) + '</b></p>';
   if (D < 0) h += '<p>いまは<b>圏内</b>。' + (K + 1) + '位との差は ' + fpt(-D) + ' です。</p>';
-  else if (t) h += '<p>' + K + '位ラインと同じ合計です。' + (t.startsWith('圏内（') ? 'いまは<b>圏内</b>です（' + (KIME_WHY[t.slice(3, -1)] || t.slice(3, -1) + 'が低いため') + '）。' : t === '同点（集計係が決める）' ? (heikin() ? '平均順位も' + lastName() + 'も同じなので、' : nenrei() ? '生年月日も同じなので、' : '') + '集計係が決めます。' : '同点は年齢が上の方が上位なので、生年月日で決まります。') + '</p>';
-  else h += '<p>圏内に入るには <b>あと ' + fpt(D + 1) + '</b> 必要です（同点は' + (heikin() ? '平均順位などで決まる' : nenrei() ? '年齢順の' : '集計係が決める') + 'ため、上回る数字）。</p>';
+  else if (t) h += '<p>' + K + '位ラインと同じ合計です。' + (t.startsWith('圏内（') ? 'いまは<b>圏内</b>です（' + (KIME_WHY[t.slice(3, -1)] || t.slice(3, -1) + 'が低いため') + '）。' : t === '同点（運営が決める）' ? (heikin() ? '平均順位も' + lastName() + 'も同じなので、' : nenrei() ? '生年月日も同じなので、' : '') + '運営が決めます。' : '同点は年齢が上の方が上位なので、生年月日で決まります。') + '</p>';
+  else h += '<p>圏内に入るには <b>あと ' + fpt(D + 1) + '</b> 必要です（同点は' + (heikin() ? '平均順位などで決まる' : nenrei() ? '年齢順の' : '運営が決める') + 'ため、上回る数字）。</p>';
   // 予選の残り（まだ点数がなく、抜け番でもない半荘）
   const left = PRELIM.filter(r => !x.by[r] && !isLocked(r) && !roundDone(r) && !restOf(r).includes(p)).length;
   if (!left) { out.innerHTML = h + '<p class="small">予選の半荘は、もう残っていません。</p>'; return; }
@@ -954,7 +1047,7 @@ async function sendUchi(choice) {
     UCHI = (j.data && j.data.uchiage) || {}; UCHI_PICKED = false;
     renderUchi();
     if (!choice) sayU('回答を消しました');
-  } catch (e) { sayU(e.message === 'action' ? '受け口が古いため、まだ答えられません（幹部に知らせてください）' : '送れませんでした。電波のよい所でもう一度お試しください', 'ng'); }
+  } catch (e) { sayU(e.message === 'action' ? '保存先の仕組みが古いため、まだ答えられません（幹部に知らせてください）' : '送れませんでした。電波のよい所でもう一度お試しください', 'ng'); }
 }
 $('usend').addEventListener('click', () => sendUchi());
 $('udel').addEventListener('click', () => { if (confirm('打ち上げの回答を消しますか？')) sendUchi(''); });
@@ -1029,6 +1122,28 @@ function applyKuji() {
   KUMI = g || KUMI0;
 }
 const kujiDay = () => /^\d{4}-\d{2}-\d{2}$/.test(CFG.kuji || '') ? CFG.kuji : '';
+// くじの番号を待つ時期（2026-11-19。使いやすさの点検の指摘2）。日時は日本時間で比べる（受け口が番号を受け付ける時刻と同じ見方）。
+// kujiOpen＝抽せんの日の18時（kumiawase.py の KUJI_CUT）から後。運営が番号を入れられるので、受け口を読めないと、番号があるかどうか分からない。
+// kujiPast＝抽せんの日を過ぎた。番号がまだ入っていなければ「夜に、くじで決まります」は合わない（番号の入力を待っている）。
+// トップ・点数入力・対戦表・幹部用で同じ（どれかを直したら、ほかも直す）
+const KUJI_CUT = '18:00';
+const jstNow = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+const kujiOpen = d => jstNow() >= d + ' ' + KUJI_CUT;
+const kujiPast = d => jstNow().slice(0, 10) > d;
+// 組み合わせをまだ出せないわけ（くじの会で、型はあるが表がない間）。'' ＝まだ決まっていない（今までの文）、'in' ＝抽せんの日を過ぎたのに番号がまだ入っていない、
+// 'ng' ＝受け口を読めず、番号があるかどうか分からない、'wait' ＝受け口の返事を待っている。前は、どれも「まだ決まっていません。〇日の夜に、くじで決まります」と出ていた
+function kujiWait() {
+  const d = kujiDay();
+  if (!d || !KATA || rounds().length || !String(CFG.api || '').trim()) return '';
+  if (DATA_ST === 'ok') return kujiPast(d) ? 'in' : '';
+  return kujiOpen(d) ? (DATA_ST === 'ng' ? 'ng' : 'wait') : '';
+}
+// [自分の卓の欄の1文, 一番下の欄の文]
+const KUJI_WAIT = {
+  in: ['当せん番号の入力を待っています。', '当せん番号の入力を待っています。運営が番号を入れると、ここに組み合わせが出ます。'],
+  ng: ['組み合わせを読めませんでした（通信）。「最新に更新」を押してください。', '組み合わせを読めませんでした（通信）。少し待ってから、上の「最新に更新」を押してください。'],
+  wait: ['組み合わせを読み込んでいます…', '組み合わせを読み込んでいます…']
+};
 function renderKuji() {
   // 結果が出たら出さない（組み合わせの欄が卓ごとの結果になる）
   const d = endView() ? '' : kujiDay(), box = $('kujibox');

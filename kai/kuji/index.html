@@ -37,7 +37,10 @@ label{display:block;font-weight:700;margin:0 0 4px}
 input[type=text]{width:100%;font:inherit;font-size:1.15rem;padding:12px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .send{width:100%;margin-top:10px;padding:12px;background:var(--accent);color:var(--accent-fg)}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。使いやすさの総点検の指摘18。トップと同じ） */
+header h1 .w{display:inline-block}
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+@media (max-width:359px){.pnav{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
@@ -50,27 +53,39 @@ tr:nth-child(even) td{background:var(--card2)}
 th.c,td.c{text-align:center}
 td.nw,th.nw{white-space:nowrap}
 .mtx th,.mtx td{text-align:center;white-space:nowrap;padding:6px 4px}
+/* 4麻の場決めの会の、名前の入った組み合わせの表（table.g4。1章と、4章の検算の結果）。幅600px以下では、名前を2人ずつ2段に並べる（名前の列が4つで、長い名前があるとほかの列が2字分まで縮んでいたため。2026-11-19）。
+   表の並びは席でないので、2段にしても意味は変わらない。トップの table.g4 と同じ形（どちらかを直したら、もう片方も直す）。5章の型（枠の番号）は短いので、今までどおり1段 */
+@media (max-width:600px){
+table.g4,table.g4 thead,table.g4 tbody{display:block}
+table.g4 tr{display:grid;grid-template-columns:3.6em minmax(0,1fr) minmax(0,1fr)}
+table.g4 th:first-child,table.g4 td:first-child{width:auto}
+table.g4 th:nth-child(2){grid-column:2/-1}
+table.g4 td:first-child{grid-row:1/span 2}
+table.g4 td:nth-child(2),table.g4 td:nth-child(3){border-bottom:0;padding-bottom:1px}
+table.g4 td:nth-child(n+4){padding-top:1px}
+}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88rem;word-break:break-all}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
 .big{font-size:1.05rem;font-weight:700}
 .msg{margin-top:8px;font-weight:700}
 .msg.ng,.warn{color:var(--ng);font-weight:700}
-.tag{display:inline-block;font-size:.8rem;font-weight:700;border-radius:4px;padding:0 6px;margin-left:4px;vertical-align:1px}
+.tag{display:inline-block;font-size:.875rem;font-weight:700;border-radius:4px;padding:0 6px;margin-left:4px;vertical-align:1px}
 .tag.try{background:#ececE8;color:var(--muted)}
 .tag.real{background:var(--ok);color:#fff}
 .msg.ok{color:var(--ok)}
 .neg{color:var(--ng)}
 /* ページの中の移動（組み合わせ・決勝ライン・決勝最終実況） */
 .jump{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
-.jump a{flex:1 1 auto;text-align:center;padding:8px 10px;font-size:.95rem;font-weight:700;white-space:nowrap;text-decoration:none;color:var(--accent);background:var(--soft);border:1px solid var(--line);border-radius:8px}
+.jump a{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:44px;text-align:center;padding:8px 10px;font-size:.95rem;font-weight:700;white-space:nowrap;text-decoration:none;color:var(--accent);background:var(--soft);border:1px solid var(--line);border-radius:8px}
 /* 9章 決勝最終実況 */
 .lvtools{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}
-details.card>summary{cursor:pointer;font-weight:700}
+/* たたむ箱の見出しは、箱の上下と左右の余白まで押せるようにする（高さ44px以上。見た目は前と同じ。使いやすさの総点検の指摘7） */
+details.card>summary{cursor:pointer;font-weight:700;margin:-8px -16px;padding:8px 16px}
 /* 2〜8章（くじの説明）。最初からたたんで出す（結果と実況を近くに。2026-11-04 主催） */
 details.more{margin:26px 0 0}
 details.more>summary{cursor:pointer;font-weight:700;padding:12px 14px;background:var(--card);color:var(--accent);border:2px solid var(--accent);border-radius:8px}
-.ghost{background:none;color:var(--accent);font-size:.95rem;padding:10px 0 0;text-decoration:underline}
+.ghost{background:none;color:var(--accent);font-size:.95rem;padding:0 4px 0 0;min-height:44px;text-decoration:underline}
 .lvc .who{font-weight:700;font-size:1.05rem}
 .lvc ul{margin:6px 0 0}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -200,7 +215,15 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-function setTitle(t) { document.title = t + ' 対戦表'; $('ttl').textContent = '🀄 ' + t + ' 対戦表'; }
+function setTitle(t) { document.title = t + ' 対戦表'; ttlWords($('ttl'), t + ' 対戦表'); }
+// 見出しを言葉ごとの span.w にする（言葉の途中で折り返さない。使いやすさの総点検の指摘18）。トップ・点数入力・幹部用・運営用の ttlWords と同じ（どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const e = document.createElement('span'); e.className = 'w'; e.textContent = (i ? '' : '🀄 ') + w; h.appendChild(e);
+  });
+}
 let CFG = null, KATA = null, KUMI = null, ROSTER = {}, N4 = '', CALC = '';
 // 人数未定の会（taikai.json に players を書かない。トップの miteiOf と同じ。2026-11-17）。型と出席者一覧は、人数が決まってから出す
 const miteiOf = c => !!c && typeof c === 'object' && (c.players === undefined || c.players === null);
@@ -267,6 +290,13 @@ const kataPresent = () => { const o = kataOut(); return Array.from({ length: KAT
 const outSlots = () => kataOut().map((_, i) => KATA.players - kataOut().length + 1 + i);
 // 型を書ける時刻（抽せんの日のこの時刻より前。kumiawase.py の KUJI_CUT と同じ）
 const KUJI_CUT = '18:00';
+// くじの番号を待つ時期（2026-11-19。使いやすさの点検の指摘2）。日時は日本時間で比べる（受け口が番号を受け付ける時刻と同じ見方）。
+// kujiOpen＝抽せんの日の18時から後。運営が番号を入れられるので、受け口を読めないと、番号があるかどうか分からない。
+// kujiPast＝抽せんの日を過ぎた。番号がまだ入っていなければ「夜に、ここへ出ます」は合わない（番号の入力を待っている）。
+// トップ・点数入力・対戦表・幹部用で同じ（どれかを直したら、ほかも直す）
+const jstNow = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+const kujiOpen = d => jstNow() >= d + ' ' + KUJI_CUT;
+const kujiPast = d => jstNow().slice(0, 10) > d;
 // くじ: くじを引く人のくじ値を小さい順に並べ、先頭から枠1〜（kumiawase.py の draw と同じ。同じくじ値なら番号の順）
 function draw(seed) {
   const v = kataPresent().map(p => ({ p, n: pnum(p), h: sha256hex(seed + '|' + p) }));
@@ -302,13 +332,13 @@ const redoN4 = () => { const q = QKUJI; return N4_GAS && q && Array.isArray(q.lo
 const shape = r => JSON.stringify({ t: ((r && r.tables) || []).map(t => [t.no, t.p]), r: (r && r.rest) || [] });
 const sameRound = (a, b) => !!a && !!b && shape(a) === shape(b);
 
-// 半荘ごとの表。show は人の出し方（名前か「枠3」）
-function roundTables(rounds, show) {
-  const M = CFG.mode;
+// 半荘ごとの表。show は人の出し方（名前か「枠3」）。names が true（名前を出す表）で4麻の場決めの会なら、狭い画面で名前を2人ずつ2段に並べる（CSS の table.g4。トップの「全部の卓」と同じ）
+function roundTables(rounds, show, names) {
+  const M = CFG.mode, g4 = names === true && M === 4 && bakime();
   let h = '';
   Object.keys(rounds).sort((a, b) => a - b).forEach(k => {
     const r = rounds[k];
-    h += '<h3>予選 ' + k + '半荘目</h3><div class="tw"><table><thead><tr><th class="nw" style="width:3.6em">卓</th>' + (bakime() ? '<th colspan="' + M + '">この卓の' + M + '人</th>' : WINDS.slice(0, M).map(w => '<th>' + w + '</th>').join('')) + '</tr></thead><tbody>';
+    h += '<h3>予選 ' + k + '半荘目</h3><div class="tw"><table' + (g4 ? ' class="g4"' : '') + '><thead><tr><th class="nw" style="width:3.6em">卓</th>' + (bakime() ? '<th colspan="' + M + '">この卓の' + M + '人</th>' : WINDS.slice(0, M).map(w => '<th>' + w + '</th>').join('')) + '</tr></thead><tbody>';
     (r.tables || []).forEach(t => { h += '<tr><td class="nw">' + t.no + '卓</td>' + t.p.map(p => '<td>' + esc(show(p)) + '</td>').join('') + '</tr>'; });
     h += '</tbody></table></div>';
     const extra = [];
@@ -356,22 +386,25 @@ function renderResult() {
   if (!KATA) { box.innerHTML = '<div class="hint"><span class="big">型はまだできていません。</span><br>' + (mitei() ? '人数が決まってから型を作り、' : '') + esc(mdText(CFG.kuji)) + 'の抽せんより前に、ここへ出ます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   // 抽せんの日から後に、受け口のくじの番号をまだ読んでいない間は「読み込み中」（番号が入っていれば、読めたらすぐ表になる。「夜に出ます」を一瞬出さない）
   if (!N4 && NAME_WAIT && KATA.date <= new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)) { box.innerHTML = '<div class="hint">くじの番号を読み込み中です…</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  // 番号を入れられる時刻から後に受け口を読めなかったら、番号があるかどうか分からない。抽せんの日を過ぎても番号がなければ、入力を待っている（「夜に、ここへ出ます」のままにしない。トップの kujiWait と同じ分け方）
+  if (!N4 && API && !LOADED && kujiOpen(KATA.date)) { box.innerHTML = '<div class="hint"><span class="big warn">くじの番号を読めませんでした（通信）。</span><br>少し待ってから、このページを開き直してください。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
+  if (!N4 && LOADED && kujiPast(KATA.date)) { box.innerHTML = '<div class="hint"><span class="big">当せん番号の入力を待っています。</span><br>運営が番号を入れると、ここに対戦表が出ます。</div>'; lot.innerHTML = '<p class="small">当せん番号が入ると出ます。</p>'; return; }
   if (!N4) { box.innerHTML = '<div class="hint"><span class="big">対戦表は ' + esc(mdText(KATA.date)) + 'の夜に、ここへ出ます。</span><br>いまは、下の「くじの説明」を開くと、「4. 計算してみる」で仕組みを試せます。</div>'; lot.innerHTML = '<p class="small">抽せんの後に出ます。</p>'; return; }
   const want = roundsOf(draw(seedOf(N4))), now = (KUMI && KUMI.rounds) || {}, ks = kataKeys();
   const remade = !!KUMI && (KUMI.remade === true || KUMI.from > 1), from = remade ? Number(KUMI.from) || 1 : ks.length + 1;
   const bad = ks.filter(k => Number(k) < from && !sameRound(now[k], want[k]));
   let h = '<div class="card"><div class="big">本番の番号</div>' + esc(mdText(KATA.date)) + 'のナンバーズ4の当せん番号: <b>' + esc(N4) + '</b></div>';
   // 組み合わせ表の番号と受け口の番号が違う（どちらかの打ち間違い）。運営用ページで番号を入れ直したときは、前の番号も出す（前の晩に表を見た人が取り違えないように）
-  if (N4_GAS && N4_GAS !== N4) h += '<p class="warn">運営が入れた番号（' + esc(N4_GAS) + '）が、組み合わせ表の番号と違います。集計係に知らせてください。</p>';
+  if (N4_GAS && N4_GAS !== N4) h += '<p class="warn">運営が入れた番号（' + esc(N4_GAS) + '）が、組み合わせ表の番号と違います。主催に知らせてください。</p>';
   else if (redoN4().length) h += '<p class="warn">運営が、番号を入れ直しました（前に入れた番号: ' + esc(redoN4().join('・')) + '）。前の表を見ていた人は、自分の卓を確かめ直してください。</p>';
-  if (bad.length) h += '<p class="warn">' + bad.join('・') + '半荘目が、型と本番の番号のとおりではありません。集計係に知らせてください。</p>';
+  if (bad.length) h += '<p class="warn">' + bad.join('・') + '半荘目が、型と本番の番号のとおりではありません。主催に知らせてください。</p>';
   else if (!remade) h += '<p>いまの組み合わせは、型と本番の番号のとおりです。</p>';
   else {
     const outs = [...new Set(ks.filter(k => Number(k) >= from).flatMap(k => (now[k] && now[k].out) || []))].sort((a, b) => pnum(a) - pnum(b));
     h += '<p>' + (from > 1 ? (from - 1) + '半荘目までは、型と本番の番号のとおりです。' : '') + from + '半荘目からは、当日の組み直しです' + (outs.length ? '（お休み: ' + outs.map(p => esc(dn(p))).join('・') + '）' : '') + '。組み直しでも、くじで決まった枠と No. の組は変えません。</p>';
   }
   // 対戦表（いまの組み合わせ。当日に組み直したら、組み直した後の表）。トップページの「半荘ごとの組み合わせ」と同じ表なので、たたんで出す
-  h += '<details class="card kumi"' + (opened ? ' open' : '') + '><summary>半荘ごとの組み合わせ（予選' + Object.keys(now).length + '半荘・トップページと同じ）</summary>' + (NAME_WAIT ? '<p class="small">名前を読み込み中です。数秒で、番号が名前に変わります。</p>' : '') + roundTables(now, dn) + '</details>';
+  h += '<details class="card kumi"' + (opened ? ' open' : '') + '><summary>半荘ごとの組み合わせ（予選' + Object.keys(now).length + '半荘・トップページと同じ）</summary>' + (NAME_WAIT ? '<p class="small">名前を読み込み中です。数秒で、番号が名前に変わります。</p>' : '') + roundTables(now, dn, true) + '</details>';
   if (restOrOut(now)) h += '<h3>抜け番（いまの組み合わせ）</h3>' + restTable(now, peopleOf(now), dnf);
   h += '<p class="small">自分の卓は、<a href="../' + (G !== 'halu' ? '?g=' + encodeURIComponent(G) : '') + '">トップページ</a>で見られます。</p>';
   box.innerHTML = h;
@@ -413,7 +446,7 @@ function renderKata() {
   let h = '<p>卓' + (total ? 'と抜け番' : '') + 'は、先にこの「型」で決めてあります。くじで決めるのは、<b>誰がどの枠に入るか</b>だけです。</p><ul>';
   const early = String(KATA.made || '') < KATA.date + ' ' + KUJI_CUT;
   h += '<li>型を作った日時: ' + esc(madeText(KATA.made)) + '（' + N + '枠・予選' + ks.length + '半荘・' + M + '麻）。'
-    + (early ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前です。' : '<span class="warn">抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より後です。集計係に知らせてください。</span>') + '</li>';
+    + (early ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前です。' : '<span class="warn">抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より後です。主催に知らせてください。</span>') + '</li>';
   if (ko.length) h += '<li>' + ko.map(p => esc(dn(p))).join('・') + ' は、抽せんの前に来られなくなりました。くじに入らず、枠' + os.join('・枠') + '（どの半荘もお休み）です。</li>';
   if (total) h += '<li>抜け番は全部で' + total + '回です。' + Object.keys(cnt).sort((a, b) => b - a).map(x => (Number(x) ? x + '回の枠が' : '抜け番なしの枠が') + cnt[x]).join('、') + 'です。</li>';
   h += '<li>同じ相手と当たる回数は、最多' + maxMeet + '回です（できるだけ、ならしてあります）。</li>';
@@ -456,7 +489,7 @@ function renderCalc() {
   if (!CALC || !KATA) { out.innerHTML = ''; return; }
   const real = N4 && CALC === N4, seed = seedOf(CALC), rounds = roundsOf(draw(seed));
   out.innerHTML = lotteryHtml(seed, real ? '<span class="tag real">本番と同じ番号</span>' : '<span class="tag try">試し（本番の結果ではありません）</span>')
-    + (restOrOut(rounds) ? '<h3>抜け番</h3>' + restTable(rounds, peopleOf(rounds), dnf) : '') + roundTables(rounds, dn);
+    + (restOrOut(rounds) ? '<h3>抜け番</h3>' + restTable(rounds, peopleOf(rounds), dnf) : '') + roundTables(rounds, dn, true);
 }
 $('calc').addEventListener('submit', ev => {
   ev.preventDefault();
@@ -475,7 +508,7 @@ $('calc').addEventListener('submit', ev => {
 // 局の名前（KYOKU）とオーラス（ORAS）は、load() で MODE から作る
 const kyokuOf = m => ['東', '南'].flatMap(w => Array.from({ length: m }, (_, k) => w + (k + 1) + '局'));
 let KYOKU = kyokuOf(3), ORAS = 5;
-// 9章を出す会か（運営用ページの入れる欄も同じ条件。unei/index.html の liveOn。どちらかを直したら、もう片方も直す）
+// 9章を出す会か（運営用ページの入れる欄と、トップの実況への入口も同じ条件。unei/index.html と index.html の liveOn。どれかを直したら、ほかも直す）
 const liveOn = () => !!(CFG && CFG.jikkyo === true && (CFG.mode === 3 || CFG.mode === 4) && CFG.final && CFG.final.tables === 1 && Number.isInteger(CFG.final.hanchan) && CFG.final.hanchan >= 2
   && Number.isInteger(CFG.start) && Number.isInteger(CFG.return) && Number.isInteger(CFG.prelim) && !!CFG.uma && typeof CFG.uma === 'object');
 const lastF = () => 'F' + CFG.final.hanchan;
@@ -779,13 +812,16 @@ function renderLive() {
   if (fin) h += '<p class="big">優勝 ' + esc(dn(S[0].p)) + '（総合 ' + fpt(S[0].total) + '）</p><p class="small">確定は、' + (endView() ? '対戦結果' : '点数入力') + 'ページの最終順位です。</p>';
   h += '<h3>' + (fin ? '総合の順位' : '総合の順位（いまの点棒で終わったら）') + '</h3>' + standHtml(T, ctx, fin ? -1 : d);
   if (!fin && st.kyotaku) h += '<p class="small">供託の' + st.kyotaku + '本は、順位に入れていません。</p>';
-  if (!fin) h += lineSafe(st.seats, st.raw, ctx, S.map(x => x.i)) + condHtml(st, ctx, S, d, oras);
+  // アガリの条件（局ごとに変わる）を先に、優勝の条件（着順ごとの点棒の差。半荘の間はほとんど変わらない）を後に出す（2026-11-19 使いやすさの点検。
+  // 前は優勝の条件が先で、4麻では幅375pxの画面でアガリの条件が9章の見出しから約4.6画面下だった）。どちらもたたまない。始まる前（st がない）は、優勝の条件だけで前と同じ
+  if (!fin) h += condHtml(st, ctx, S, d, oras) + lineSafe(st.seats, st.raw, ctx, S.map(x => x.i));
   box.innerHTML = h;
 }
 // 決勝の最後の半荘の点数が入った後。優勝と総合の順位は、点数入力ページに入れた1卓の点数から（点数入力ページの最終順位と同じ計算）。
 // その卓の人が決勝の人と合わなければ、案内だけ
 function doneHtml(rec, ctx, n) {
-  const h = '<div class="hint"><span class="big">決勝' + n + '半荘目の点数が入りました。</span><br>最終順位は<a href="' + scoreUrl('finh') + '">点数入力ページ</a>で見られます。</div>';
+  // 点数が入った後は結果が出ているので、ボタンと同じ「対戦結果」と呼ぶ（使いやすさの総点検の指摘17。前は「点数入力ページ」のままだった）
+  const h = '<div class="hint"><span class="big">決勝' + n + '半荘目の点数が入りました。</span><br>最終順位は<a href="' + scoreUrl('finh') + '">対戦結果ページ</a>で見られます。</div>';
   const ok = Array.isArray(rec.p) && rec.p.length === MODE && new Set(rec.p).size === MODE && rec.p.every(p => ctx.mem.includes(p))
     && Array.isArray(rec.raw) && calcTable(rec.raw).every(Boolean);
   if (!ok) return h;
@@ -817,7 +853,7 @@ async function pull() {
   try { const j = await getJson(API + '?kai=' + encodeURIComponent(CFG.kai)); if (j.ok && j.data && j.data.kai === CFG.kai) take(j.data); } catch (e) {}
 }
 const isDay = () => !!CFG && new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10) === CFG.date;
-// 決勝の最後の半荘の最中（実況が動いている間）
+// 決勝の最後の半荘の最中（実況が動いている間）。トップの実況への入口（index.html の renderLiveGo）も同じ見方（ただし終局の後も、点数が入るまでは出す）
 const liveNow = () => liveOn() && !liveCtx().wait && !recsOf(lastF())['1'] && !(LIVE && LIVE.end);
 const pullGap = () => liveNow() ? 30000 : 120000;
 setInterval(() => { if (liveOn() && API && isDay() && !document.hidden && Date.now() - PULL_AT >= pullGap()) pull(); }, 5000);

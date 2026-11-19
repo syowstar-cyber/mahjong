@@ -40,11 +40,14 @@ input[type=number]{text-align:right}
 .qdone{margin:12px 0 0;padding:8px 12px;border-radius:8px;background:#e3f2e6;border:1px solid #9fcfa9;color:var(--ok);font-weight:700}
 button{font-size:1.05rem;padding:14px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .primary{width:100%;background:var(--accent);color:var(--accent-fg);margin-top:14px}
-.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem;min-height:44px}
 .primary:disabled,.ghost:disabled{opacity:.5;cursor:default}
 .msg{min-height:1.5em;margin-top:8px;font-weight:700}
 .msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。使いやすさの総点検の指摘18。トップと同じ） */
+header h1 .w{display:inline-block}
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+@media (max-width:359px){.pnav{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
@@ -70,11 +73,11 @@ td.neg,.neg{color:var(--ng)}
 /* 卓入力 */
 .seat{display:grid;grid-template-columns:2em minmax(0,1fr) 8.6em 5.8em;grid-template-areas:"w sel in pt";gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .seat .w{grid-area:w;font-weight:700;text-align:center;background:var(--soft);border-radius:6px;padding:6px 0}
-.seat select{grid-area:sel;padding:9px 6px;font-size:1rem;min-width:0}
+.seat select{grid-area:sel;padding:9px 6px;font-size:1rem;min-width:0;min-height:44px}
 .seat .in{grid-area:in}.seat .pt{grid-area:pt}
-.seat input{padding:10px;font-size:1.1rem}
+.seat input{padding:10px;font-size:1.1rem;min-height:44px}
 .seat .in{display:flex;align-items:center;gap:2px;min-width:0}.seat .in input{flex:1;width:100%;min-width:0}.seat .in span{font-weight:700;font-size:1.1rem}.seat input.auto{background:var(--soft);color:var(--accent);font-weight:700}
-.seat .sign{flex:none;width:2em;padding:8px 0;font-size:1.15rem;line-height:1.2;background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:6px}.seat .sign.on{background:var(--ng);border-color:var(--ng);color:#fff}.seat .sign:disabled{opacity:.4;cursor:default}
+.seat .sign{flex:none;width:44px;min-height:44px;padding:8px 0;font-size:1.15rem;line-height:1.2;background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:6px}.seat .sign.on{background:var(--ng);border-color:var(--ng);color:#fff}.seat .sign:disabled{opacity:.4;cursor:default}
 .seat .pt{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
 /* 場決めの会（bakime）は席を出さず、名前（くじの前は枠の番号）と点棒だけ */
 .seat.nw{grid-template-columns:minmax(0,1fr) 8.6em 5.8em;grid-template-areas:"sel in pt"}
@@ -85,10 +88,14 @@ td.neg,.neg{color:var(--ng)}
 .warn{color:var(--ng);font-weight:700}
 .win{font-weight:700}
 details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
-summary{cursor:pointer;font-weight:700}
+/* たたむ箱の見出しは、箱の上下と左右の余白まで押せるようにする（高さ44px以上。見た目は前と同じ。使いやすさの総点検の指摘7。トップと同じ） */
+summary{cursor:pointer;font-weight:700;margin:-8px -12px;padding:8px 12px}
+/* 場決めの会の、割り切れない同点で0.1pt多く取る人を選ぶ欄（使いやすさの総点検の指摘15） */
+.remopt{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700;cursor:pointer}
+.remopt input{width:22px;height:22px;margin:0;flex:none;accent-color:var(--accent)}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 /* 狭い画面は、選ぶ欄（P番号と名前）を1行目に、点棒とポイントを2行目に分ける */
-@media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:2em}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}.seat.nw{grid-template-columns:minmax(0,1fr) 6.6em;grid-template-areas:"sel sel" "in pt"}}
+@media (max-width:560px){.seat{grid-template-columns:2em minmax(0,1fr) 6.6em;grid-template-areas:"w sel sel" "w in pt";gap:6px 8px}.seat .w{align-self:stretch;display:flex;align-items:center;justify-content:center}.seat .sign{width:44px}.seat input{padding:9px 8px}.seat .pt{font-size:.9rem}.seat.nw{grid-template-columns:minmax(0,1fr) 6.6em;grid-template-areas:"sel sel" "in pt"}}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 </style>
 <script src="../fresh.js" defer></script>
@@ -123,6 +130,7 @@ summary{cursor:pointer;font-weight:700}
     <div id="qhint" class="small"></div>
     <div class="sum"><span id="qsumlab">合計</span><span id="qsum">0</span></div>
     <div id="qwarn" class="small neg"></div>
+    <div id="qrem" class="hint" style="margin-top:8px" hidden></div>
     <button class="primary" type="button" id="qsend">この卓の点数を送信する</button>
     <div id="qmsg" class="msg" aria-live="polite"></div>
     <div class="tools"><button class="ghost" type="button" id="qclear">この卓の点数を取り消す</button></div>
@@ -247,9 +255,17 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-function setTitle(t) { TTL = t || ''; const h = [TTL, PNAME].filter(Boolean).join(' '); document.title = h; $('ttl').textContent = '🀄' + (h ? ' ' + h : ''); }
+function setTitle(t) { TTL = t || ''; const h = [TTL, PNAME].filter(Boolean).join(' '); document.title = h; if (h) ttlWords($('ttl'), h); else $('ttl').textContent = '🀄'; }
+// 見出しを言葉ごとの span.w にする（言葉の途中で折り返さない。使いやすさの総点検の指摘18）。トップ・対戦表・幹部用・運営用の ttlWords と同じ（どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const e = document.createElement('span'); e.className = 'w'; e.textContent = (i ? '' : '🀄 ') + w; h.appendChild(e);
+  });
+}
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは集計係へ）';
+const LOCKED_TEXT = 'この半荘は確定しました。点数は変えられません（直すときは運営へ）';
 const BAD_UNIT = '百点単位の整数で入れてください（25,300点なら 253）';
 const fmt = n => (n === null || n === undefined) ? '' : n.toLocaleString('ja-JP');
 // ポイントは 0.1 単位の整数で持ち、表示で小数1桁にする（浮動小数の誤差を出さない）
@@ -276,17 +292,36 @@ const dnf = p => p ? p + (nm(p) ? ' ' + nm(p) : '') : '';     // 選ぶ欄（P�
 const isFinal = r => String(r).startsWith('F');
 const isLocked = r => LOCKED.includes(String(r)) || GLOCK.includes(String(r));
 // 場決めあり（taikai.json の bakime）。席と起家は卓で決めるので、報告の欄は席（東・南・西・北）を出さず、その卓の人の名前だけを出す（2026-11-02 主催）。
-// 並びは席ではない＝同点で0.1が割り切れないときの「起家に近い方」は使えない（README の bakime）
+// 並びは席ではない＝同点で0.1が割り切れないときの「起家に近い方」は、その卓の代表に選んでもらう（下の REM。README の bakime）
 const bakime = () => !!(CFG && CFG.bakime === true);
 const NAME_NOTE = '席は卓で決めるので、名前ごとに点棒を入れてください。';
 const PICK_NOTE = '打った人を選んでください（並びは席と関係ありません）。';
 const PH_NOTE = '組み合わせはくじで決まります。決まると、枠の番号のところに名前が出ます。点数はそれから送れます。';
+// くじの番号を待つ時期（2026-11-19。使いやすさの点検の指摘2）。日時は日本時間で比べる（受け口が番号を受け付ける時刻と同じ見方）。
+// kujiOpen＝抽せんの日の18時（kumiawase.py の KUJI_CUT）から後。運営が番号を入れられるので、受け口を読めないと、番号があるかどうか分からない。
+// kujiPast＝抽せんの日を過ぎた。番号がまだ入っていなければ「くじで決まります」は合わない（番号の入力を待っている）。
+// トップ・点数入力・対戦表・幹部用で同じ（どれかを直したら、ほかも直す）
+const KUJI_CUT = '18:00';
+const jstNow = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+const kujiOpen = d => jstNow() >= d + ' ' + KUJI_CUT;
+const kujiPast = d => jstNow().slice(0, 10) > d;
+// 枠の番号で仮置きしている間の1文（トップの kujiWait と同じ分け方）。API_NG＝いちばん新しい読み込みで受け口を読めなかった
+let API_NG = false;
+const PH_IN = '当せん番号の入力を待っています。運営が番号を入れると、枠の番号のところに名前が出ます。点数はそれから送れます。';
+const PH_NG = '組み合わせを読めませんでした（通信）。少し待ってから、下の「最新に更新」を押してください。';
+const PH_WAIT = '組み合わせを読み込んでいます…';
+function phNote() {
+  const d = String(CFG.kuji || '');
+  if (!API || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return PH_NOTE;
+  if (LOADED) return kujiPast(d) ? PH_IN : PH_NOTE;
+  return kujiOpen(d) ? (API_NG ? PH_NG : PH_WAIT) : PH_NOTE;
+}
 // 年齢の上下（taikai.json の nenrei が true の会）。予選の合計が同点なら、年齢が上の方が上位。
 // 受け口の agerank＝生年月日を入れた人どうしの年上からの順（1 が最年長・同じ日は同じ数）。生年月日は同点のときだけ幹部用ページで入れ、受け口からは返らない
 const nenrei = () => !!(CFG && CFG.nenrei === true);
 const age = p => (nenrei() && Number.isInteger(AGERANK[p])) ? AGERANK[p] : null;
 // 予選の合計が同じ人の並べ方（taikai.json の doten が "heikin" の会。2026-11-10 主催）: 予選の平均順位が小さい方、それも同じなら最下位（3麻は3着）の率が低い方が上位。
-// それも同じなら同じ順位の数字のまま（集計係が決める）。半荘の中の同点は、並んだ順位を分けて数える（1位と2位で並べば2人とも1.5位・2位と3位で並べば3着は0.5回ずつ）。
+// それも同じなら同じ順位の数字のまま（運営が決める）。半荘の中の同点は、並んだ順位を分けて数える（1位と2位で並べば2人とも1.5位・2位と3位で並べば3着は0.5回ずつ）。
 // 平均と率は、順位の和 pos と最下位の回数 last を 1/12 単位の整数で持ち、掛け算で比べる（浮動小数の誤差を出さない）。
 // トップ・対戦表・tools/kekka.py も同じ（どれかを直したら、ほかも直す）
 const heikin = () => !!(CFG && CFG.doten === 'heikin');
@@ -560,13 +595,13 @@ function finalMembers() {
   const skipped = rk.slice(0, K + gone.length).filter(x => gone.includes(x.p)).map(x => x.p);
   return { rk, tables, edge, skipped, junni: junniT, jedge, jrest };
 }
-// まだ決まらない同点の知らせ（what＝決まらないもの）。平均順位の会は、平均順位も最下位の率も同じとき（集計係が決める）。
-// nenrei の会は、同点の人全員の生年月日を入れれば決まる（同じ日なら集計係が決める）
+// まだ決まらない同点の知らせ（what＝決まらないもの）。平均順位の会は、平均順位も最下位の率も同じとき（運営が決める）。
+// nenrei の会は、同点の人全員の生年月日を入れれば決まる（同じ日なら運営が決める）
 function edgeText(eg, what) {
   const names = eg.map(x => dn(x.p)).join('・');
-  if (heikin()) return '予選の合計も平均順位も' + lastName() + 'も同じで、' + what + 'が決まりません（' + names + '）。集計係が決めてください。';
+  if (heikin()) return '予選の合計も平均順位も' + lastName() + 'も同じで、' + what + 'が決まりません（' + names + '）。運営が決めてください。';
   if (nenrei() && !eg.every(x => age(x.p) !== null)) return '予選の合計が同点で、' + what + 'が決まりません（' + names + '）。年齢が上の人が上位です。この人たち全員の生年月日を、幹部用ページの出席確認の「生年月日の欄を出す」から入れてください。';
-  return '予選の合計が同点で、' + what + 'が決まりません（' + names + '）。' + (nenrei() ? '生年月日も同じため、' : '') + '集計係が決めてください。';
+  return '予選の合計が同点で、' + what + 'が決まりません（' + names + '）。' + (nenrei() ? '生年月日も同じため、' : '') + '運営が決めてください。';
 }
 // 順位決定戦の卓の人数。mode 人ずつに分け、余りは下の卓から1人ずつ足す（3麻だけ＝4人で3人麻雀を回す。受け口は1卓4人まで）。
 // 足しきれない余りは抜け番（順位は予選の順）。7人なら [3, 4]、8人なら [4, 4]、5人なら [4]＋抜け番1人
@@ -650,7 +685,7 @@ function borderFor(rk, p) {
 }
 // ラインと同じ合計のとき: まだ決まらない同点のかたまり（順位の数字が同じ人）が、K位と K+1位の境目をまたぐかで分ける。
 // K位以内に収まれば「圏内（平均順位）」のように決め手を付ける（決まらない同点のまま全員が収まれば、平均順位の会は「圏内（同点）」、ほかは「圏内（年齢）」）。K+1位より下なら ''（ふつうの「あと」を出す）。
-// またぐときは、年齢の会で生年月日が足りなければ「同点（年齢で決まる）」、ほかは「同点（集計係が決める）」（第20回と同じ）
+// またぐときは、年齢の会で生年月日が足りなければ「同点（年齢で決まる）」、ほかは「同点（運営が決める）」（第20回と同じ）
 function lineTie(rk, x) {
   const gone = goneList(), ok = rk.filter(y => y.n > 0 && !gone.includes(y.p)), i = ok.indexOf(x), K = lineK();
   if (i < 0) return '';
@@ -659,9 +694,9 @@ function lineTie(rk, x) {
   while (hi + 1 < ok.length && ok[hi + 1].rank === x.rank) hi++;
   if (lo > K - 1) return '';
   if (hi <= K - 1) return x.kime || x.tie ? '圏内（' + (x.kime || (heikin() ? '同点' : '年齢')) + '）' : '';
-  return heikin() || !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（集計係が決める）' : '同点（年齢で決まる）';
+  return heikin() || !nenrei() || ok.slice(lo, hi + 1).every(y => age(y.p) !== null) ? '同点（運営が決める）' : '同点（年齢で決まる）';
 }
-// 集計表の列。「あと +N」＝上回るのに要るポイント（同点は会の決まりか集計係で決まるため、ラインより0.1多く）、「圏内 (+N)」＝K+1位との差
+// 集計表の列。「あと +N」＝上回るのに要るポイント（同点は会の決まりか運営で決まるため、ラインより0.1多く）、「圏内 (+N)」＝K+1位との差
 function borderText(rk, x) {
   if (!x.n || goneList().includes(x.p)) return '';
   const B = borderFor(rk, x.p); if (B === null) return '';
@@ -767,8 +802,56 @@ function rankOnly(raws, ps) {
   return raws.map((v, i) => ({ raw: v, rank: 1 + raws.filter((w, j) => w > v || (w === v && prk(j) < prk(i))).length, tie: raws.some((w, j) => j !== i && w === v && prk(j) === prk(i)), pts: null }));
 }
 const tableRes = (r, t, raws, ps) => isJunni(r, t) ? rankOnly(raws, ps) : calcTable(raws);
+// ---- 場決めの会の、割り切れない同点（使いやすさの総点検の指摘15・2026-11-19） ----
+// 同点の人で順位点（オカ込み）を分けて0.1ptで割り切れないとき（例: 4麻で3人が同点の1位）、ルール11章では起家に近い人が多く取る。
+// 場決めの会は報告の並びが席の順ではないので、その卓の代表に「多く取る人」を選んでもらい、送るときにその人をかたまりの前へ寄せる（calcTable は並びの前の人に多く付ける）。
+// 席の順で報告する会（場決めなし）は並びが席の順なので選ばない。順位決定戦はポイントをつけないので選ばない。REM は選んだ人（P番号 → true）
+let REM = {};
+const remOn = () => bakime() && !!qround.value && !!qtable.value && !isJunni(qround.value, qtable.value) && !isLocked(qround.value);
+// 割り切れない同点のかたまり（行の番号 idx と、多く取る人数 rem）。全員の点棒がそろっていなければ空
+function remGroups(raws) {
+  if (raws.length !== MODE || raws.some(v => v === null || v === undefined || Number.isNaN(v))) return [];
+  const bonus = umaFor(raws).map((x, i) => Math.round(x * 10) + (i === 0 ? OKA : 0));
+  const order = raws.map((raw, i) => ({ i, raw })).sort((a, b) => b.raw - a.raw || a.i - b.i), out = [];
+  for (let k = 0; k < MODE;) {
+    let j = k; while (j + 1 < MODE && order[j + 1].raw === order[k].raw) j++;
+    const n = j - k + 1, sum = bonus.slice(k, j + 1).reduce((a, b) => a + b, 0), rem = sum - Math.floor(sum / n) * n;
+    if (n > 1 && rem) out.push({ idx: order.slice(k, j + 1).map(o => o.i).sort((a, b) => a - b), rem });
+    k = j + 1;
+  }
+  return out;
+}
+const remReady = (ps, groups) => groups.every(g => g.idx.filter(i => REM[ps[i]]).length === g.rem);
+// 送る並び（perm[k]＝k番目に送る行）。かたまりごとに、選んだ人をかたまりの前の席へ寄せる（ほかの人の並びは変えない）
+function remPerm(ps, groups) {
+  const perm = ps.map((_, i) => i);
+  groups.forEach(g => { const pick = g.idx.filter(i => REM[ps[i]]), rest = g.idx.filter(i => !REM[ps[i]]); pick.concat(rest).forEach((ri, k) => { perm[g.idx[k]] = ri; }); });
+  return perm;
+}
+// 選ぶ欄。かたまりの顔ぶれが変わったときだけ作り直す（押している最中に作り直さない）
+function renderRem(ps, groups) {
+  const box = $('qrem'), key = groups.map(g => g.idx.map(i => ps[i]).join(',') + ':' + g.rem).join('|');
+  box.hidden = !groups.length;
+  if (!groups.length) { box.innerHTML = ''; box.dataset.key = ''; return; }
+  if (box.dataset.key !== key) {
+    box.dataset.key = key; box.innerHTML = '';
+    groups.forEach(g => {
+      const p = document.createElement('p'); p.style.margin = '0 0 4px';
+      p.textContent = g.idx.map(i => dn(ps[i])).join('・') + ' は同じ点棒です。順位点が0.1ptで割り切れないため、起家に近い' + g.rem + '人が0.1pt多く取ります。その' + g.rem + '人を選んでください。';
+      box.appendChild(p);
+      g.idx.forEach(i => {
+        const l = document.createElement('label'); l.className = 'remopt';
+        const c = document.createElement('input'); c.type = 'checkbox'; c.dataset.p = ps[i];
+        c.addEventListener('change', () => { EDITING = true; if (c.checked) REM[c.dataset.p] = true; else delete REM[c.dataset.p]; preview(); });
+        l.append(c, document.createTextNode(dn(ps[i])));
+        box.appendChild(l);
+      });
+    });
+  }
+  box.querySelectorAll('input').forEach(c => { c.checked = !!REM[c.dataset.p]; });
+}
 function fillSeats() {
-  EDITING = false;
+  EDITING = false; REM = {}; $('qrem').dataset.key = '';
   const r = qround.value, t = qtable.value, box = $('seats'); box.innerHTML = '';
   const hint = $('qhint'); hint.textContent = '';
   const N = r && t ? seatsOf(r, t) : MODE;
@@ -823,8 +906,10 @@ function fillSeats() {
     box.appendChild(row);
     if (locked) { inp.readOnly = true; inw.querySelector('.sign').disabled = true; }
   }
+  // 送ってある卓の、割り切れない同点で多く取る人＝送った並びで、かたまりの前にいる人（送るときに remPerm で寄せた人）
+  if (rec && remOn()) remGroups(rec.raw).forEach(g => g.idx.slice(0, g.rem).forEach(i => { REM[rec.p[i]] = true; }));
   const note = [];
-  if (named) note.push(ph ? PH_NOTE : NAME_NOTE);
+  if (named) note.push(ph ? phNote() : NAME_NOTE);
   if (isFinal(r)) {
     if (!bakime()) note.push('席は自動卓のサイコロで決めます。東（起家）から順に、座った人を選んでください。');
     if (jn && N > MODE) note.push('この卓は' + N + '人で' + MODE + '人麻雀を打ちます（局ごとに北家が抜ける）。');
@@ -906,7 +991,13 @@ function readSeats() {
 function preview() {
   // 「−」ボタンは、マイナスの数が入っているか、次に打つ数をマイナスにする待ちのときに色を付ける
   document.querySelectorAll('#seats .seat').forEach(r => { const i = r.querySelector('input'), b = r.querySelector('.sign'); const on = !!i.dataset.neg || Number(i.value) < 0; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  const seats = readSeats(), jn = isJunni(qround.value, qtable.value), res = tableRes(qround.value, qtable.value, seats.map(s => s.raw), seats.map(s => s.p));
+  const seats = readSeats(), jn = isJunni(qround.value, qtable.value), ps0 = seats.map(s => s.p), raws0 = seats.map(s => s.raw);
+  // 場決めの会の割り切れない同点は、選んだ人をかたまりの前へ寄せた並びで計算して、行に戻す（選び終わるまでは今の並びのまま）
+  const rg = remOn() ? remGroups(raws0) : [];
+  renderRem(ps0, rg);
+  const perm = rg.length && remReady(ps0, rg) ? remPerm(ps0, rg) : ps0.map((_, i) => i);
+  const resP = tableRes(qround.value, qtable.value, perm.map(i => raws0[i]), perm.map(i => ps0[i])), res = ps0.map(() => null);
+  perm.forEach((ri, k) => { res[ri] = resP[k]; });
   document.querySelectorAll('#seats .pt').forEach((el, i) => { el.textContent = res[i] ? res[i].rank + '位' + (res[i].tie ? '(同点)' : '') + (res[i].pts === null ? '' : ' ' + fpt(res[i].pts)) : ''; el.className = 'pt' + (res[i] && res[i].pts < 0 ? ' neg' : ''); });
   const filled = seats.filter(s => s.raw !== null && !Number.isNaN(s.raw));
   const sum = filled.reduce((a, s) => a + s.raw, 0), total = CFG.start * seats.length;
@@ -930,7 +1021,7 @@ async function post(body) {
 const ERR = { kai: '回の名前（大会設定）が不正です', round: '半荘の指定が不正です', table: '卓の指定が不正です', player: 'プレイヤーの指定が不正です', score: '点数の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', bad_json: '送り方が不正です', action: '送り方が不正です' };
 const BTNS = () => [$('qsend'), $('qclear')];
 $('qsend').addEventListener('click', async () => {
-  if (!API) { say('qmsg', '点数の受け口が未設定です', false); return; }
+  if (!API) { say('qmsg', '保存先が設定されていません', false); return; }
   const r = qround.value, t = qtable.value;
   if (!r || !t) { say('qmsg', '半荘と卓を選んでください', false); return; }
   if (isLocked(r)) { say('qmsg', LOCKED_TEXT, false); return; }
@@ -950,6 +1041,10 @@ $('qsend').addEventListener('click', async () => {
   if (big.length && !confirm(fmt(TOTAL) + '点以上です。合っていますか？\n' + big.map(s => dn(s.p) + ' ' + fmt(s.raw) + '点').join('\n'))) { say('qmsg', '送るのをやめました。点棒を確かめてください', false); return; }
   const mem = isFinal(r) ? [] : membersOf(r, t);
   if (mem.length && (mem.length !== MODE || !seats.every(s => mem.includes(s.p))) && !confirm('組み合わせ表と違う顔ぶれです。このまま送りますか？')) { say('qmsg', '送るのをやめました。半荘と卓が合っているか確かめてください', false); return; }
+  // 場決めの会の割り切れない同点: 多く取る人を選んでいなければ送らない。選んであれば、その人をかたまりの前へ寄せて送る
+  const rg = remOn() ? remGroups(seats.map(s => s.raw)) : [];
+  if (rg.length && !remReady(seats.map(s => s.p), rg)) { say('qmsg', '同じ点棒の人のうち、0.1pt多く取る人（起家に近い人）を、送信ボタンの上の欄で選んでください', false); return; }
+  if (rg.length) { const s0 = seats.slice(); remPerm(s0.map(s => s.p), rg).forEach((ri, k) => { seats[k] = s0[ri]; }); }
   const cur = recOf(r, t);
   if (cur && JSON.stringify(cur.p) + JSON.stringify(cur.raw) !== JSON.stringify(seats.map(s => s.p)) + JSON.stringify(seats.map(s => s.raw))
     && !confirm(tableLabel(r, t) + 'には、もう点数が入っています。上書きしますか？\n' + cur.p.map((p, i) => dn(p) + ' ' + fmt(cur.raw[i]) + '点').join('\n'))) { say('qmsg', '送るのをやめました', false); return; }
@@ -1006,7 +1101,9 @@ function render(d) {
   reshape();
   hideRuleLinks();
   entryState();
-  $('updated').textContent = !API ? '' : DATA.updated ? '最終更新 ' + DATA.updated : 'まだ報告がありません';
+  // 最終更新の時刻は、点数が1卓でも入ってから出す（前は名簿を送った時刻が「最終更新」に出た。使いやすさの総点検の指摘13）
+  const anyRec = Object.values(DATA.rounds || {}).some(o => o && Object.keys(o).length);
+  $('updated').textContent = !API ? '' : DATA.updated && anyRec ? '最終更新 ' + DATA.updated : 'まだ報告がありません';
   // 卓の入力状況
   const st = $('status'); st.innerHTML = '';
   PRELIM.concat(FINALS).forEach(r => {
@@ -1020,13 +1117,14 @@ function render(d) {
   const fm = K ? finalMembers() : null, finPs = fm ? fm.tables.flat() : [];
   const showLine = lineShow(), last = showLine ? lineRow(rk) : -1;
   const tb = $('tbl').querySelector('tbody'); tb.innerHTML = '';
-  const me = myName();
+  const me = myName(), anyPt = rk.some(x => x.n);
   rk.forEach((x, i) => {
     const tr = document.createElement('tr');
     if (finPs.includes(x.p)) tr.className = 'fin';
     if (i === last) tr.classList.add('line');
     if (x.p === me) tr.classList.add('me');
-    cell(tr, rankText(x));
+    // 予選の点数が1つも入っていない間は、順位を出さない（前は全員が「1位」と出た。使いやすさの総点検の指摘13）
+    cell(tr, anyPt ? rankText(x) : '');
     cell(tr, dn(x.p), 'l nm');
     cell(tr, x.n ? fpt(x.total) : '');
     if (showLine) cell(tr, borderText(rk, x));
@@ -1034,7 +1132,7 @@ function render(d) {
     cell(tr, x.n + '/' + PRELIM.length);
     tb.appendChild(tr);
   });
-  const notes = ['合計ポイントの順です。右の 1・2… は半荘ごとのポイントです。' + (hasNuke() ? '抜け番の半荘は0ポイントです。' : ''), heikin() ? '合計が同じ人は、予選の平均順位が上（数字が小さい）の人が上位です（「平均順位」と出ます）。それも同じなら' + lastName() + 'が低い人です（「' + lastName() + '」）。それも同じなら、同じ順位の数字で「同点」と出ます（集計係が決める）。' : nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
+  const notes = ['合計ポイントの順です。右の 1・2… は半荘ごとのポイントです。' + (hasNuke() ? '抜け番の半荘は0ポイントです。' : ''), heikin() ? '合計が同じ人は、予選の平均順位が上（数字が小さい）の人が上位です（「平均順位」と出ます）。それも同じなら' + lastName() + 'が低い人です（「' + lastName() + '」）。それも同じなら、同じ順位の数字で「同点」と出ます（運営が決める）。' : nenrei() ? '合計が同じ人は、年齢が上の人が上位です。生年月日が入るまでは、同じ順位の数字で「同点」と出ます（入ると「年齢」）。' : '合計が同じ人は、同じ順位の数字で「同点」と出ます。'];
   if (rk.some(x => x.p === me)) notes.push('色のついた行は、トップで選んだ自分の名前です。');
   if (K) notes.push('名前が太字の' + K + '人が決勝に進みます（上から順。途中で抜けた人は飛ばします）。' + (junni() ? 'ほかの人は順位決定戦です。' : ''));
   if (showLine) notes.push('「' + K + '位ライン」は、自分を除いた人の合計の上から' + K + '番目との差です。「あと」は上回るのに要るポイント、「圏内」は' + (K + 1) + '位との差です。');
@@ -1184,14 +1282,16 @@ async function load() {
   const timer = hold ? setTimeout(show, 4000) : 0;
   if (hold) { $('sub').textContent = '読み込み中…'; document.querySelectorAll('.pnav a.rule, .pnav a.tensu, .pnav a.kuji').forEach(a => { a.hidden = true; }); scoreLink(null); }
   else $('main').hidden = false;
-  if (!API) notes.push('点数の受け口（API）がまだ設定されていません。送信はできません。');
+  if (!API) notes.push('点数の保存先がまだ設定されていません。送信はできません。');
   setup(notes.join(' '));
   if (!API) { render(null); jumpOnce(); return; }
+  // 読めなかったときは、枠の番号で仮置きしている欄の1文を出し直す（「くじで決まります」のままにしない。打ちかけの欄は作り直さない）
+  const ng = t => { $('updated').textContent = t; API_NG = true; if (phShown() && !EDITING) fillSeats(); };
   try {
     const j = await getApi(API + '?kai=' + encodeURIComponent(CFG.kai));
-    if (j.ok && j.data && j.data.kai === CFG.kai) render(j.data);
-    else $('updated').textContent = '読み込みに失敗しました（' + (j.error || '受け口') + '）';
-  } catch (e) { $('updated').textContent = '読み込みに失敗しました（通信）'; }
+    if (j.ok && j.data && j.data.kai === CFG.kai) { API_NG = false; render(j.data); }
+    else ng('読み込みに失敗しました（' + (j.error || '保存先') + '）');
+  } catch (e) { ng('読み込みに失敗しました（通信）'); }
   clearTimeout(timer);
   if ($('main').hidden) show();
   jumpOnce();

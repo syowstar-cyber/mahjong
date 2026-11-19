@@ -15,6 +15,8 @@ a{color:var(--accent);text-decoration:underline}
 .wrap{max-width:760px;margin:0 auto;padding:0 16px 84px}
 header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:10px}
 header h1{font-size:1.35rem;margin:0;line-height:1.4}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。トップなどと同じ。使いやすさの総点検の指摘18） */
+header h1 .w{display:inline-block}
 header .sub{color:var(--muted);font-size:.9rem}
 .lead{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.98rem}
 .other{background:var(--soft);border:2px solid var(--accent);border-radius:8px;padding:10px 12px;margin:12px 0}
@@ -38,10 +40,12 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+/* 幅360px未満は、切り替えボタンを3つずつの段にそろえる（トップなどと同じ） */
+@media (max-width:359px){.pnav{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* このページだけの部品 */
-.halu,.san{display:inline-block;color:#fff;font-size:.78rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
+.halu,.san{display:inline-block;color:#fff;font-size:.875rem;font-weight:700;border-radius:4px;padding:0 6px;margin-right:4px;vertical-align:2px;line-height:1.6}
 .halu{background:var(--halu)}
 .san{background:var(--san)}
 .hbox,.sbox{border:2px solid;border-radius:10px;padding:10px 12px;margin:12px 0}
@@ -57,11 +61,11 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 /* 点数表（10章） */
 table.pt{font-size:.92rem}
 table.pt th,table.pt td{text-align:center;padding:7px 4px;white-space:nowrap}
-table.pt th small{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+table.pt th small{display:block;font-size:.875rem;color:var(--muted);font-weight:400}
 table.pt td b{display:block;font-size:1.02rem}
-table.pt .ts{display:block;font-size:.8rem;color:var(--muted)}
+table.pt .ts{display:block;font-size:.875rem;color:var(--muted)}
 table.pt td.man{background:var(--soft)!important;color:var(--accent);font-weight:700}
-table.pt td.man small{display:block;font-size:.72rem;font-weight:400}
+table.pt td.man small{display:block;font-size:.875rem;font-weight:400}
 table.pt td.na{color:var(--line)}
 td.c{text-align:center;white-space:nowrap}
 table td.yk{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;min-width:5em}
@@ -79,14 +83,14 @@ details.ch[open]>summary{margin-bottom:12px}
 .qbox{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;margin:12px 0}
 .qbox label{display:block;font-weight:700;margin:0 0 6px}
 .qrow{display:flex;gap:8px}
-.qrow input{flex:1 1 auto;min-width:0;padding:10px;font-size:1.05rem;font-family:inherit;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);-webkit-appearance:none;appearance:none}
-.qrow button{flex:0 0 auto;padding:10px 18px;font-size:1.05rem;font-family:inherit;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.qrow input{flex:1 1 auto;min-width:0;min-height:44px;padding:10px;font-size:1.05rem;font-family:inherit;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);-webkit-appearance:none;appearance:none}
+.qrow button{flex:0 0 auto;min-height:44px;padding:10px 18px;font-size:1.05rem;font-family:inherit;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
 .qbox .note{margin-top:6px;line-height:1.6}
-.qex button{margin:6px 6px 0 0;padding:6px 12px;font-size:.9rem;font-family:inherit;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.qex button{margin:6px 6px 0 0;min-height:44px;padding:6px 12px;font-size:.9rem;font-family:inherit;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:999px;cursor:pointer}
 .qhit{border-left:4px solid var(--accent);background:var(--soft);border-radius:0 8px 8px 0;padding:8px 10px;margin:10px 0 0}
-.qhit .qsec{font-size:.85rem;color:var(--muted);line-height:1.5;margin-bottom:2px}
+.qhit .qsec{font-size:.875rem;color:var(--muted);line-height:1.5;margin-bottom:2px}
 .qhit .tw{margin:6px 0}
-.qgo{margin-top:6px;padding:4px 12px;font-size:.88rem;font-family:inherit;color:var(--accent);background:var(--card);border:1px solid var(--accent);border-radius:999px;cursor:pointer}
+.qgo{margin-top:6px;padding:4px 12px;min-height:44px;font-size:.88rem;font-family:inherit;color:var(--accent);background:var(--card);border:1px solid var(--accent);border-radius:999px;cursor:pointer}
 .qmark,tr.qmark td{background:#fff1b8 !important}
 @media (max-width:420px){.qrow{flex-wrap:wrap}.qrow input,.qrow button{flex:1 1 100%}}
 </style>
@@ -98,7 +102,7 @@ details.ch[open]>summary{margin-bottom:12px}
     <h1 id="ttl">🀄 四麻Halu杯 ルール</h1>
     <div class="sub">草案（2026-11-18）。4人麻雀のルールです。</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html" aria-current="page">ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a class="score" href="../../score/">点数入力</a><a href="rule4.html" aria-current="page">ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <div class="other" id="other" hidden><p><b>このページは四麻のルールです。</b></p><p id="other-t"></p><p id="other-p"><a id="other-a" href="#">今の回のルールを開く</a></p></div>
   <section class="qbox" aria-label="ルールの質問">
     <form id="qf" autocomplete="off" role="search">
@@ -242,7 +246,7 @@ details.ch[open]>summary{margin-bottom:12px}
 </ul>
 <div class="ex">例: Aさんの予選が 1・3・2・4・2・1位なら平均順位は2.17、Bさんが 1・2・2・1・2・4位なら2.0 → 合計が同じなら、Bさんが上位</div>
 <ul>
-<li>平均順位も同じなら、4着率（4着になった半荘の割合）が低い人が上位です。それも同じなら、集計係が決めます。</li>
+<li>平均順位も同じなら、4着率（4着になった半荘の割合）が低い人が上位です。それも同じなら、運営が決めます。</li>
 <li>半荘の中で同じ点棒で並んだ人は、並んだ順位を分けて数えます。1位と2位で並べば、2人とも1.5位です。3位と4位で並べば、4着は0.5回ずつです。</li>
 <li>決勝の順位は、決勝のポイントの合計で決めます。予選のポイントは足しません。</li>
 <li>決勝の合計が同点なら、予選の順位が上の人が上位です。</li>
@@ -662,7 +666,7 @@ details.ch[open]>summary{margin-bottom:12px}
 <p class="src">一般的な競技ルールを、わかりやすく書いたものです。細かい解釈で迷ったときは、運営が判断します。<span class="halu">Halu杯</span> の印は本大会だけの決まりです。</p>
 
   </main>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html" aria-current="page">ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a class="score" href="../../score/">点数入力</a><a href="rule4.html" aria-current="page">ルール</a><a class="tensu" href="#" hidden>早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <a class="top" href="#" title="上へ">↑</a>
 </div>
 <script>
@@ -726,11 +730,23 @@ const KIND = 4, KIND_NAME = { 3: '三麻', 4: '四麻' }, TTL0 = $('ttl').textCo
 const kindOf = c => Number.isInteger(c.mode) ? c.mode : c.rule === 'rule.html' ? 3 : c.rule === 'rule4.html' ? 4 : 0;
 // 会の色と題名（題名は同じ種類の回だけ。違えばページの元の題名に戻す）。くじのボタンは、くじで決める会（kuji）だけ。
 // 早見表のボタンは、同じ種類の回で早見表のページ（tensu）があるときだけ（四麻の早見表は tensu4.html。2026-11-18）
+// この端末で結果を見た回か（キーと中身はトップ・点数入力・対戦表・幹部用の END_KEY と同じ＝回の名前）
+// 見出しを言葉ごとの span.w にする（トップ・点数入力・対戦表・幹部用・運営用の ttlWords と同じ。どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const x = document.createElement('span'); x.className = 'w'; x.textContent = (i ? '' : '🀄 ') + w; h.appendChild(x);
+  });
+}
+const endSeen = k => { try { return !!k && localStorage.getItem('halukai:end:' + G) === k; } catch (e) { return false; } };
 function shell(c) {
+  // 点数入力のボタンは、この端末で結果を見た回なら「対戦結果」と呼ぶ（ほかのページの scoreLink と同じ呼び名。使いやすさの総点検の指摘17・2026-11-19）
+  document.querySelectorAll('.pnav a.score').forEach(a => { a.textContent = endSeen(c.kai) ? '対戦結果' : '点数入力'; });
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
   const k = kindOf(c), t = k === KIND && c.title ? c.title + ' ルール' : '';
   document.title = t || DOC0;
-  $('ttl').textContent = t ? '🀄 ' + t : TTL0;
+  ttlWords($('ttl'), t || TTL0.replace('🀄 ', ''));
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
   const ts = k === KIND && /^[a-z0-9-]{1,30}\.html$/.test(c.tensu || '') ? c.tensu : '';
   document.querySelectorAll('.pnav a.tensu').forEach(a => { a.hidden = !ts; if (ts) a.setAttribute('href', ts); });

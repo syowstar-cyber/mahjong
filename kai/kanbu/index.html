@@ -20,8 +20,12 @@ h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent)
 h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
-.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem;min-height:44px}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。使いやすさの総点検の指摘18。トップと同じ） */
+header h1 .w{display:inline-block}
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+/* 切り替えボタンが1段に収まらない幅は、ます目にそろえる（トップと同じ形。幹部用は6つで、幅420px未満は1段に収まらず、前は「幹部用」だけが下の段に長く伸びた） */
+@media (max-width:419px){.pnav{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 /* 読み込みが終わるまで（本文が隠れている間）は、下の切り替えボタンを出さない（上の並びと隣り合って2重に見えるため） */
@@ -36,6 +40,8 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 4px}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
+.hint.warn{color:var(--ng);font-weight:700}
+#kujinote{margin:0 0 4px}
 .big{font-size:1.25rem;font-weight:700;margin:2px 0 8px}
 .att{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;padding:6px 6px;border-bottom:1px solid var(--line)}
 .att:last-child{border-bottom:0}
@@ -52,18 +58,30 @@ tr.now td{background:var(--soft)!important;color:var(--accent);font-weight:700;b
 .msg{min-height:1.5em;margin-top:8px;font-weight:700}
 .msg.ok{color:var(--ok)}.msg.ng{color:var(--ng)}
 /* たたむ箱（時間割）。対戦表のページと同じ形 */
-details.card>summary{cursor:pointer;font-weight:700}
-details.card[open]>summary{margin-bottom:8px}
+/* たたむ箱の見出しは、箱の上下と左右の余白まで押せるようにする（高さ44px以上。見た目は前と同じ。使いやすさの総点検の指摘7） */
+details.card>summary{cursor:pointer;font-weight:700;margin:-8px -16px;padding:8px 16px}
+details.card[open]>summary{margin-bottom:0}
 #utbl th:first-child,#utbl td:first-child{width:auto}
 #utbl th:nth-child(2),#utbl td:nth-child(2){width:5.5em}
 /* 出席確認（人数未定の間）の名前を足す・消す欄（当日の操作は 2026-11-19 に運営用ページへ移した） */
 .op{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:8px 0}
 .op label{font-weight:700;min-width:5.5em}
-.op select,.op input{font-size:1.05rem;padding:7px 10px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);max-width:100%}
-.act{background:var(--accent);color:var(--accent-fg);padding:9px 16px}
+.op select,.op input{font-size:1.05rem;padding:7px 10px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);max-width:100%;min-height:44px}
+.act{background:var(--accent);color:var(--accent-fg);padding:9px 16px;min-height:44px}
 .act:disabled,.ghost:disabled,.op input:disabled{opacity:.5;cursor:default}
 /* 出席確認（人数未定の間）。名前が多いので、広い画面では2〜3列にする */
 #sklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(13em,1fr));column-gap:14px}
+/* 出席確認の人数と知らせは、一覧を下へ送っても画面の上に残す（34人で一覧が約2,000px。前は知らせが一覧の下にあり、送れなかったことに気づけなかった。2026-11-19 使いやすさの点検）。
+   知らせの欄は2行分の高さを空けておく（知らせが出たときに、押している一覧がずれないように） */
+.skbar{position:sticky;top:0;z-index:2;background:var(--card);margin:-12px -16px 8px;padding:8px 16px 6px;border-bottom:1px solid var(--line);border-radius:11px 11px 0 0}
+.skbar .big{margin:0;font-size:1.15rem;line-height:1.4}
+.skbar .big small{font-size:.8em;font-weight:400;color:var(--muted)}
+.skbar .msg{margin:2px 0 0;min-height:2.9em;font-size:.95rem;line-height:1.45}
+.skbar .msg.idle{font-weight:400;color:var(--muted)}
+/* 送っている間の行は薄くする。送れなかった行は赤くし、名前の下に「送れませんでした」と出す（送れるまで残す） */
+.att.pend{opacity:.55}
+.att.fail{background:#fdecee;box-shadow:inset 4px 0 0 var(--ng)}
+.att .st{display:block;font-size:.875rem;line-height:1.3;color:var(--ng);font-weight:700}
 .op input.name{width:11em}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
@@ -81,6 +99,7 @@ details.card[open]>summary{margin-bottom:8px}
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
+  <p class="hint" id="kujinote" hidden></p>
   <div id="junbibox" hidden>
   <h2>準備</h2>
   <div class="card">
@@ -94,10 +113,12 @@ details.card[open]>summary{margin-bottom:8px}
   <p class="hint" id="sknote" hidden></p>
   <div id="skmain">
   <div class="card">
-    <div class="big" id="skcount"></div>
-    <p class="small" style="margin:0 0 6px">参加する人にチェックを付けます。チェックは受け口に入り、幹部のどの端末にも出ます。</p>
+    <div class="skbar">
+      <div class="big" id="skcount"></div>
+      <div id="skmsg" class="msg idle" aria-live="polite">押した結果は、ここに出ます。</div>
+    </div>
+    <p class="small" style="margin:0 0 6px">参加する人にチェックを付けます。チェックは保存され、幹部のどの端末にも出ます。</p>
     <div id="sklist"></div>
-    <div id="skmsg" class="msg" aria-live="polite"></div>
   </div>
   <details class="card" id="skedit">
     <summary>名前を足す・消す</summary>
@@ -111,7 +132,7 @@ details.card[open]>summary{margin-bottom:8px}
   <p id="sknames"></p>
   </div>
   <div class="tools"><button class="ghost" type="button" id="skreload">読み直す</button></div>
-  <p class="small">締め切りの後に、チェックの付いた人で名簿と組み合わせを作ります。人数が決まると、この欄は当日の受付の表に替わります。</p>
+  <p class="small">出席が決まったら、チェックの付いた人で名簿と組み合わせを作ります。人数が決まると、この欄は当日の受付の表に替わります。</p>
   </div>
 
   <div id="herebox">
@@ -130,7 +151,7 @@ details.card[open]>summary{margin-bottom:8px}
   <p class="small">このページのチェックは、この端末だけに残ります。ほかの人の端末とは共有しません。</p>
   <h3>まだ来ていない人</h3>
   <p id="notyet"></p>
-  <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を伝えます。push してから1〜2分でページに出ます。</p>
+  <p class="hint">始まる前に欠席が決まったら、組み合わせを1半荘目から組み直します。組み直しを頼むときは、欠席の人の番号（例: P5）を主催に伝えます。組み直した表は、1〜2分でページに出ます。</p>
   </div>
 
   <div id="uchibox" hidden>
@@ -238,12 +259,20 @@ function readShell() {
     return o.title ? o : null;
   } catch (e) { return null; }
 }
-function setTitle(t) { document.title = t + ' 幹部用'; $('ttl').textContent = '🀄 ' + t + ' 幹部用'; }
+function setTitle(t) { document.title = t + ' 幹部用'; ttlWords($('ttl'), t + ' 幹部用'); }
+// 見出しを言葉ごとの span.w にする（言葉の途中で折り返さない。使いやすさの総点検の指摘18）。トップ・点数入力・対戦表・運営用の ttlWords と同じ（どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const e = document.createElement('span'); e.className = 'w'; e.textContent = (i ? '' : '🀄 ') + w; h.appendChild(e);
+  });
+}
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 // 送った結果の知らせ（出席確認の欄）。受け口に断られたときの言い方
 function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
-const opErr = e => e.message === 'action' ? '受け口が古いため、受け付けませんでした。受け口を新しいバージョンでデプロイしてください'
-  : e.message === 'busy' ? '受け口が混み合っています。少し待って、もう一度押してください'
+const opErr = e => e.message === 'action' ? '保存先の仕組みが古いため、受け付けませんでした。主催に知らせてください'
+  : e.message === 'busy' ? '混み合っています。少し待って、もう一度押してください'
   : '送れませんでした。通信を確かめて、もう一度押してください';
 
 // ---- 時間割（taikai.json の schedule＝[["10:45","集合・受付"], …]）。開催日の当日は、いまの行に色をつける。運営用ページで時刻をずらしたら、ずらした後の時刻で出す ----
@@ -329,8 +358,8 @@ function renderAttend() {
   bt.textContent = BSHOW ? '生年月日の欄を閉じる' : '生年月日の欄を出す（同点のとき' + (n ? '・入力済み ' + n + '人' : '') + '）';
   bt.setAttribute('aria-expanded', BSHOW ? 'true' : 'false');
   bn.hidden = !nenrei() || (can && !BSHOW);
-  bn.textContent = !API ? '受け口が未設定のため、生年月日は入れられません。'
-    : !BIRTH_OK ? '受け口が古いか、つながらないため、生年月日は入れられません（受け口を新しいバージョンでデプロイすると使えます。つながらないときは「名前を読み直す」）。'
+  bn.textContent = !API ? '保存先が設定されていないため、生年月日は入れられません。'
+    : !BIRTH_OK ? '保存先の仕組みが古いか、つながらないため、生年月日は入れられません（古いときは主催に知らせてください。つながらないときは「名前を読み直す」）。'
     : '生年月日は、予選の合計が同点のときだけ、その人たちの分を入れます（年齢が上の人が上位）。どのページにも出ず、入れた後は「入力済み」とだけ出ます。幹部の端末で共有されます。';
   people().forEach(p => {
     const row = document.createElement('div'); row.className = 'att' + (HERE.has(p) ? ' here' : '');
@@ -384,7 +413,7 @@ async function sendBirth(p, date, btn) {
   } catch (e) {
     sayB(e.message === 'date' ? '生年月日が正しくありません（1900年〜今日まで）'
       : e.message === 'closed' ? 'この回は、生年月日の受け付けを締め切りました'
-      : e.message === 'action' ? '受け口が古いため、生年月日を受け付けません。受け口を新しいバージョンでデプロイしてください'
+      : e.message === 'action' ? '保存先の仕組みが古いため、生年月日を受け付けません。主催に知らせてください'
       : '送れませんでした。通信を確かめて、もう一度押してください', false);
   } finally { btn.disabled = false; }
 }
@@ -399,6 +428,12 @@ const skai = () => CFG.kai + '-s';
 let SK_ROSTER = {}, SK_CHECK = {}, SK_ST = 'none';
 // 送っている間のチェック（P番号 → 付けるか）。返事を待つ間に表を作り直しても、押した形のまま出す（押し直せないようにする）
 const SK_PEND = new Map();
+// 送れなかったチェック（P番号 → { on: 付けようとしたか, err: 断られたわけ }）。行を赤くし、送れるまで残す（後から送れたほかの人の知らせで、消えてしまわないように）。
+// 受け口の中身がそのとおりになったら消す（ほかの幹部が同じチェックを付けた・受け口には入ったが返事だけが届かなかった、のとき）
+const SK_FAIL = new Map();
+// 知らせの欄に、いま何を出しているか（'' ＝ 初めの文・ok・ng）。初めの文は HTML に書いたもの
+let SK_SAID = '';
+const SK_IDLE = $('skmsg').textContent;
 const skPeople = () => Object.keys(SK_ROSTER).filter(p => /^P\d{1,2}$/.test(p) && SK_ROSTER[p]).sort((a, b) => a.slice(1) - b.slice(1));
 const skYes = p => SK_PEND.has(p) ? SK_PEND.get(p) : !!(SK_CHECK[p] && SK_CHECK[p].choice === 'yes');
 // 同じ名前かどうか（全角・半角と空白の違いは同じとみなす）
@@ -415,23 +450,28 @@ function renderS() {
   if (!on) return;
   const ok = SK_ST === 'ok';
   $('sknote').hidden = ok; $('skmain').hidden = !ok;
-  $('sknote').textContent = SK_ST === 'none' ? '受け口が未設定のため、出席確認は使えません。'
+  $('sknote').textContent = SK_ST === 'none' ? '保存先が設定されていないため、出席確認は使えません。'
     : SK_ST === 'long' ? '回の名前（taikai.json の kai）が長すぎるため、出席確認は使えません（22字までにしてください）。'
-    : SK_ST === 'net' ? '受け口を読めませんでした（通信）。少し待ってから「読み直す」を押してください。'
-    : '受け口が古いため、出席確認は使えません。受け口を新しいバージョンでデプロイすると使えます。';
+    : SK_ST === 'net' ? '読み込めませんでした（通信）。少し待ってから「読み直す」を押してください。'
+    : '保存先の仕組みが古いため、出席確認は使えません。主催に知らせてください。';
   if (!ok) return;
   const ps = skPeople(), yes = ps.filter(skYes), n = yes.length, M = CFG.mode;
-  $('skcount').textContent = '参加 ' + n + '人' + (n >= M ? '（' + Math.floor(n / M) + '卓。' + (n % M ? '半荘ごとに' + n % M + '人が抜け番' : '抜け番なし') + '）' : '');
+  SK_FAIL.forEach((f, p) => { if (!ps.includes(p) || skYes(p) === f.on) SK_FAIL.delete(p); });
+  // 人数の後ろに、卓の数と抜け番の人数を小さく足す（画面の上に残す欄なので、幅320pxでも1行に収まる短い形にする）
+  const sc = $('skcount'); sc.textContent = '参加 ' + n + '人';
+  if (n >= M) { const s = document.createElement('small'); s.textContent = '（' + Math.floor(n / M) + '卓・' + (n % M ? '抜け番' + n % M + '人' : '抜け番なし') + '）'; sc.appendChild(s); }
   const box = $('sklist'); box.innerHTML = '';
   if (!ps.length) box.innerHTML = '<p class="small" style="margin:0;grid-column:1/-1">名前の一覧は、まだ入っていません。</p>';
   ps.forEach(p => {
-    const row = document.createElement('div'); row.className = 'att' + (skYes(p) ? ' here' : '');
+    const row = document.createElement('div'); row.className = 'att' + (skYes(p) ? ' here' : '') + (SK_PEND.has(p) ? ' pend' : SK_FAIL.has(p) ? ' fail' : '');
     const lab = document.createElement('label'); lab.className = 'who';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = skYes(p); cb.disabled = SK_PEND.has(p);
     cb.addEventListener('change', () => sendCheck(p, cb.checked));
     const sp = document.createElement('span'); sp.textContent = SK_ROSTER[p];
+    if (SK_FAIL.has(p) && !SK_PEND.has(p)) { const st = document.createElement('small'); st.className = 'st'; st.textContent = '送れませんでした'; sp.appendChild(st); }
     lab.append(cb, sp); row.appendChild(lab); box.appendChild(row);
   });
+  if (SK_SAID === 'ng') skSay('');
   $('sknames').textContent = n ? yes.map(p => SK_ROSTER[p]).join('・') : 'まだいません。';
   const sel = $('skdelsel'), keep = sel.value;
   sel.innerHTML = ''; sel.appendChild(new Option('（選ぶ）', ''));
@@ -448,15 +488,27 @@ async function sendS(body) {
 }
 async function sendCheck(p, on) {
   const nm = SK_ROSTER[p] || p;
-  SK_PEND.set(p, on); renderS();
+  SK_FAIL.delete(p); SK_PEND.set(p, on); renderS();
   try {
     await sendS({ action: 'uchiage', player: p, choice: on ? 'yes' : '' });
     SK_PEND.delete(p); renderS();
-    say('skmsg', nm + (on ? ' に参加のチェックを付けました。' : ' のチェックを外しました。'), true);
+    skSay(nm + (on ? ' に参加のチェックを付けました。' : ' のチェックを外しました。'));
   } catch (e) {
-    SK_PEND.delete(p); renderS();
-    say('skmsg', nm + '：' + opErr(e), false);
+    SK_FAIL.set(p, { on, err: e.message }); SK_PEND.delete(p); renderS();
+    skSay('');
   }
+}
+// 出席確認の知らせ（画面の上に残す欄）。送れなかったチェックが残っている間は、そちらを出す（ほかの人の「付けました」で消さない）。
+// 送れなかったチェックがなくなったら、送れた知らせ（okText）を出す。okText が空なら初めの文に戻す
+function skSay(okText) {
+  const f = [...SK_FAIL.keys()], e = f.length ? SK_FAIL.get(f[0]).err : '';
+  SK_SAID = f.length ? 'ng' : okText ? 'ok' : '';
+  const t = f.length > 1 ? '送れなかった人が ' + f.length + '人います。赤い行を、もう一度押してください。'
+    : f.length ? (SK_ROSTER[f[0]] || f[0]) + ' を送れませんでした。' + (e === 'action' ? opErr({ message: e }) : 'もう一度押してください。')
+    : okText || SK_IDLE;
+  // 同じ文なら書き直さない（読み上げで、同じ知らせを何度も読ませない）
+  const m = $('skmsg'), cls = 'msg ' + (SK_SAID === 'ng' ? 'ng' : SK_SAID === 'ok' ? 'ok' : 'idle');
+  if (m.textContent !== t || m.className !== cls) { m.textContent = t; m.className = cls; }
 }
 // 初めての人を足す。足す直前に読み直して、空いている次の番号を使う（ほかの幹部が足したばかりの番号に上書きしない）。足した人には参加のチェックを付ける
 async function addS() {
@@ -481,7 +533,7 @@ async function addS() {
     say('skemsg', '「' + name + '」を足して、参加のチェックを付けました。', true);
   } catch (e) {
     renderS();
-    say('skemsg', e.message === 'full' ? 'これ以上は足せません（99人まで）' : e.message === 'name' ? '名前の形が受け口で断られました（20字まで・< と > は使えません）' : opErr(e), false);
+    say('skemsg', e.message === 'full' ? 'これ以上は足せません（99人まで）' : e.message === 'name' ? '名前の形が受け付けられませんでした（20字まで・< と > は使えません）' : opErr(e), false);
   } finally { btn.disabled = false; }
 }
 // 打ち間違えた名前を消す。チェックを先に外してから名前を消す（途中で止まっても、チェックだけが残らないように）
@@ -514,7 +566,7 @@ function renderUchi() {
   $('ucount').hidden = !ok; $('utw').hidden = !ok; $('unote').hidden = ok;
   $('ucount').textContent = ok ? '参加 ' + y + '人・不参加 ' + n + '人・まだ ' + (ps.length - y - n) + '人' : '';
   $('unote').textContent = UCHI_ST === 'net' ? '打ち上げの回答を読めませんでした（通信）。少し待ってから「回答を読み直す」を押してください。'
-    : '打ち上げの回答を読めません。受け口が未設定か、古いバージョンです（新しいバージョンでデプロイすると出ます）。';
+    : '打ち上げの回答を読めません。保存先が設定されていないか、仕組みが古いためです（主催に知らせてください）。';
   const t = $('utbl'); t.innerHTML = '';
   if (!ok) return;
   t.innerHTML = '<thead><tr><th>名前</th><th>打ち上げ</th></tr></thead>';
@@ -538,7 +590,7 @@ function renderCfg() {
     ['予選', c.prelim + '半荘'],
     ['決勝', n ? '予選の上位' + n + '人・' + c.final.hanchan + '半荘' : 'なし'],
     ...(n ? [['順位決定戦', c.final.junni === 1 ? '決勝に出ない人が、決勝1半荘目の時間に1半荘' : 'なし']] : []),
-    ['予選の同点', c.doten === 'heikin' ? '予選の平均順位が上の人が上位（それも同じなら' + c.mode + '着率が低い人。それも同じなら集計係が決める）' : nenrei() ? '年齢が上の人が上位（生年月日を入れる）' : '同じ順位（集計係が決める）'],
+    ['予選の同点', c.doten === 'heikin' ? '予選の平均順位が上の人が上位（それも同じなら' + c.mode + '着率が低い人。それも同じなら運営が決める）' : nenrei() ? '年齢が上の人が上位（生年月日を入れる）' : '同じ順位（運営が決める）'],
     ['持ち点', Number.isInteger(c.start) && Number.isInteger(c.return) ? fmt(c.start) + '点持ち・' + fmt(c.return) + '点返し' : '―'],
     ['トビ終了', c.tobi === true ? 'あり（箱下もそのまま計算）' : 'なし'],
     ['回の名前', c.kai],
@@ -551,6 +603,31 @@ function renderCfg() {
 
 const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
 async function getJson(u) { const r = await fetch(bust(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+// ---- くじの番号がまだ入っていない知らせ（2026-11-19。使いやすさの点検の指摘2） ----
+// 当日の操作の会（tojitsu。番号を運営用ページで入れる会）で、番号を入れられる時刻（抽せんの日の18時）から後に、受け口に番号がないとき、ページの一番上に出す。
+// 前は、抽せんの日を過ぎても番号がないままのとき、どのページにも知らせが出なかった（トップと対戦表は「夜に、くじで決まります」のままだった）。
+// 日時は日本時間で比べる。jstNow・kujiOpen・kujiPast はトップ・点数入力・対戦表と同じ（どれかを直したら、ほかも直す）
+const KUJI_CUT = '18:00';
+const jstNow = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+const kujiOpen = d => jstNow() >= d + ' ' + KUJI_CUT;
+const kujiPast = d => jstNow().slice(0, 10) > d;
+// '' ＝出さない、'open' ＝抽せんの日のうち（番号を入れられる時刻から後）、'past' ＝抽せんの日を過ぎた。q は受け口のくじの番号（{n4, date, …}）
+let KUJI_MISS = '';
+async function kujiMiss(c, q) {
+  const d = String(c.kuji || '');
+  if (c.tojitsu !== true || miteiOf(c) || !/^\d{4}-\d{2}-\d{2}$/.test(d) || !kujiOpen(d)) return '';
+  if (q && typeof q === 'object' && q.date === d && /^\d{4}$/.test(String(q.n4 || ''))) return '';
+  // 組み合わせ表に番号か表が書いてある回（道具で書いて push した回）は、番号を待っていない
+  const k = await getJson(CONF + 'kumiawase.json').catch(() => null);
+  if (k && k.kai === c.kai && ((k.kuji && k.kuji.n4) || (k.rounds && typeof k.rounds === 'object' && Object.keys(k.rounds).length))) return '';
+  return kujiPast(d) ? 'past' : 'open';
+}
+function renderKujiNote() {
+  const n = $('kujinote');
+  n.hidden = !KUJI_MISS; n.className = 'hint' + (KUJI_MISS === 'past' ? ' warn' : '');
+  n.textContent = KUJI_MISS === 'past' ? 'くじの番号が、まだ入っていません。運営が運営用ページで当せん番号を入れると、組み合わせが出ます。運営に知らせてください。'
+    : KUJI_MISS === 'open' ? 'くじの番号は、まだ入っていません。抽せんの後に、運営が運営用ページで当せん番号を入れます。' : '';
+}
 // 受け口を読む。スマホの回線などで一時的に読めないことがあるので、読めなかったら少し待って、あと2回まで読み直す。1回は15秒で打ち切る
 // （2026-11-14 主催「元に戻ってる」。トップ・点数入力・対戦表・幹部用で同じ。どれかを直したら、ほかも直す）
 async function getApi(u) {
@@ -602,6 +679,8 @@ async function load() {
         END = resultDone(c, j.data.rounds); GOT = true; rememberEnd(END);
         // 時間割に足す時刻ずらし（運営用ページで入れる。古い受け口は shift を返さない）。読めなかった読み直しでは、前に読めた分のまま
         SHIFT = Array.isArray(j.data.shift) ? j.data.shift.filter(x => x && T_RE.test(String(x.from)) && Number.isInteger(x.min)) : [];
+        // くじの番号がまだ入っていない知らせ（受け口を読めたときだけ決め直す。読めなかった読み直しでは、前のまま）
+        KUJI_MISS = await kujiMiss(c, j.data.kuji);
       }
     }
     catch (e) { notes.push('名前を読めませんでした（通信）。番号で出しています。'); if (UCHI_ST !== 'ok') UCHI_ST = 'net'; }
@@ -618,7 +697,7 @@ async function load() {
   setup(notes.join(' '));
   loadHere();
   $('main').hidden = false;
-  renderJunbi(); renderSched(); renderS(); renderAttend(); renderUchi(); renderCfg();
+  renderKujiNote(); renderJunbi(); renderSched(); renderS(); renderAttend(); renderUchi(); renderCfg();
 }
 $('reload').addEventListener('click', load);
 $('skreload').addEventListener('click', load);

@@ -20,8 +20,13 @@ h2{font-size:1.1rem;margin:26px 0 10px;padding:9px 14px;background:var(--accent)
 h3{font-size:1.02rem;margin:18px 0 6px;border-left:5px solid var(--accent);padding-left:10px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
 button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:pointer}
-.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem}
+.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);padding:8px 12px;font-size:.95rem;min-height:44px}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。使いやすさの総点検の指摘18。トップと同じ） */
+header h1 .w{display:inline-block}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 4px}
+/* 実況の入れる欄へ飛ぶボタン（使いやすさの総点検の指摘11） */
+.golive{display:flex;align-items:center;justify-content:center;min-height:44px;margin:8px 0;padding:8px 12px;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-weight:700;text-decoration:none}
+.golive[hidden]{display:none}
 .small{color:var(--muted);font-size:.9rem}
 .hint{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.95rem}
 .big{font-size:1.25rem;font-weight:700;margin:2px 0 8px}
@@ -30,9 +35,9 @@ button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:point
 /* 当日の操作（幹部用ページにあった形のまま） */
 .op{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:8px 0}
 .op label{font-weight:700;min-width:5.5em}
-.op select,.op input{font-size:1.05rem;padding:7px 10px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);max-width:100%}
+.op select,.op input{font-size:1.05rem;padding:7px 10px;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg);max-width:100%;min-height:44px}
 .op input{width:6.2em;letter-spacing:.12em;font-family:ui-monospace,Menlo,Consolas,monospace}
-.act{background:var(--accent);color:var(--accent-fg);padding:9px 16px}
+.act{background:var(--accent);color:var(--accent-fg);padding:9px 16px;min-height:44px}
 .act:disabled,.ghost:disabled,.op input:disabled,.send:disabled{opacity:.5;cursor:default}
 /* 半荘の確定の1行。左に半荘の名前と状態（2段）、右にボタン */
 .lk{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 10px;padding:8px 6px;border-bottom:1px solid var(--line)}
@@ -52,7 +57,7 @@ button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:point
 .lv3.lv4{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:520px){.lv3.lv4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .lvlab{font-weight:700;font-size:.92rem;margin-top:6px}
-.chk{display:flex;gap:8px;align-items:center;margin:4px 0 0;font-weight:700}
+.chk{display:flex;gap:8px;align-items:center;margin:4px 0 0;font-weight:700;min-height:44px;cursor:pointer}
 .chk input{width:22px;height:22px;margin:0}
 .send{width:100%;margin-top:10px;padding:12px;background:var(--accent);color:var(--accent-fg)}
 #lfclear{margin-top:10px}
@@ -71,8 +76,9 @@ button{font-size:1.05rem;border:0;border-radius:8px;font-weight:700;cursor:point
   <div id="setup" class="hint" hidden></div>
 
   <div id="main" hidden>
-  <p class="small" style="margin:0">このページは、運営の1人だけが使います。ここで入れたものは受け口に入り、ほかのページ（トップ・点数入力・対戦表・幹部用）に出ます。</p>
-  <div class="tools"><button class="ghost" type="button" id="oreload">受け口を読み直す</button><span class="small" id="readat"></span></div>
+  <p class="small" style="margin:0">このページは、運営の1人だけが使います。ここで入れたものは保存され、ほかのページ（トップ・点数入力・対戦表・幹部用）に出ます。</p>
+  <div class="tools"><button class="ghost" type="button" id="oreload">最新を読み直す</button><span class="small" id="readat"></span></div>
+  <a class="golive" id="golive" href="#livesec" hidden>決勝最終実況の入力へ ↓</a>
 
   <div id="opsbox" hidden>
   <h2>当日の操作</h2>
@@ -192,7 +198,15 @@ const allFixed = c => {
   const rs = Array.from({ length: Number(c.prelim) || 0 }, (_, i) => String(i + 1)).concat(f.tables > 0 ? Array.from({ length: Number(f.hanchan) || 0 }, (_, i) => 'F' + (i + 1)) : []);
   return rs.length > 0 && rs.every(r => ls.includes(r));
 };
-function setTitle(t) { document.title = t + ' 運営用'; $('ttl').textContent = '🀄 ' + t + ' 運営用'; }
+function setTitle(t) { document.title = t + ' 運営用'; ttlWords($('ttl'), t + ' 運営用'); }
+// 見出しを言葉ごとの span.w にする（言葉の途中で折り返さない。使いやすさの総点検の指摘18）。トップ・点数入力・対戦表・幹部用の ttlWords と同じ（どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const e = document.createElement('span'); e.className = 'w'; e.textContent = (i ? '' : '🀄 ') + w; h.appendChild(e);
+  });
+}
 function setup(msg) { $('setup').textContent = msg; $('setup').hidden = !msg; }
 function say(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'ng'); }
 const schedRows = () => Array.isArray(CFG.schedule) ? CFG.schedule.filter(r => Array.isArray(r) && T_RE.test(String(r[0])) && typeof r[1] === 'string') : [];
@@ -214,7 +228,9 @@ function take(d) {
   KUJI = d.kuji && typeof d.kuji === 'object' ? d.kuji : null;
   return true;
 }
-function renderAll() { renderOps(); renderLive(); }
+function renderAll() { renderOps(); renderLive(); goLive(); }
+// 上の「決勝最終実況の入力へ」。入れる欄が出ているときだけ出す（入れる欄はページの一番下で、当日の操作の下にあるため。使いやすさの総点検の指摘11・2026-11-19）
+function goLive() { $('golive').hidden = $('livesec').hidden || $('liveform').hidden; }
 
 // ---- 当日の操作（taikai.json の tojitsu が true の会。2026-11-15 第21回の準備。2026-11-19 に幹部用ページから移した） ----
 // 当日の push を無くすため、時刻ずらし・半荘の確定・くじの番号を、このページから受け口へ送る。tojitsu の無い会には出さない。
@@ -226,8 +242,8 @@ async function sendOp(body) {
   if (!j || !j.ok) throw new Error((j && j.error) || 'ng');
   return j;
 }
-const opErr = e => e.message === 'action' ? '受け口が古いため、受け付けませんでした。受け口を新しいバージョンでデプロイしてください'
-  : e.message === 'busy' ? '受け口が混み合っています。少し待って、もう一度押してください'
+const opErr = e => e.message === 'action' ? '保存先の仕組みが古いため、受け付けませんでした。主催に知らせてください'
+  : e.message === 'busy' ? '混み合っています。少し待って、もう一度押してください'
   : '送れませんでした。通信を確かめて、もう一度押してください';
 function renderOps() {
   const on = tojitsu();
@@ -235,9 +251,9 @@ function renderOps() {
   if (!on) return;
   const ok = !!API && OPS_ST === 'ok';
   $('opsnote').hidden = ok;
-  $('opsnote').textContent = !API ? '受け口が未設定のため、当日の操作は使えません。'
-    : OPS_ST === 'net' ? '受け口を読めませんでした（通信）。少し待ってから「受け口を読み直す」を押してください。'
-    : '受け口が古いため、当日の操作は使えません。受け口を新しいバージョンでデプロイすると使えます。';
+  $('opsnote').textContent = !API ? '保存先が設定されていないため、当日の操作は使えません。'
+    : OPS_ST === 'net' ? '読み込めませんでした（通信）。少し待ってから「最新を読み直す」を押してください。'
+    : '保存先の仕組みが古いため、当日の操作は使えません。主催に知らせてください。';
   renderKuji(ok); renderShift(ok); renderLocks(ok);
 }
 
@@ -277,7 +293,7 @@ async function sendKuji(clear) {
   let m = '', ok = false;
   try { await sendOp({ action: 'kuji', date: d, n4 }); ok = true; m = clear ? 'くじの番号を取り消しました。' : 'くじの番号 ' + n4 + ' を入れました。'; if (!clear) $('kn4').value = ''; }
   catch (e) {
-    m = e.message === 'early' ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前なので、受け口が受け付けませんでした'
+    m = e.message === 'early' ? '抽せんの日の' + Number(KUJI_CUT.slice(0, 2)) + '時より前なので、受け付けませんでした'
       : e.message === 'n4' ? '当せん番号を4桁の数字で入れてください'
       : e.message === 'date' ? '大会設定の抽せんの日（kuji）の形が違います' : opErr(e);
   }
@@ -383,7 +399,7 @@ async function sendLock(r, on, btn) {
 
 // ---- 決勝最終実況の入力（2026-11-02 主催。2026-11-19 に対戦表の9章から移した） ----
 // 運営の1人が局ごとに、これから打つ局・本場・供託と、いまの点棒を入れて受け口の live に置く。見ている人には、対戦表の9章に出る（9章は30秒ごとに読み直す）。
-// 出す会は、対戦表の liveOn と同じ条件で、くじの会（9章が対戦表のページにあるため）。kuji/index.html の liveOn を直したら、ここも直す
+// 出す会は、対戦表の liveOn と同じ条件で、くじの会（9章が対戦表のページにあるため）。kuji/index.html の liveOn を直したら、こことトップ（index.html の liveOn）も直す
 const liveOn = c => !!(c.jikkyo === true && (c.mode === 3 || c.mode === 4) && c.final && c.final.tables === 1 && Number.isInteger(c.final.hanchan) && c.final.hanchan >= 2
   && Number.isInteger(c.start) && Number.isInteger(c.return) && Number.isInteger(c.prelim) && !!c.uma && typeof c.uma === 'object') && /^\d{4}-\d{2}-\d{2}$/.test(c.kuji || '');
 // 局の名前（KYOKU）とオーラス（ORAS）。東場と南場を人数の数ずつ（3麻は南3局・4麻は南4局がオーラス。対戦表と同じ）。load() で大会設定の mode から作る
@@ -481,8 +497,8 @@ $('liveform').addEventListener('focusout', () => lfAuto());
 function lfNow(ctx) {
   const v = liveState(ctx);
   $('lfnow').textContent = !v ? 'まだ送っていません。東1局の前に、席と点棒を確かめて送ります。'
-    : v.bad ? '受け口にある実況の席が、決勝の人と合いません。席を選び直して送ってください。'
-    : '受け口にある実況: ' + (v.end ? '終局' : KYOKU[v.kyoku] + ' ' + v.honba + '本場' + (v.kyotaku ? '・供託' + v.kyotaku + '本' : '')) + (v.ts ? '（' + String(v.ts).slice(11, 16) + ' に送った分）' : '');
+    : v.bad ? '保存してある実況の席が、決勝の人と合いません。席を選び直して送ってください。'
+    : '保存してある実況: ' + (v.end ? '終局' : KYOKU[v.kyoku] + ' ' + v.honba + '本場' + (v.kyotaku ? '・供託' + v.kyotaku + '本' : '')) + (v.ts ? '（' + String(v.ts).slice(11, 16) + ' に送った分）' : '');
 }
 function renderLive() {
   const on = !!CFG && liveOn(CFG);
@@ -491,25 +507,25 @@ function renderLive() {
   const n = CFG.final.hanchan;
   // 入れる欄を出さないときは、わけだけ出す
   const pre = t => { $('liveform').hidden = !!t; $('lfpre').hidden = !t; $('lfpre').textContent = t || ''; };
-  if (!API) { pre('受け口が未設定のため、実況は入れられません。'); return; }
-  if (!GOT) { pre('受け口を読めませんでした（通信）。少し待ってから「受け口を読み直す」を押してください。'); return; }
+  if (!API) { pre('保存先が設定されていないため、実況は入れられません。'); return; }
+  if (!GOT) { pre('読み込めませんでした（通信）。少し待ってから「最新を読み直す」を押してください。'); return; }
   const ctx = liveMem();
-  if (ctx.wait) { pre('決勝' + ctx.wait + '半荘目の点数が入ると、ここで入れられます（席の欄に決勝の' + MODE + '人が出ます）。入ったら「受け口を読み直す」を押してください。'); return; }
+  if (ctx.wait) { pre('決勝' + ctx.wait + '半荘目の点数が入ると、ここで入れられます（席の欄に決勝の' + MODE + '人が出ます）。入ったら「最新を読み直す」を押してください。'); return; }
   // 決勝の最後の半荘の点数が入ったら、入れる欄は閉じる（9章は、その点数で出る。終局を送らずに点数を入れても、実況の点棒は使わない）
   if (recsOf(lastF())['1']) { pre('決勝' + n + '半荘目の点数が入りました。対戦表の9章は、その点数で出ています（ここで入れる物はありません）。'); return; }
   pre('');
   fillLiveForm(ctx); lfNow(ctx);
 }
-const LIVE_ERR = { action: '受け口がまだ実況に対応していません。主催が受け口の新しいバージョンをデプロイすると送れます', live: '送り方が不正です', player: '席の人の指定が不正です', score: '点棒の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', kai: '回の名前（大会設定）が不正です', bad_json: '送り方が不正です' };
+const LIVE_ERR = { action: '保存先の仕組みが、まだ実況に対応していません。主催に知らせてください', live: '送り方が不正です', player: '席の人の指定が不正です', score: '点棒の値が不正です', busy: '混み合っています。少し待ってから、もう一度送ってください', kai: '回の名前（大会設定）が不正です', bad_json: '送り方が不正です' };
 async function postLive(live) {
   const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'live', kai: CFG.kai, live }) });
   return r.json();
 }
 // 送った返事の data で持ち直して、欄を受け口の値に合わせ直す
-function tookLive(j) { LF_DIRTY = false; LF_KEY = ''; if (j.data && j.data.kai === CFG.kai) take(j.data); renderLive(); }
+function tookLive(j) { LF_DIRTY = false; LF_KEY = ''; if (j.data && j.data.kai === CFG.kai) take(j.data); renderLive(); goLive(); }
 $('liveform').addEventListener('submit', async ev => {
   ev.preventDefault();
-  if (!API) { say('lfmsg', '点数の受け口が設定されていません', false); return; }
+  if (!API) { say('lfmsg', '保存先が設定されていません', false); return; }
   if (liveMem().wait) return;
   lfAuto(true);
   const seats = SEATS().map(i => $('lfs' + i).value);
@@ -580,7 +596,7 @@ async function load() {
       const j = await getApi(API + '?kai=' + encodeURIComponent(c.kai));
       if (j.ok && j.data && j.data.kai === c.kai) OPS_ST = take(j.data) ? 'ok' : 'old';
     }
-    catch (e) { notes.push('受け口を読めませんでした（通信）。前に読めた分を出しています。'); if (OPS_ST !== 'ok') OPS_ST = 'net'; }
+    catch (e) { notes.push('読み込めませんでした（通信）。前に読めた分を出しています。'); if (OPS_ST !== 'ok') OPS_ST = 'net'; }
   }
   setup(GOT ? notes.join(' ') : '');
   $('main').hidden = false;

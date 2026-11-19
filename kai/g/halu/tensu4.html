@@ -15,6 +15,8 @@ a{color:var(--accent);text-decoration:underline}
 .wrap{max-width:760px;margin:0 auto;padding:0 16px 84px}
 header{border-bottom:3px solid var(--accent);margin:18px 0 14px;padding-bottom:10px}
 header h1{font-size:1.35rem;margin:0;line-height:1.4}
+/* 見出しは、狭い画面で折り返すときに言葉の切れ目で折り返す（span.w。トップなどと同じ。使いやすさの総点検の指摘18） */
+header h1 .w{display:inline-block}
 header .sub{color:var(--muted);font-size:.9rem}
 h2{font-size:1.15rem;margin:34px 0 12px;padding:10px 14px;background:var(--accent);color:var(--accent-fg);border-radius:8px;position:sticky;top:0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 h3{font-size:1.08rem;margin:24px 0 8px;border-left:5px solid var(--accent);padding-left:10px}
@@ -32,6 +34,8 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 .top{position:fixed;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:50%;width:48px;height:48px;font-size:1.3rem;font-weight:bold;display:none;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}.top.on{display:flex}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .pnav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+/* 幅360px未満は、切り替えボタンを3つずつの段にそろえる（トップなどと同じ） */
+@media (max-width:359px){.pnav{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}}
 .pnav a{flex:1 1 auto;text-align:center;padding:10px 4px;white-space:nowrap;font-size:.9rem;border:2px solid var(--accent);border-radius:999px;text-decoration:none;font-weight:700;color:var(--accent);background:var(--card)}
 .pnav a[aria-current=page]{background:var(--accent);color:var(--accent-fg)}
 .note{font-size:.92rem;color:var(--muted)}
@@ -44,7 +48,7 @@ nav.toc a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;font-size:.
 table.how th,table.how td{text-align:center;white-space:nowrap}
 table.how td:first-child{text-align:left}
 table.sc th,table.sc td{text-align:center;white-space:nowrap;padding:7px 5px;line-height:1.35}
-table.sc th small,table.how th small{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+table.sc th small,table.how th small{display:block;font-size:.875rem;color:var(--muted);font-weight:400}
 table.sc td b{display:block;font-size:1.05rem}
 table.sc td.na{color:var(--muted)}
 table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight:700}
@@ -52,7 +56,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
 .calc{display:grid;grid-template-columns:1fr .8fr 1.4fr 1.3fr;gap:8px}
 .calc label{display:block;font-weight:700;margin:0 0 4px}
-.calc select{width:100%;padding:10px 8px;font-size:1.05rem;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
+.calc select{width:100%;min-height:44px;padding:10px 8px;font-size:1.05rem;border:2px solid var(--field);border-radius:8px;background:#fff;color:var(--fg)}
 .calc select:disabled{opacity:.45}
 .cres{margin-top:12px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font-size:1.05rem;line-height:1.8}
 .cres b{font-size:1.3rem;color:var(--accent)}
@@ -66,7 +70,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
     <h1 id="ttl">🀄 四麻Halu杯 点数早見表</h1>
     <div class="sub">草案（2026-11-18）。4人麻雀の点数です。</div>
   </header>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html">ルール</a><a href="tensu4.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a class="score" href="../../score/">点数入力</a><a href="rule4.html">ルール</a><a href="tensu4.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <div class="other" id="other" hidden><p><b>このページは四麻の点数早見表です。</b></p><p id="other-t"></p><p id="other-p"><a id="other-a" href="#">今の回のルールを開く</a></p></div>
   <h2 id="keisan" style="margin-top:14px">点数の計算</h2>
   <div class="card">
@@ -219,7 +223,7 @@ table.sc td.man{background:var(--soft)!important;color:var(--accent);font-weight
 <p class="src">点数は、ルールの10章の点数表と同じです。細かい解釈で迷ったときは、運営が判断します。</p>
 
   </main>
-  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a href="../../score/">点数入力</a><a href="rule4.html">ルール</a><a href="tensu4.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
+  <nav class="pnav" aria-label="ページ切り替え"><a href="../../">トップ</a><a class="score" href="../../score/">点数入力</a><a href="rule4.html">ルール</a><a href="tensu4.html" aria-current="page">早見表</a><a class="kuji" href="../../kuji/" hidden>対戦表</a></nav>
   <a class="top" href="#" title="上へ">↑</a>
 </div>
 <script>
@@ -323,11 +327,23 @@ function readShell() {
 const KIND = 4, KIND_NAME = { 3: '三麻', 4: '四麻' }, TTL0 = $('ttl').textContent, DOC0 = document.title;
 const kindOf = c => Number.isInteger(c.mode) ? c.mode : c.rule === 'rule.html' ? 3 : c.rule === 'rule4.html' ? 4 : 0;
 // 会の色と題名（題名は同じ種類の回だけ。違えばページの元の題名に戻す）。くじのボタンは、くじで決める会（kuji）だけ
+// この端末で結果を見た回か（キーと中身はトップ・点数入力・対戦表・幹部用の END_KEY と同じ＝回の名前）
+// 見出しを言葉ごとの span.w にする（トップ・点数入力・対戦表・幹部用・運営用の ttlWords と同じ。どれかを直したら、ほかも直す）
+function ttlWords(h, s) {
+  h.textContent = '';
+  String(s).split(' ').filter(Boolean).forEach((w, i) => {
+    if (i) h.appendChild(document.createTextNode(' '));
+    const x = document.createElement('span'); x.className = 'w'; x.textContent = (i ? '' : '🀄 ') + w; h.appendChild(x);
+  });
+}
+const endSeen = k => { try { return !!k && localStorage.getItem('halukai:end:' + G) === k; } catch (e) { return false; } };
 function shell(c) {
+  // 点数入力のボタンは、この端末で結果を見た回なら「対戦結果」と呼ぶ（ほかのページの scoreLink と同じ呼び名。使いやすさの総点検の指摘17・2026-11-19）
+  document.querySelectorAll('.pnav a.score').forEach(a => { a.textContent = endSeen(c.kai) ? '対戦結果' : '点数入力'; });
   if (/^#[0-9a-fA-F]{6}$/.test(c.color || '')) document.documentElement.style.setProperty('--accent', c.color);
   const k = kindOf(c), t = k === KIND && c.title ? c.title + ' 点数早見表' : '';
   document.title = t || DOC0;
-  $('ttl').textContent = t ? '🀄 ' + t : TTL0;
+  ttlWords($('ttl'), t || TTL0.replace('🀄 ', ''));
   document.querySelectorAll('.pnav a.kuji').forEach(a => { a.hidden = !/^\d{4}-\d{2}-\d{2}$/.test(c.kuji || ''); });
   otherKind(c, k);
 }
